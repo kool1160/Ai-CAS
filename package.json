@@ -1,0 +1,16 @@
+{
+  "name": "refab-connect-core-reskin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "15.3.8",
+    "react": "19.1.2",
+    "react-dom": "19.1.2",
+    "resend": "^4.1.2"
+  }
+}
