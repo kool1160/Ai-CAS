@@ -20,6 +20,7 @@ export type WocConfirmationState = {
 };
 
 export type GeneratedCorrectionPackage = {
+  subjectLine: string;
   reportPreview: string;
   emailPreview: string;
   generatedAt: string;
@@ -86,46 +87,78 @@ export function isFilled(value: string) {
   return Boolean(value.trim());
 }
 
-export function buildReportPreview(data: WocCorrectionData) {
-  return `ENGINEERING REPORT PREVIEW
-
-Work Order: ${data.workOrderNumber || '[WORK ORDER REQUIRED]'}
-Part Number: ${data.partNumber || '[PART NUMBER REQUIRED]'}
-Customer / Job: ${data.customerOrJob || '[OPTIONAL]'}
-Revision: ${data.revision || '[OPTIONAL]'}
-Quantity: ${data.quantity || '[OPTIONAL]'}
-Correction Type: ${data.correctionType || '[CORRECTION TYPE REQUIRED]'}
-Affected Process: ${data.affectedProcess || '[AFFECTED PROCESS REQUIRED]'}
-
-Issue Details:
-${data.issueDetails || '[ISSUE DETAILS REQUIRED]'}
-
-Requested Engineering Action:
-${data.requestedEngineeringAction || '[REQUESTED ACTION REQUIRED]'}`;
+function optionalLine(label: string, value: string) {
+  return isFilled(value) ? `${label}: ${value.trim()}\n` : '';
 }
 
-export function buildEmailPreview(data: WocCorrectionData) {
-  return `To: Engineering
-Subject: Work Order Correction Request | ${data.workOrderNumber || 'WO TBD'} | ${data.partNumber || 'PART TBD'}
+export function buildEmailSubject(data: WocCorrectionData) {
+  return `[${data.correctionType.trim()}] Work Order Correction Needed — WO ${data.workOrderNumber.trim()} / Part ${data.partNumber.trim()}`;
+}
 
-Please review the correction request below.
+export function buildEngineeringReport(data: WocCorrectionData) {
+  return `ENGINEERING CORRECTION REPORT
 
-Work Order: ${data.workOrderNumber || '[WORK ORDER REQUIRED]'}
-Part Number: ${data.partNumber || '[PART NUMBER REQUIRED]'}
-Correction Type: ${data.correctionType || '[CORRECTION TYPE REQUIRED]'}
-Affected Process: ${data.affectedProcess || '[AFFECTED PROCESS REQUIRED]'}
+1. Title / Correction Category
+${data.correctionType.trim()} — Work Order Correction Request
 
-Issue:
-${data.issueDetails || '[ISSUE DETAILS REQUIRED]'}
+2. Work Order Number
+${data.workOrderNumber.trim()}
 
-Requested Action:
-${data.requestedEngineeringAction || '[REQUESTED ACTION REQUIRED]'}`;
+3. Part Number
+${data.partNumber.trim()}
+
+${optionalLine('4. Revision', data.revision)}${optionalLine('5. Customer / Job', data.customerOrJob)}${optionalLine('6. Quantity', data.quantity)}7. Correction Type
+${data.correctionType.trim()}
+
+8. Affected Process / Department
+${data.affectedProcess.trim()}
+
+9. Issue Summary
+${data.issueDetails.trim()}
+
+10. Requested Engineering Action
+${data.requestedEngineeringAction.trim()}
+
+11. Submitted By / Source
+Shop-floor correction request submitted through REFAB Connect / AI-WOC.
+
+12. Status
+Draft / Pending Engineering Review`;
+}
+
+export function buildEmailDraft(data: WocCorrectionData) {
+  const subject = buildEmailSubject(data);
+
+  return `Subject: ${subject}
+
+Engineering Team,
+
+Please review the work order correction request below.
+
+Work Order Number:
+${data.workOrderNumber.trim()}
+
+Part Number:
+${data.partNumber.trim()}
+
+Correction Type:
+${data.correctionType.trim()}
+
+Issue Summary:
+${data.issueDetails.trim()}
+
+Requested Engineering Action:
+${data.requestedEngineeringAction.trim()}
+
+Thank you,
+REFAB Connect / AI-WOC`;
 }
 
 export function createGeneratedPackage(data: WocCorrectionData): GeneratedCorrectionPackage {
   return {
-    reportPreview: buildReportPreview(data),
-    emailPreview: buildEmailPreview(data),
+    subjectLine: buildEmailSubject(data),
+    reportPreview: buildEngineeringReport(data),
+    emailPreview: buildEmailDraft(data),
     generatedAt: new Date().toLocaleString(),
   };
 }
