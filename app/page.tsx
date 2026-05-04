@@ -71,6 +71,22 @@ export default function Home() {
     return labels[activeScreen];
   }, [activeScreen]);
 
+  const reportPreview = useMemo(() => `ENGINEERING REPORT PREVIEW
+
+Work Order: 042631-001
+Part Number: CYM-1750-LH-BU
+Correction Type: ${correctionType}
+Process: ${processAffected}
+
+Issue: ${issueDetails}
+
+Requested Action: ${requestedAction}`, [correctionType, issueDetails, processAffected, requestedAction]);
+
+  const emailPreview = `To: Engineering
+Subject: Work Order Correction Request
+
+Please review the attached correction package for the affected work order/router data.`;
+
   const confirmField = (label: string) => {
     setFields((current) => current.map((field) => (
       field.label === label ? { ...field, confirmed: true } : field
@@ -277,16 +293,12 @@ export default function Home() {
                 </div>
                 <span className={readyToSend ? 'field-status confirmed' : 'field-status'}>{readyToSend ? 'Ready to Send' : 'Review'}</span>
               </div>
-              <div className="preview-box">
-                ENGINEERING REPORT PREVIEW\n\nWork Order: 042631-001\nPart Number: CYM-1750-LH-BU\nCorrection Type: {correctionType}\nProcess: {processAffected}\n\nIssue: {issueDetails}\n\nRequested Action: {requestedAction}
-              </div>
+              <div className="preview-box">{reportPreview}</div>
             </article>
 
             <article className="card">
               <h2>Email Draft Preview</h2>
-              <div className="preview-box">
-                To: Engineering\nSubject: Work Order Correction Request\n\nPlease review the attached correction package for the affected work order/router data.
-              </div>
+              <div className="preview-box">{emailPreview}</div>
               <div className="action-row">
                 <button className="button secondary" type="button">Copy Report</button>
                 <button className="button secondary" type="button">Copy Email Draft</button>
