@@ -1,18 +1,25 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  affectedProcessOptions,
+  confirmDataFields,
+  correctionTypeOptions,
+  createGeneratedPackage,
+  defaultWocConfirmations,
+  defaultWocCorrectionData,
+  getGateStatus,
+  resetDependentConfirmations,
+  type GeneratedCorrectionPackage,
+  type WocConfirmationState,
+  type WocCorrectionData,
+} from '../features/woc/state/wocDataModel';
 
 type Screen = 'home' | 'capture' | 'confirm' | 'generate' | 'review' | 'drafts' | 'history' | 'more';
 
 type NavItem = {
   label: string;
   screen: Screen;
-};
-
-type ExtractedField = {
-  label: string;
-  value: string;
-  confirmed: boolean;
 };
 
 const bottomNav: NavItem[] = [
@@ -31,30 +38,17 @@ const workflow = [
   ['05', 'Confirm + Send', 'Review everything before copy/send controls unlock.'],
 ];
 
-const initialFields: ExtractedField[] = [
-  { label: 'Work Order', value: '042631-001', confirmed: false },
-  { label: 'Part Number', value: 'CYM-1750-LH-BU', confirmed: false },
-  { label: 'Revision', value: 'B', confirmed: false },
-  { label: 'Customer', value: 'ENWORK', confirmed: false },
-  { label: 'Quantity', value: '35 EA', confirmed: false },
-];
-
 export default function Home() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
-  const [fields, setFields] = useState<ExtractedField[]>(initialFields);
+  const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
+  const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
   const [manualEntry, setManualEntry] = useState('');
-  const [correctionType, setCorrectionType] = useState('Incorrect Time / Rate');
-  const [processAffected, setProcessAffected] = useState('Welding');
-  const [issueDetails, setIssueDetails] = useState('Router time does not match the sustainable shop-floor baseline.');
-  const [requestedAction, setRequestedAction] = useState('Review and update the router time/rate to the correct Engineering-approved baseline.');
-  const [draftGenerated, setDraftGenerated] = useState(false);
-  const [finalReviewConfirmed, setFinalReviewConfirmed] = useState(false);
+  const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
 
-  const workOrderConfirmed = fields.find((field) => field.label === 'Work Order')?.confirmed ?? false;
-  const partNumberConfirmed = fields.find((field) => field.label === 'Part Number')?.confirmed ?? false;
-  const allFieldsConfirmed = fields.every((field) => field.confirmed);
-  const correctionReady = Boolean(correctionType.trim() && issueDetails.trim() && requestedAction.trim());
-  const readyToSend = Boolean(workOrderConfirmed && partNumberConfirmed && correctionReady && draftGenerated && finalReviewConfirmed);
+  const gateStatus = useMemo(
+    () => getGateStatus(wocData, confirmations, generatedPackage),
+    [confirmations, generatedPackage, wocData],
+  );
 
   const currentStepLabel = useMemo(() => {
     const labels: Record<Screen, string> = {
@@ -71,30 +65,35 @@ export default function Home() {
     return labels[activeScreen];
   }, [activeScreen]);
 
-  const reportPreview = useMemo(() => `ENGINEERING REPORT PREVIEW
-
-Work Order: 042631-001
-Part Number: CYM-1750-LH-BU
-Correction Type: ${correctionType}
-Process: ${processAffected}
-
-Issue: ${issueDetails}
-
-Requested Action: ${requestedAction}`, [correctionType, issueDetails, processAffected, requestedAction]);
-
-  const emailPreview = `To: Engineering
-Subject: Work Order Correction Request
-
-Please review the attached correction package for the affected work order/router data.`;
-
-  const confirmField = (label: string) => {
-    setFields((current) => current.map((field) => (
-      field.label === label ? { ...field, confirmed: true } : field
-    )));
+  const updateWocData = (key: keyof WocCorrectionData, value: string) => {
+    setWocData((current) => ({ ...current, [key]: value }));
+    setConfirmations((current) => resetDependentConfirmations(current, key, value));
+    setGeneratedPackage(null);
   };
 
-  const confirmAllFields = () => {
-    setFields((current) => current.map((field) => ({ ...field, confirmed: true })));
+  const confirmWorkOrderData = () => {
+    setConfirmations((current) => ({
+      ...current,
+      workOrderDataConfirmed: Boolean(wocData.workOrderNumber.trim()),
+      finalReviewConfirmed: false,
+    }));
+  };
+
+  const confirmPartNumber = () => {
+    setConfirmations((current) => ({
+      ...current,
+      partNumberConfirmed: Boolean(wocData.partNumber.trim()),
+      finalReviewConfirmed: false,
+    }));
+  };
+
+  const confirmAllRequiredData = () => {
+    setConfirmations((current) => ({
+      ...current,
+      workOrderDataConfirmed: Boolean(wocData.workOrderNumber.trim()),
+      partNumberConfirmed: Boolean(wocData.partNumber.trim()),
+      finalReviewConfirmed: false,
+    }));
   };
 
   const startCapture = () => {
@@ -106,13 +105,30 @@ Please review the attached correction package for the affected work order/router
   };
 
   const goToGenerate = () => {
+    if (!gateStatus.confirmReady) return;
     setActiveScreen('generate');
   };
 
   const generateDraft = () => {
-    setDraftGenerated(true);
-    setFinalReviewConfirmed(false);
+    if (!gateStatus.generateReady) return;
+    setGeneratedPackage(createGeneratedPackage(wocData));
+    setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
     setActiveScreen('review');
+  };
+
+  const setFinalReviewConfirmed = (confirmed: boolean) => {
+    setConfirmations((current) => ({ ...current, finalReviewConfirmed: confirmed }));
+  };
+
+  const getFieldConfirmed = (key: keyof WocCorrectionData) => {
+    if (key === 'workOrderNumber') return confirmations.workOrderDataConfirmed;
+    if (key === 'partNumber') return confirmations.partNumberConfirmed;
+    return Boolean(wocData[key].trim());
+  };
+
+  const confirmField = (key: keyof WocCorrectionData) => {
+    if (key === 'workOrderNumber') confirmWorkOrderData();
+    if (key === 'partNumber') confirmPartNumber();
   };
 
   return (
@@ -195,34 +211,49 @@ Please review the attached correction package for the affected work order/router
           <section className="stack">
             <div className="screen-title">
               <h1>Extract + Confirm</h1>
-              <p>Mock extracted fields are shown for Milestone 1. Required fields must be confirmed before proceeding.</p>
+              <p>Review and edit WOC data before it can move into the correction package.</p>
             </div>
 
             <article className="card">
               <div className="field-list">
-                {fields.map((field) => (
-                  <div className="field-row" key={field.label}>
-                    <strong>
-                      {field.label}
-                      <span className={field.confirmed ? 'field-status confirmed' : 'field-status'}>
-                        {field.confirmed ? 'Confirmed' : 'Review'}
-                      </span>
-                    </strong>
-                    <span className="field-value">{field.value}</span>
-                    <button className="button secondary" type="button" onClick={() => confirmField(field.label)} disabled={field.confirmed}>
-                      Confirm {field.label}
-                    </button>
-                  </div>
-                ))}
+                {confirmDataFields.map((field) => {
+                  const confirmed = getFieldConfirmed(field.key);
+                  return (
+                    <div className="field-row" key={field.key}>
+                      <strong>
+                        {field.label}{field.required ? ' *' : ''}
+                        <span className={confirmed ? 'field-status confirmed' : 'field-status'}>
+                          {confirmed ? 'Confirmed' : 'Review'}
+                        </span>
+                      </strong>
+                      <input
+                        type="text"
+                        value={wocData[field.key]}
+                        onChange={(event) => updateWocData(field.key, event.target.value)}
+                        placeholder={field.required ? `${field.label} required` : `${field.label} optional`}
+                      />
+                      {field.confirmable && (
+                        <button
+                          className="button secondary"
+                          type="button"
+                          onClick={() => confirmField(field.key)}
+                          disabled={!wocData[field.key].trim() || confirmed}
+                        >
+                          Confirm {field.label}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <div className="action-row">
-                <button className="button success" type="button" onClick={confirmAllFields}>Confirm All Fields</button>
-                <button className="button primary" type="button" onClick={goToGenerate} disabled={!workOrderConfirmed || !partNumberConfirmed}>
+                <button className="button success" type="button" onClick={confirmAllRequiredData}>Confirm Required Fields</button>
+                <button className="button primary" type="button" onClick={goToGenerate} disabled={!gateStatus.confirmReady}>
                   Continue to Build Correction
                 </button>
               </div>
-              {!allFieldsConfirmed && (
-                <p className="field-help">Work Order and Part Number are required to continue. Remaining fields stay visible for review.</p>
+              {!gateStatus.confirmReady && (
+                <p className="field-help">Work Order and Part Number must be filled in and confirmed before Generate unlocks.</p>
               )}
             </article>
           </section>
@@ -239,41 +270,33 @@ Please review the attached correction package for the affected work order/router
               <div className="form-grid">
                 <label>
                   Correction Type
-                  <select value={correctionType} onChange={(event) => setCorrectionType(event.target.value)}>
-                    <option>Incorrect Time / Rate</option>
-                    <option>Missing Grind / Finish Operation</option>
-                    <option>Missing Weld Operation</option>
-                    <option>Missing Fixture / Work Instruction</option>
-                    <option>Wrong / Missing Router Step</option>
-                    <option>Other</option>
+                  <select value={wocData.correctionType} onChange={(event) => updateWocData('correctionType', event.target.value)}>
+                    {correctionTypeOptions.map((option) => <option key={option}>{option}</option>)}
                   </select>
                 </label>
                 <label>
-                  Process Affected
-                  <select value={processAffected} onChange={(event) => setProcessAffected(event.target.value)}>
-                    <option>Welding</option>
-                    <option>Cobot Welding</option>
-                    <option>Grinding / Finish</option>
-                    <option>Laser / Forming</option>
-                    <option>Inspection / Quality</option>
-                    <option>Fixture / Setup</option>
-                    <option>Other</option>
+                  Process / Department Affected
+                  <select value={wocData.affectedProcess} onChange={(event) => updateWocData('affectedProcess', event.target.value)}>
+                    {affectedProcessOptions.map((option) => <option key={option}>{option}</option>)}
                   </select>
                 </label>
                 <label>
                   Issue Details
-                  <textarea value={issueDetails} onChange={(event) => setIssueDetails(event.target.value)} />
+                  <textarea value={wocData.issueDetails} onChange={(event) => updateWocData('issueDetails', event.target.value)} />
                 </label>
                 <label>
-                  Requested Correction / Action
-                  <textarea value={requestedAction} onChange={(event) => setRequestedAction(event.target.value)} />
+                  Requested Engineering Action
+                  <textarea value={wocData.requestedEngineeringAction} onChange={(event) => updateWocData('requestedEngineeringAction', event.target.value)} />
                 </label>
               </div>
               <div className="action-row">
-                <button className="button danger full-width" type="button" onClick={generateDraft} disabled={!correctionReady}>
+                <button className="button danger full-width" type="button" onClick={generateDraft} disabled={!gateStatus.generateReady}>
                   Generate Draft
                 </button>
               </div>
+              {!gateStatus.generateReady && (
+                <p className="field-help">Generate requires confirmed Work Order, confirmed Part Number, correction type, issue details, and requested Engineering action.</p>
+              )}
             </article>
           </section>
         )}
@@ -282,38 +305,39 @@ Please review the attached correction package for the affected work order/router
           <section className="stack">
             <div className="screen-title">
               <h1>Review / Send</h1>
-              <p>Report and email preview placeholders. Copy/send controls are placeholders until send logic is wired.</p>
+              <p>Generated report and email preview placeholders. Copy/send controls remain placeholders until send logic is wired.</p>
             </div>
 
             <article className="card">
               <div className="card-header">
                 <div>
-                  <h2>{draftGenerated ? 'Draft Ready' : 'Draft Not Generated'}</h2>
+                  <h2>{generatedPackage ? 'Draft Ready' : 'Draft Not Generated'}</h2>
                   <p>Final review gate controls whether the placeholder send button is enabled.</p>
                 </div>
-                <span className={readyToSend ? 'field-status confirmed' : 'field-status'}>{readyToSend ? 'Ready to Send' : 'Review'}</span>
+                <span className={gateStatus.sendReady ? 'field-status confirmed' : 'field-status'}>{gateStatus.sendReady ? 'Ready to Send' : 'Review'}</span>
               </div>
-              <div className="preview-box">{reportPreview}</div>
+              <div className="preview-box">{generatedPackage?.reportPreview ?? 'Generate a correction package before final review.'}</div>
             </article>
 
             <article className="card">
               <h2>Email Draft Preview</h2>
-              <div className="preview-box">{emailPreview}</div>
+              <div className="preview-box">{generatedPackage?.emailPreview ?? 'Generate a correction package before final review.'}</div>
               <div className="action-row">
-                <button className="button secondary" type="button">Copy Report</button>
-                <button className="button secondary" type="button">Copy Email Draft</button>
-                <button className="button secondary" type="button">Save Draft</button>
+                <button className="button secondary" type="button" disabled={!generatedPackage}>Copy Report</button>
+                <button className="button secondary" type="button" disabled={!generatedPackage}>Copy Email Draft</button>
+                <button className="button secondary" type="button" disabled={!generatedPackage}>Save Draft</button>
               </div>
               <label style={{ marginTop: 14 }}>
                 <input
-                  checked={finalReviewConfirmed}
+                  checked={confirmations.finalReviewConfirmed}
+                  disabled={!generatedPackage}
                   onChange={(event) => setFinalReviewConfirmed(event.target.checked)}
                   type="checkbox"
                 />
                 Final review confirmed
               </label>
               <div className="action-row">
-                <button className="button danger full-width" type="button" disabled={!readyToSend}>Send / Confirm Send</button>
+                <button className="button danger full-width" type="button" disabled={!gateStatus.sendReady}>Send / Confirm Send</button>
               </div>
             </article>
           </section>
@@ -326,14 +350,17 @@ Please review the attached correction package for the affected work order/router
               <p>Placeholder list for generated correction packages.</p>
             </div>
             <div className="placeholder-list">
-              <div className="placeholder-item">
-                <strong>Draft WOC-0001</strong>
-                <span>Incorrect Time / Rate · Awaiting final review</span>
-              </div>
-              <div className="placeholder-item">
-                <strong>No live draft storage yet</strong>
-                <span>Draft behavior will be wired after core structure is stable.</span>
-              </div>
+              {generatedPackage ? (
+                <div className="placeholder-item">
+                  <strong>Current Generated Draft</strong>
+                  <span>{wocData.correctionType} · Generated {generatedPackage.generatedAt}</span>
+                </div>
+              ) : (
+                <div className="placeholder-item">
+                  <strong>No active generated draft</strong>
+                  <span>Draft behavior will be wired after core gates are stable.</span>
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -369,7 +396,7 @@ Please review the attached correction package for the affected work order/router
                 </div>
                 <div className="placeholder-item">
                   <strong>Build Status</strong>
-                  <span>Milestone 1: clean screen flow only.</span>
+                  <span>Milestone 2: WOC data model and required gate logic.</span>
                 </div>
               </div>
             </article>
