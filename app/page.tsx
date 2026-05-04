@@ -305,13 +305,13 @@ export default function Home() {
           <section className="stack">
             <div className="screen-title">
               <h1>Review / Send</h1>
-              <p>Generated report and email preview placeholders. Copy/send controls remain placeholders until send logic is wired.</p>
+              <p>Review the generated Engineering report and email draft. Copy/send controls remain placeholders until send logic is wired.</p>
             </div>
 
             <article className="card">
               <div className="card-header">
                 <div>
-                  <h2>{generatedPackage ? 'Draft Ready' : 'Draft Not Generated'}</h2>
+                  <h2>{generatedPackage ? 'Engineering Report Ready' : 'Draft Not Generated'}</h2>
                   <p>Final review gate controls whether the placeholder send button is enabled.</p>
                 </div>
                 <span className={gateStatus.sendReady ? 'field-status confirmed' : 'field-status'}>{gateStatus.sendReady ? 'Ready to Send' : 'Review'}</span>
@@ -320,7 +320,7 @@ export default function Home() {
             </article>
 
             <article className="card">
-              <h2>Email Draft Preview</h2>
+              <h2>Engineering Email Draft</h2>
               <div className="preview-box">{generatedPackage?.emailPreview ?? 'Generate a correction package before final review.'}</div>
               <div className="action-row">
                 <button className="button secondary" type="button" disabled={!generatedPackage}>Copy Report</button>
@@ -347,12 +347,12 @@ export default function Home() {
           <section className="stack">
             <div className="screen-title">
               <h1>Drafts</h1>
-              <p>Placeholder list for generated correction packages.</p>
+              <p>Current generated correction package.</p>
             </div>
             <div className="placeholder-list">
               {generatedPackage ? (
                 <div className="placeholder-item">
-                  <strong>Current Generated Draft</strong>
+                  <strong>{generatedPackage.subjectLine}</strong>
                   <span>{wocData.correctionType} · Generated {generatedPackage.generatedAt}</span>
                 </div>
               ) : (
@@ -396,7 +396,7 @@ export default function Home() {
                 </div>
                 <div className="placeholder-item">
                   <strong>Build Status</strong>
-                  <span>Milestone 2: WOC data model and required gate logic.</span>
+                  <span>Milestone 3: Engineering report and email draft generation.</span>
                 </div>
               </div>
             </article>
