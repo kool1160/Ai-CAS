@@ -12,5 +12,11 @@
     "react": "19.1.2",
     "react-dom": "19.1.2",
     "resend": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "typescript": "^5.8.3"
   }
 }
