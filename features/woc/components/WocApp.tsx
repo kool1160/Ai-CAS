@@ -9,6 +9,11 @@ import {
   saveHistoryRecordsToStorage,
 } from '../logic/localRecordsStorage';
 import {
+  defaultSetupConfig,
+  loadSetupConfigFromStorage,
+  saveSetupConfigToStorage,
+} from '../logic/setupConfigStorage';
+import {
   createGeneratedPackage,
   defaultWocConfirmations,
   defaultWocCorrectionData,
@@ -27,6 +32,7 @@ import type {
   HistoryRecord,
   NavItem,
   Screen,
+  SetupConfig,
   UploadedFileInfo,
   WorkflowStep,
 } from '../types/wocSessionTypes';
@@ -67,6 +73,16 @@ const stepLabels: Record<Screen, string> = {
   more: 'More',
 };
 
+function buildSendSetupPayload(setupConfig: SetupConfig) {
+  return {
+    recipientEmail: setupConfig.engineeringRecipientEmail,
+    senderDisplayName: setupConfig.senderDisplayName,
+    submittedByName: setupConfig.defaultSubmittedByName,
+    submittedByEmail: setupConfig.defaultSubmittedByEmail,
+    companyName: setupConfig.companyName,
+  };
+}
+
 export function WocApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
@@ -91,6 +107,10 @@ export function WocApp() {
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [localRecordsLoaded, setLocalRecordsLoaded] = useState(false);
   const [localRecordsFeedback, setLocalRecordsFeedback] = useState<ActionFeedback>(null);
+  const [setupConfig, setSetupConfig] = useState<SetupConfig>(defaultSetupConfig);
+  const [setupCodeInput, setSetupCodeInput] = useState('');
+  const [setupUnlocked, setSetupUnlocked] = useState(false);
+  const [setupFeedback, setSetupFeedback] = useState<ActionFeedback>(null);
 
   useEffect(() => {
     return () => {
@@ -106,6 +126,7 @@ export function WocApp() {
 
     setDraftRecords(loadedDrafts);
     setHistoryRecords(loadedHistory);
+    setSetupConfig(loadSetupConfigFromStorage());
     setLocalRecordsLoaded(true);
   }, []);
 
@@ -436,6 +457,7 @@ export function WocApp() {
           partNumber: wocData.partNumber,
           affectedArea: getEffectiveAffectedArea(wocData),
           correctionType: wocData.correctionType,
+          ...buildSendSetupPayload(setupConfig),
         }),
       });
       const payload = await response.json();
@@ -491,6 +513,7 @@ export function WocApp() {
           partNumber: selectedDraft.partNumber,
           affectedArea: selectedDraft.affectedArea,
           correctionType: selectedDraft.correctionType,
+          ...buildSendSetupPayload(setupConfig),
         }),
       });
       const payload = await response.json();
@@ -511,6 +534,43 @@ export function WocApp() {
     } finally {
       setIsSendingDraft(false);
     }
+  };
+
+  const unlockSetup = async () => {
+    setSetupFeedback(null);
+
+    try {
+      const response = await fetch('/api/setup/unlock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: setupCodeInput }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message = typeof payload?.error === 'string' ? payload.error : 'Setup unlock failed.';
+        setSetupFeedback({ tone: 'error', message });
+        return;
+      }
+
+      setSetupUnlocked(true);
+      setSetupCodeInput('');
+      setSetupFeedback({ tone: 'success', message: 'Setup unlocked for this session.' });
+    } catch {
+      setSetupFeedback({ tone: 'error', message: 'Setup unlock could not be completed.' });
+    }
+  };
+
+  const updateSetupConfig = (key: keyof SetupConfig, value: string) => {
+    setSetupConfig((current) => ({ ...current, [key]: value }));
+    setSetupFeedback(null);
+  };
+
+  const saveSetupConfig = () => {
+    saveSetupConfigToStorage(setupConfig);
+    setSetupFeedback({ tone: 'success', message: 'Setup config saved to this browser.' });
   };
 
   const clearLocalRecords = () => {
@@ -620,6 +680,14 @@ export function WocApp() {
             draftCount={draftRecords.length}
             historyCount={historyRecords.length}
             localRecordsFeedback={localRecordsFeedback}
+            setupConfig={setupConfig}
+            setupCodeInput={setupCodeInput}
+            setupUnlocked={setupUnlocked}
+            setupFeedback={setupFeedback}
+            onSetupCodeChange={setSetupCodeInput}
+            onUnlockSetup={unlockSetup}
+            onUpdateSetupConfig={updateSetupConfig}
+            onSaveSetupConfig={saveSetupConfig}
             onClearLocalRecords={clearLocalRecords}
           />
         )}
