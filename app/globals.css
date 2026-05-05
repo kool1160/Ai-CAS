@@ -53,7 +53,7 @@ button:disabled {
 .app-shell {
   width: 100%;
   min-height: 100vh;
-  padding: 20px 16px 110px;
+  padding: 20px 16px calc(170px + env(safe-area-inset-bottom));
 }
 
 .app-frame {
@@ -361,7 +361,7 @@ select option {
   position: fixed;
   z-index: 20;
   left: 50%;
-  bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 4px;
