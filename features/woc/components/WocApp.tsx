@@ -74,6 +74,7 @@ export function WocApp() {
   const [copyFeedback, setCopyFeedback] = useState<ActionFeedback>(null);
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
   const [sendFeedback, setSendFeedback] = useState<ActionFeedback>(null);
+  const [isSending, setIsSending] = useState(false);
   const [draftRecords, setDraftRecords] = useState<DraftRecord[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
@@ -333,34 +334,70 @@ export function WocApp() {
     }
   };
 
-  const saveCompletedHistoryRecord = () => {
+  const addSentHistoryRecord = (resendId: string | null) => {
+    if (!generatedPackage) return;
+
+    const completedTimestamp = new Date().toLocaleString();
+    const nextHistoryNumber = historyRecords.length + 1;
+    const historyId = `HISTORY-${String(nextHistoryNumber).padStart(4, '0')}`;
+    const record: HistoryRecord = {
+      historyId,
+      completedTimestamp,
+      subjectLine: generatedPackage.subjectLine,
+      workOrderNumber: wocData.workOrderNumber,
+      partNumber: wocData.partNumber,
+      affectedArea: getEffectiveAffectedArea(wocData),
+      correctionType: wocData.correctionType,
+      reportText: generatedPackage.reportPreview,
+      emailDraftText: generatedPackage.emailPreview,
+      resendId,
+      status: 'Sent',
+    };
+
+    setHistoryRecords((current) => [record, ...current]);
+    setSelectedHistoryId(record.historyId);
+  };
+
+  const sendCorrectionEmail = async () => {
     if (!generatedPackage || !gateStatus.sendReady) {
-      setSendFeedback({ tone: 'error', message: 'Final review is required before creating a completed history record.' });
+      setSendFeedback({ tone: 'error', message: 'Final review is required before sending email.' });
       return;
     }
 
-    try {
-      const completedTimestamp = new Date().toLocaleString();
-      const nextHistoryNumber = historyRecords.length + 1;
-      const historyId = `HISTORY-${String(nextHistoryNumber).padStart(4, '0')}`;
-      const record: HistoryRecord = {
-        historyId,
-        completedTimestamp,
-        subjectLine: generatedPackage.subjectLine,
-        workOrderNumber: wocData.workOrderNumber,
-        partNumber: wocData.partNumber,
-        affectedArea: getEffectiveAffectedArea(wocData),
-        correctionType: wocData.correctionType,
-        reportText: generatedPackage.reportPreview,
-        emailDraftText: generatedPackage.emailPreview,
-        status: 'Completed / Sent Placeholder',
-      };
+    setIsSending(true);
+    setSendFeedback({ tone: 'success', message: 'Sending email to Christophertroyhilton@gmail.com...' });
 
-      setHistoryRecords((current) => [record, ...current]);
-      setSelectedHistoryId(record.historyId);
-      setSendFeedback({ tone: 'success', message: `${historyId} saved to History. Actual email sending is still placeholder only.` });
+    try {
+      const response = await fetch('/api/send-correction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subjectLine: generatedPackage.subjectLine,
+          reportText: generatedPackage.reportPreview,
+          emailDraftText: generatedPackage.emailPreview,
+          workOrderNumber: wocData.workOrderNumber,
+          partNumber: wocData.partNumber,
+          affectedArea: getEffectiveAffectedArea(wocData),
+          correctionType: wocData.correctionType,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message = typeof payload?.error === 'string' ? payload.error : 'Email send failed. Copy controls remain available.';
+        setSendFeedback({ tone: 'error', message });
+        return;
+      }
+
+      const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
+      addSentHistoryRecord(resendId);
+      setSendFeedback({ tone: 'success', message: `Email sent to Christophertroyhilton@gmail.com.${resendId ? ` Resend ID: ${resendId}` : ''}` });
     } catch {
-      setSendFeedback({ tone: 'error', message: 'History record could not be created. Try again.' });
+      setSendFeedback({ tone: 'error', message: 'Email send could not be completed. Copy controls remain available.' });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -421,6 +458,7 @@ export function WocApp() {
           <ReviewSendScreen
             generatedPackage={generatedPackage}
             sendReady={gateStatus.sendReady}
+            isSending={isSending}
             copyFeedback={copyFeedback}
             saveFeedback={saveFeedback}
             sendFeedback={sendFeedback}
@@ -429,7 +467,7 @@ export function WocApp() {
             onCopyEmailDraft={() => copyTextToClipboard(generatedPackage?.emailPreview, 'Email draft')}
             onSaveDraft={saveCurrentDraft}
             onFinalReviewChange={setFinalReviewConfirmed}
-            onSendPlaceholder={saveCompletedHistoryRecord}
+            onSendEmail={sendCorrectionEmail}
           />
         )}
         {activeScreen === 'drafts' && <DraftsScreen draftRecords={draftRecords} selectedDraft={selectedDraft} onSelectDraft={setSelectedDraftId} />}
