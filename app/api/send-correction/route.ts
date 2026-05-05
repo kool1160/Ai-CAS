@@ -30,25 +30,29 @@ function resolveSender() {
 }
 
 function buildEmailBody(payload: SendCorrectionRequest) {
-  const emailDraftText = cleanValue(payload.emailDraftText);
-  const reportText = cleanValue(payload.reportText);
+  const workOrderNumber = cleanValue(payload.workOrderNumber) || 'Not provided';
+  const partNumber = cleanValue(payload.partNumber) || 'Not provided';
+  const correctionType = cleanValue(payload.correctionType) || 'Not provided';
+  const affectedArea = cleanValue(payload.affectedArea) || 'Not provided';
   const companyName = cleanValue(payload.companyName);
   const submittedByName = cleanValue(payload.submittedByName);
   const submittedByEmail = cleanValue(payload.submittedByEmail);
 
-  const submittedByLines = [
-    companyName ? `Company: ${companyName}` : '',
-    submittedByName ? `Submitted By: ${submittedByName}` : '',
-    submittedByEmail ? `Submitted By Email: ${submittedByEmail}` : '',
-  ].filter(Boolean);
+  const submittedBy = [submittedByName, submittedByEmail].filter(Boolean).join(' / ');
 
-  return `${emailDraftText}${submittedByLines.length ? `\n\n${submittedByLines.join('\n')}` : ''}
+  return `Engineering Team,
 
----
+A work order correction has been submitted through Refab Connect.
 
-ENGINEERING REPORT
+Work Order: ${workOrderNumber}
+Part Number: ${partNumber}
+Correction Type: ${correctionType}
+Affected Area: ${affectedArea}${companyName ? `\nCompany: ${companyName}` : ''}${submittedBy ? `\nSubmitted By: ${submittedBy}` : ''}
 
-${reportText}`;
+Please review the Engineering Correction Report for the full issue summary and requested Engineering action.
+
+Thank you,
+Refab Connect`;
 }
 
 export async function POST(request: Request) {
