@@ -16,6 +16,7 @@ type MoreScreenProps = {
   onSaveSetupConfig: () => void;
   onClearLocalRecords: () => void;
   onLogout: () => void;
+  onResetUser: () => void;
 };
 
 export function MoreScreen({
@@ -34,6 +35,7 @@ export function MoreScreen({
   onSaveSetupConfig,
   onClearLocalRecords,
   onLogout,
+  onResetUser,
 }: MoreScreenProps) {
   return (
     <section className="stack">
@@ -53,8 +55,9 @@ export function MoreScreen({
         </div>
         <div className="action-row">
           <button className="button secondary full-width" type="button" onClick={onLogout}>Lock App</button>
+          <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved User</button>
         </div>
-        <p className="field-help">Lock App keeps the saved user identity and returns to the 4-digit App PIN screen.</p>
+        <p className="field-help">Lock App keeps the saved identity and returns to the 4-digit App Access PIN screen. Reset Saved User clears the local profile and returns to first-time setup.</p>
       </article>
 
       <article className="card">
@@ -67,14 +70,14 @@ export function MoreScreen({
           </div>
           <div className="placeholder-item">
             <strong>Build Status</strong>
-            <span>Milestone 16: Saved identity, App PIN unlock, and separate Send PIN.</span>
+            <span>Milestone 16: Saved identity, childproof App Access PIN, and separate Send PIN.</span>
           </div>
         </div>
       </article>
 
       <article className="card">
         <h2>Setup / Admin</h2>
-        <p>Local demo setup. This remains separate from App PIN and still requires the master code.</p>
+        <p>Local demo setup. This remains separate from App Access PIN and still requires the master code.</p>
         {!setupUnlocked ? (
           <div className="form-grid" style={{ marginTop: 14 }}>
             <label>
