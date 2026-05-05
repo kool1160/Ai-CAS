@@ -7,6 +7,7 @@ type ReviewSendScreenProps = {
   submittedBy: string;
   sendReady: boolean;
   isSending: boolean;
+  sendPin: string;
   copyFeedback: ActionFeedback;
   saveFeedback: ActionFeedback;
   sendFeedback: ActionFeedback;
@@ -15,6 +16,7 @@ type ReviewSendScreenProps = {
   onCopyEmailDraft: () => void;
   onSaveDraft: () => void;
   onFinalReviewChange: (confirmed: boolean) => void;
+  onSendPinChange: (value: string) => void;
   onSendEmail: () => void;
 };
 
@@ -23,6 +25,7 @@ export function ReviewSendScreen({
   submittedBy,
   sendReady,
   isSending,
+  sendPin,
   copyFeedback,
   saveFeedback,
   sendFeedback,
@@ -31,6 +34,7 @@ export function ReviewSendScreen({
   onCopyEmailDraft,
   onSaveDraft,
   onFinalReviewChange,
+  onSendPinChange,
   onSendEmail,
 }: ReviewSendScreenProps) {
   const handlePrintReport = () => {
@@ -90,9 +94,25 @@ export function ReviewSendScreen({
           />
           Final review confirmed
         </label>
+        <div className="form-grid" style={{ marginTop: 14 }}>
+          <label>
+            4-Digit Send PIN
+            <input
+              inputMode="numeric"
+              maxLength={4}
+              pattern="[0-9]*"
+              type="password"
+              value={sendPin}
+              disabled={!sendReady || isSending}
+              onChange={(event) => onSendPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="Enter PIN"
+            />
+          </label>
+          <p className="field-help">PIN is required only for real email sending.</p>
+        </div>
         <div className="action-row">
-          <button className="button danger full-width" type="button" disabled={!sendReady || isSending} onClick={onSendEmail}>
-            {isSending ? 'Sending...' : 'Send Email'}
+          <button className="button danger full-width" type="button" disabled={!sendReady || isSending || sendPin.length !== 4} onClick={onSendEmail}>
+            {isSending ? 'Sending...' : 'Confirm Send'}
           </button>
         </div>
       </article>
