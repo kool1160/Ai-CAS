@@ -12,6 +12,7 @@
   --red-soft: rgba(229, 57, 53, 0.14);
   --green: #35d07f;
   --green-soft: rgba(53, 208, 127, 0.14);
+  --nav-clearance: 230px;
 }
 
 * {
@@ -53,12 +54,13 @@ button:disabled {
 .app-shell {
   width: 100%;
   min-height: 100vh;
-  padding: 20px 16px calc(170px + env(safe-area-inset-bottom));
+  padding: 20px 16px calc(var(--nav-clearance) + env(safe-area-inset-bottom));
 }
 
 .app-frame {
   width: min(100%, 460px);
   margin: 0 auto;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
 .status-pill,
@@ -154,6 +156,10 @@ button:disabled {
 .stack {
   display: grid;
   gap: 12px;
+}
+
+.stack {
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
 }
 
 .card {
