@@ -16,7 +16,7 @@ type MoreScreenProps = {
   onSaveSetupConfig: () => void;
   onClearLocalRecords: () => void;
   onLogout: () => void;
-  onResetUser: () => void;
+  onResetUser?: () => void;
 };
 
 export function MoreScreen({
@@ -55,7 +55,9 @@ export function MoreScreen({
         </div>
         <div className="action-row">
           <button className="button secondary full-width" type="button" onClick={onLogout}>Lock App</button>
-          <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved User</button>
+          {onResetUser && (
+            <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved User</button>
+          )}
         </div>
         <p className="field-help">Lock App keeps the saved identity and returns to the 4-digit App Access PIN screen. Reset Saved User clears the local profile and returns to first-time setup.</p>
       </article>
