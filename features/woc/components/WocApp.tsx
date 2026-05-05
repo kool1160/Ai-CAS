@@ -13,7 +13,16 @@ import {
   type WocConfirmationState,
   type WocCorrectionData,
 } from '../state/wocDataModel';
-import type { ActionFeedback, DraftRecord, HistoryRecord, NavItem, Screen, UploadedFileInfo, WorkflowStep } from '../types/wocSessionTypes';
+import type {
+  ActionFeedback,
+  DraftRecord,
+  ExtractedWorkOrderData,
+  HistoryRecord,
+  NavItem,
+  Screen,
+  UploadedFileInfo,
+  WorkflowStep,
+} from '../types/wocSessionTypes';
 import { BottomNav } from './BottomNav';
 import { CaptureScreen } from './CaptureScreen';
 import { ConfirmScreen } from './ConfirmScreen';
@@ -56,8 +65,11 @@ export function WocApp() {
   const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
   const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
   const [manualEntry, setManualEntry] = useState('');
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [uploadedFile, setUploadedFile] = useState<UploadedFileInfo | null>(null);
   const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
+  const [extractionFeedback, setExtractionFeedback] = useState<ActionFeedback>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
   const [copyFeedback, setCopyFeedback] = useState<ActionFeedback>(null);
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
@@ -119,14 +131,22 @@ export function WocApp() {
       }
 
       if (!file) {
+        setSelectedUploadFile(null);
         setUploadFeedback('No file selected.');
+        setExtractionFeedback(null);
         return null;
       }
 
       const isImage = file.type.startsWith('image/');
       const previewUrl = isImage ? URL.createObjectURL(file) : null;
 
-      setUploadFeedback(`${file.name} selected. OCR / AI Vision extraction is not active yet.`);
+      setSelectedUploadFile(file);
+      setExtractionFeedback(null);
+      setUploadFeedback(
+        isImage
+          ? `${file.name} selected. Ready for Extract Text / Data.`
+          : `${file.name} selected. M9 extraction supports image files only; manual entry is still available.`,
+      );
 
       return {
         name: file.name,
@@ -145,7 +165,74 @@ export function WocApp() {
       }
       return null;
     });
+    setSelectedUploadFile(null);
+    setExtractionFeedback(null);
     setUploadFeedback('Uploaded file cleared.');
+  };
+
+  const applyExtractedData = (extracted: ExtractedWorkOrderData) => {
+    setWocData((current) => ({
+      ...current,
+      workOrderNumber: extracted.workOrderNumber ?? '',
+      partNumber: extracted.partNumber ?? '',
+      revision: extracted.revision ?? '',
+      customerOrJob: extracted.customerOrJob ?? '',
+      quantity: extracted.quantity ?? '',
+    }));
+    setConfirmations((current) => ({
+      ...current,
+      workOrderDataConfirmed: false,
+      partNumberConfirmed: false,
+      finalReviewConfirmed: false,
+    }));
+    setGeneratedPackage(null);
+    setCopyFeedback(null);
+    setSaveFeedback(null);
+    setSendFeedback(null);
+
+    if (extracted.notes?.trim()) {
+      setManualEntry(extracted.notes.trim());
+    }
+  };
+
+  const extractUploadedData = async () => {
+    if (!selectedUploadFile || !uploadedFile) {
+      setExtractionFeedback({ tone: 'error', message: 'Upload an image before extracting data.' });
+      return;
+    }
+
+    if (!uploadedFile.isImage) {
+      setExtractionFeedback({ tone: 'error', message: 'M9 extraction supports uploaded image files only. Manual entry remains available.' });
+      return;
+    }
+
+    setIsExtracting(true);
+    setExtractionFeedback({ tone: 'success', message: 'Extracting work order data...' });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedUploadFile);
+
+      const response = await fetch('/api/extract-work-order', {
+        method: 'POST',
+        body: formData,
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message = typeof payload?.error === 'string' ? payload.error : 'Extraction failed. Manual entry remains available.';
+        setExtractionFeedback({ tone: 'error', message });
+        return;
+      }
+
+      applyExtractedData(payload.extracted ?? {});
+      setExtractionFeedback({ tone: 'success', message: 'Extraction completed. Review and confirm the extracted fields before continuing.' });
+      setActiveScreen('confirm');
+    } catch {
+      setExtractionFeedback({ tone: 'error', message: 'Extraction could not be completed. Manual entry remains available.' });
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const confirmWorkOrderData = () => {
@@ -301,9 +388,12 @@ export function WocApp() {
             manualEntry={manualEntry}
             uploadedFile={uploadedFile}
             uploadFeedback={uploadFeedback}
+            extractionFeedback={extractionFeedback}
+            isExtracting={isExtracting}
             onManualEntryChange={setManualEntry}
             onUploadFile={handleUploadFile}
             onClearUpload={clearUploadedFile}
+            onExtractData={extractUploadedData}
             onCaptureRouter={goToConfirm}
           />
         )}
