@@ -15,7 +15,7 @@ type MoreScreenProps = {
   onUpdateSetupConfig: (key: keyof SetupConfig, value: string) => void;
   onSaveSetupConfig: () => void;
   onClearLocalRecords: () => void;
-  onLogout: () => void;
+  onLockApp: () => void;
 };
 
 export function MoreScreen({
@@ -33,7 +33,7 @@ export function MoreScreen({
   onUpdateSetupConfig,
   onSaveSetupConfig,
   onClearLocalRecords,
-  onLogout,
+  onLockApp,
 }: MoreScreenProps) {
   return (
     <section className="stack">
@@ -43,18 +43,18 @@ export function MoreScreen({
       </div>
       <article className="card">
         <h2>Current User</h2>
-        <p>This local device login identifies who is submitting correction requests.</p>
+        <p>This saved identity is used as Submitted By on correction reports.</p>
         <div className="placeholder-list" style={{ marginTop: 14 }}>
           <div className="placeholder-item">
             <strong>{currentUser.displayName}</strong>
             <span>{currentUser.emailOrEmployeeId}</span>
-            <span>Logged in: {currentUser.loginTimestamp}</span>
+            <span>Set up: {currentUser.loginTimestamp}</span>
           </div>
         </div>
         <div className="action-row">
-          <button className="button secondary full-width" type="button" onClick={onLogout}>Logout</button>
+          <button className="button secondary full-width" type="button" onClick={onLockApp}>Lock App</button>
         </div>
-        <p className="field-help">This is a local access lock, not full enterprise authentication.</p>
+        <p className="field-help">Lock App keeps the saved user identity and returns to the 4-digit App PIN screen.</p>
       </article>
 
       <article className="card">
@@ -67,14 +67,14 @@ export function MoreScreen({
           </div>
           <div className="placeholder-item">
             <strong>Build Status</strong>
-            <span>Milestone 16: User login / local app access lock.</span>
+            <span>Milestone 16: Saved identity, App PIN unlock, and separate Send PIN.</span>
           </div>
         </div>
       </article>
 
       <article className="card">
         <h2>Setup / Admin</h2>
-        <p>Local demo setup. This remains separate from user login and still requires the master code.</p>
+        <p>Local demo setup. This remains separate from App PIN and still requires the master code.</p>
         {!setupUnlocked ? (
           <div className="form-grid" style={{ marginTop: 14 }}>
             <label>
