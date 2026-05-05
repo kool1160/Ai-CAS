@@ -23,6 +23,11 @@ type NavItem = {
   screen: Screen;
 };
 
+type CopyFeedback = {
+  tone: 'success' | 'error';
+  message: string;
+} | null;
+
 const bottomNav: NavItem[] = [
   { label: 'Home', screen: 'home' },
   { label: 'Capture', screen: 'capture' },
@@ -45,6 +50,7 @@ export default function Home() {
   const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
   const [manualEntry, setManualEntry] = useState('');
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
+  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
 
   const gateStatus = useMemo(
     () => getGateStatus(wocData, confirmations, generatedPackage),
@@ -70,6 +76,7 @@ export default function Home() {
     setWocData((current) => ({ ...current, [key]: value }));
     setConfirmations((current) => resetDependentConfirmations(current, key, value));
     setGeneratedPackage(null);
+    setCopyFeedback(null);
   };
 
   const updateAffectedArea = (value: string) => {
@@ -80,6 +87,7 @@ export default function Home() {
     }));
     setConfirmations((current) => resetDependentConfirmations(current, 'affectedArea', value));
     setGeneratedPackage(null);
+    setCopyFeedback(null);
   };
 
   const confirmWorkOrderData = () => {
@@ -124,11 +132,26 @@ export default function Home() {
     if (!gateStatus.generateReady) return;
     setGeneratedPackage(createGeneratedPackage(wocData));
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
+    setCopyFeedback(null);
     setActiveScreen('review');
   };
 
   const setFinalReviewConfirmed = (confirmed: boolean) => {
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: confirmed }));
+  };
+
+  const copyTextToClipboard = async (text: string | undefined, label: string) => {
+    if (!text) {
+      setCopyFeedback({ tone: 'error', message: `Generate a draft before copying the ${label}.` });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback({ tone: 'success', message: `${label} copied to clipboard.` });
+    } catch {
+      setCopyFeedback({ tone: 'error', message: `${label} could not be copied. Use manual selection as fallback.` });
+    }
   };
 
   const getFieldConfirmed = (key: keyof WocCorrectionData) => {
@@ -345,10 +368,27 @@ export default function Home() {
               <h2>Engineering Email Draft</h2>
               <div className="preview-box">{generatedPackage?.emailPreview ?? 'Generate a correction package before final review.'}</div>
               <div className="action-row">
-                <button className="button secondary" type="button" disabled={!generatedPackage}>Copy Report</button>
-                <button className="button secondary" type="button" disabled={!generatedPackage}>Copy Email Draft</button>
+                <button
+                  className="button secondary"
+                  type="button"
+                  disabled={!generatedPackage}
+                  onClick={() => copyTextToClipboard(generatedPackage?.reportPreview, 'Engineering report')}
+                >
+                  Copy Report
+                </button>
+                <button
+                  className="button secondary"
+                  type="button"
+                  disabled={!generatedPackage}
+                  onClick={() => copyTextToClipboard(generatedPackage?.emailPreview, 'Email draft')}
+                >
+                  Copy Email Draft
+                </button>
                 <button className="button secondary" type="button" disabled={!generatedPackage}>Save Draft</button>
               </div>
+              {copyFeedback && (
+                <p className="field-help">{copyFeedback.tone === 'success' ? 'Copied: ' : 'Copy error: '}{copyFeedback.message}</p>
+              )}
               <label style={{ marginTop: 14 }}>
                 <input
                   checked={confirmations.finalReviewConfirmed}
@@ -418,7 +458,7 @@ export default function Home() {
                 </div>
                 <div className="placeholder-item">
                   <strong>Build Status</strong>
-                  <span>Milestone 3: Engineering report and email draft generation.</span>
+                  <span>Milestone 4: Review copy controls.</span>
                 </div>
               </div>
             </article>
