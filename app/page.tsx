@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import {
-  affectedProcessOptions,
+  affectedAreaOptions,
   confirmDataFields,
   correctionTypeOptions,
   createGeneratedPackage,
   defaultWocConfirmations,
   defaultWocCorrectionData,
   getGateStatus,
+  otherAffectedAreaOption,
   resetDependentConfirmations,
   type GeneratedCorrectionPackage,
   type WocConfirmationState,
@@ -68,6 +69,16 @@ export default function Home() {
   const updateWocData = (key: keyof WocCorrectionData, value: string) => {
     setWocData((current) => ({ ...current, [key]: value }));
     setConfirmations((current) => resetDependentConfirmations(current, key, value));
+    setGeneratedPackage(null);
+  };
+
+  const updateAffectedArea = (value: string) => {
+    setWocData((current) => ({
+      ...current,
+      affectedArea: value,
+      customAffectedArea: value === otherAffectedAreaOption ? current.customAffectedArea : '',
+    }));
+    setConfirmations((current) => resetDependentConfirmations(current, 'affectedArea', value));
     setGeneratedPackage(null);
   };
 
@@ -263,7 +274,7 @@ export default function Home() {
           <section className="stack">
             <div className="screen-title">
               <h1>Build Correction</h1>
-              <p>Select the correction type, define the affected process, and enter the correction request.</p>
+              <p>Select the affected area and enter the correction request.</p>
             </div>
 
             <article className="card">
@@ -275,11 +286,22 @@ export default function Home() {
                   </select>
                 </label>
                 <label>
-                  Process / Department Affected
-                  <select value={wocData.affectedProcess} onChange={(event) => updateWocData('affectedProcess', event.target.value)}>
-                    {affectedProcessOptions.map((option) => <option key={option}>{option}</option>)}
+                  Affected Area
+                  <select value={wocData.affectedArea} onChange={(event) => updateAffectedArea(event.target.value)}>
+                    {affectedAreaOptions.map((option) => <option key={option}>{option}</option>)}
                   </select>
                 </label>
+                {wocData.affectedArea === otherAffectedAreaOption && (
+                  <label>
+                    Custom Affected Area
+                    <input
+                      type="text"
+                      value={wocData.customAffectedArea}
+                      onChange={(event) => updateWocData('customAffectedArea', event.target.value)}
+                      placeholder="Type the affected area"
+                    />
+                  </label>
+                )}
                 <label>
                   Issue Details
                   <textarea value={wocData.issueDetails} onChange={(event) => updateWocData('issueDetails', event.target.value)} />
@@ -295,7 +317,7 @@ export default function Home() {
                 </button>
               </div>
               {!gateStatus.generateReady && (
-                <p className="field-help">Generate requires confirmed Work Order, confirmed Part Number, correction type, issue details, and requested Engineering action.</p>
+                <p className="field-help">Generate requires confirmed Work Order, confirmed Part Number, correction type, affected area, issue details, and requested Engineering action.</p>
               )}
             </article>
           </section>
