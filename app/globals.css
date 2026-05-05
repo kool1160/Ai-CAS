@@ -221,6 +221,10 @@ label:has(input[type="radio"]) {
   gap: 9px;
 }
 
+#router-upload-input {
+  display: none;
+}
+
 input[type="text"],
 input[type="email"],
 input[type="number"],
@@ -331,6 +335,15 @@ select option {
   background: var(--green-soft);
   border-color: rgba(53, 208, 127, 0.32);
   color: var(--green);
+}
+
+.upload-preview {
+  width: 100%;
+  max-height: 260px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .preview-box {
