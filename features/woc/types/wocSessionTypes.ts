@@ -12,6 +12,13 @@ export type ActionFeedback = {
   message: string;
 } | null;
 
+export type CurrentUser = {
+  userId: string;
+  displayName: string;
+  emailOrEmployeeId: string;
+  loginTimestamp: string;
+};
+
 export type UploadedFileInfo = {
   name: string;
   type: string;
@@ -47,6 +54,8 @@ export type DraftRecord = {
   correctionType: string;
   reportText: string;
   emailDraftText: string;
+  submittedBy?: string;
+  submittedById?: string;
   status: 'Draft';
 };
 
@@ -60,6 +69,8 @@ export type HistoryRecord = {
   correctionType: string;
   reportText: string;
   emailDraftText: string;
+  submittedBy?: string;
+  submittedById?: string;
   resendId?: string | null;
   status: 'Completed / Sent Placeholder' | 'Sent';
 };
