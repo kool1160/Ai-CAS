@@ -5,7 +5,8 @@ export type WocCorrectionData = {
   customerOrJob: string;
   quantity: string;
   correctionType: string;
-  affectedProcess: string;
+  affectedArea: string;
+  customAffectedArea: string;
   issueDetails: string;
   requestedEngineeringAction: string;
 };
@@ -35,6 +36,8 @@ export type WocDataField = {
   confirmable?: boolean;
 };
 
+export const otherAffectedAreaOption = 'Other / Manual Entry';
+
 export const correctionTypeOptions = [
   'Incorrect Time / Rate',
   'Missing Grind / Finish Operation',
@@ -44,14 +47,21 @@ export const correctionTypeOptions = [
   'Other',
 ];
 
-export const affectedProcessOptions = [
+export const affectedAreaOptions = [
   'Welding',
-  'Cobot Welding',
-  'Grinding / Finish',
-  'Laser / Forming',
-  'Inspection / Quality',
+  'Robotic / Cobot Welding',
+  'Grinding / Finishing',
+  'Quality Control / Inspection',
+  'Machining',
+  'Laser Cutting',
+  'Forming',
   'Fixture / Setup',
-  'Other',
+  'Engineering / Routing',
+  'Material / Inventory',
+  'Paint / Powder Coat',
+  'Assembly',
+  'Shipping / Receiving',
+  otherAffectedAreaOption,
 ];
 
 export const defaultWocCorrectionData: WocCorrectionData = {
@@ -61,7 +71,8 @@ export const defaultWocCorrectionData: WocCorrectionData = {
   customerOrJob: 'ENWORK',
   quantity: '35 EA',
   correctionType: 'Incorrect Time / Rate',
-  affectedProcess: 'Welding',
+  affectedArea: 'Welding',
+  customAffectedArea: '',
   issueDetails: 'Router time does not match the sustainable shop-floor baseline.',
   requestedEngineeringAction: 'Review and update the router time/rate to the correct Engineering-approved baseline.',
 };
@@ -87,6 +98,14 @@ export function isFilled(value: string) {
   return Boolean(value.trim());
 }
 
+export function getEffectiveAffectedArea(data: WocCorrectionData) {
+  if (data.affectedArea === otherAffectedAreaOption) {
+    return data.customAffectedArea.trim();
+  }
+
+  return data.affectedArea.trim();
+}
+
 function optionalLine(label: string, value: string) {
   return isFilled(value) ? `${label}: ${value.trim()}\n` : '';
 }
@@ -96,6 +115,8 @@ export function buildEmailSubject(data: WocCorrectionData) {
 }
 
 export function buildEngineeringReport(data: WocCorrectionData) {
+  const affectedArea = getEffectiveAffectedArea(data);
+
   return `ENGINEERING CORRECTION REPORT
 
 1. Title / Correction Category
@@ -110,8 +131,8 @@ ${data.partNumber.trim()}
 ${optionalLine('4. Revision', data.revision)}${optionalLine('5. Customer / Job', data.customerOrJob)}${optionalLine('6. Quantity', data.quantity)}7. Correction Type
 ${data.correctionType.trim()}
 
-8. Affected Process / Department
-${data.affectedProcess.trim()}
+8. Affected Area
+${affectedArea}
 
 9. Issue Summary
 ${data.issueDetails.trim()}
@@ -128,6 +149,7 @@ Draft / Pending Engineering Review`;
 
 export function buildEmailDraft(data: WocCorrectionData) {
   const subject = buildEmailSubject(data);
+  const affectedArea = getEffectiveAffectedArea(data);
 
   return `Subject: ${subject}
 
@@ -143,6 +165,9 @@ ${data.partNumber.trim()}
 
 Correction Type:
 ${data.correctionType.trim()}
+
+Affected Area:
+${affectedArea}
 
 Issue Summary:
 ${data.issueDetails.trim()}
@@ -173,9 +198,10 @@ export function getGateStatus(
   const confirmReady = workOrderReady && partNumberReady;
 
   const correctionTypeReady = isFilled(data.correctionType) && confirmations.correctionTypeSelected;
+  const affectedAreaReady = isFilled(getEffectiveAffectedArea(data));
   const issueDetailsReady = isFilled(data.issueDetails) && confirmations.issueDetailsEntered;
   const requestedActionReady = isFilled(data.requestedEngineeringAction) && confirmations.requestedActionEntered;
-  const generateReady = confirmReady && correctionTypeReady && issueDetailsReady && requestedActionReady;
+  const generateReady = confirmReady && correctionTypeReady && affectedAreaReady && issueDetailsReady && requestedActionReady;
 
   const reviewReady = Boolean(generatedPackage) && confirmations.finalReviewConfirmed;
   const sendReady = generateReady && reviewReady;
@@ -185,6 +211,7 @@ export function getGateStatus(
     partNumberReady,
     confirmReady,
     correctionTypeReady,
+    affectedAreaReady,
     issueDetailsReady,
     requestedActionReady,
     generateReady,
