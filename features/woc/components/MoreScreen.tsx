@@ -1,18 +1,39 @@
-import type { ActionFeedback } from '../types/wocSessionTypes';
+import type { ActionFeedback, SetupConfig } from '../types/wocSessionTypes';
 
 type MoreScreenProps = {
   draftCount: number;
   historyCount: number;
   localRecordsFeedback: ActionFeedback;
+  setupConfig: SetupConfig;
+  setupCodeInput: string;
+  setupUnlocked: boolean;
+  setupFeedback: ActionFeedback;
+  onSetupCodeChange: (value: string) => void;
+  onUnlockSetup: () => void;
+  onUpdateSetupConfig: (key: keyof SetupConfig, value: string) => void;
+  onSaveSetupConfig: () => void;
   onClearLocalRecords: () => void;
 };
 
-export function MoreScreen({ draftCount, historyCount, localRecordsFeedback, onClearLocalRecords }: MoreScreenProps) {
+export function MoreScreen({
+  draftCount,
+  historyCount,
+  localRecordsFeedback,
+  setupConfig,
+  setupCodeInput,
+  setupUnlocked,
+  setupFeedback,
+  onSetupCodeChange,
+  onUnlockSetup,
+  onUpdateSetupConfig,
+  onSaveSetupConfig,
+  onClearLocalRecords,
+}: MoreScreenProps) {
   return (
     <section className="stack">
       <div className="screen-title">
         <h1>More</h1>
-        <p>Settings, help, and system information placeholders.</p>
+        <p>Settings, help, setup, and local records.</p>
       </div>
       <article className="card">
         <h2>Settings / Help</h2>
@@ -24,9 +45,83 @@ export function MoreScreen({ draftCount, historyCount, localRecordsFeedback, onC
           </div>
           <div className="placeholder-item">
             <strong>Build Status</strong>
-            <span>Milestone 11: Local Drafts and History persistence.</span>
+            <span>Milestone 13: Setup/Admin routing configuration.</span>
           </div>
         </div>
+      </article>
+
+      <article className="card">
+        <h2>Setup / Admin</h2>
+        <p>Local demo setup. This is not enterprise authentication or role-based security.</p>
+        {!setupUnlocked ? (
+          <div className="form-grid" style={{ marginTop: 14 }}>
+            <label>
+              Master Code
+              <input
+                autoComplete="off"
+                type="password"
+                value={setupCodeInput}
+                onChange={(event) => onSetupCodeChange(event.target.value)}
+                placeholder="Enter setup master code"
+              />
+            </label>
+            <button className="button primary full-width" type="button" onClick={onUnlockSetup}>Unlock Setup</button>
+            <p className="field-help">Setup unlock lasts for this app session only. The code is not saved in localStorage.</p>
+          </div>
+        ) : (
+          <div className="form-grid" style={{ marginTop: 14 }}>
+            <label>
+              Company Name
+              <input
+                type="text"
+                value={setupConfig.companyName}
+                onChange={(event) => onUpdateSetupConfig('companyName', event.target.value)}
+                placeholder="Company name"
+              />
+            </label>
+            <label>
+              Engineering Recipient Email
+              <input
+                type="email"
+                value={setupConfig.engineeringRecipientEmail}
+                onChange={(event) => onUpdateSetupConfig('engineeringRecipientEmail', event.target.value)}
+                placeholder="engineering@example.com"
+              />
+            </label>
+            <label>
+              Sender Display Name
+              <input
+                type="text"
+                value={setupConfig.senderDisplayName}
+                onChange={(event) => onUpdateSetupConfig('senderDisplayName', event.target.value)}
+                placeholder="REFAB Connect"
+              />
+            </label>
+            <label>
+              Default Submitted By Name
+              <input
+                type="text"
+                value={setupConfig.defaultSubmittedByName}
+                onChange={(event) => onUpdateSetupConfig('defaultSubmittedByName', event.target.value)}
+                placeholder="Submitted by name"
+              />
+            </label>
+            <label>
+              Default Submitted By Email
+              <input
+                type="email"
+                value={setupConfig.defaultSubmittedByEmail}
+                onChange={(event) => onUpdateSetupConfig('defaultSubmittedByEmail', event.target.value)}
+                placeholder="submittedby@example.com"
+              />
+            </label>
+            <button className="button success full-width" type="button" onClick={onSaveSetupConfig}>Save Setup Config</button>
+            <p className="field-help">Engineering Recipient Email controls email routing. If blank, the server fallback REFAB_CONNECT_EMAIL_TO is used.</p>
+          </div>
+        )}
+        {setupFeedback && (
+          <p className="field-help">{setupFeedback.tone === 'success' ? 'Setup: ' : 'Setup error: '}{setupFeedback.message}</p>
+        )}
       </article>
 
       <article className="card">
