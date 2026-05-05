@@ -16,6 +16,7 @@ export type CurrentUser = {
   userId: string;
   displayName: string;
   emailOrEmployeeId: string;
+  appUnlockPin: string;
   loginTimestamp: string;
 };
 
