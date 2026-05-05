@@ -140,6 +140,12 @@ export function WocApp() {
     saveHistoryRecordsToStorage(historyRecords);
   }, [historyRecords, localRecordsLoaded]);
 
+  useEffect(() => {
+    if (activeScreen === 'more') return;
+    setSetupUnlocked(false);
+    setSetupCodeInput('');
+  }, [activeScreen]);
+
   const gateStatus = useMemo(
     () => getGateStatus(wocData, confirmations, generatedPackage),
     [confirmations, generatedPackage, wocData],
@@ -536,6 +542,12 @@ export function WocApp() {
     }
   };
 
+  const lockSetup = (feedbackMessage = 'Setup/Admin locked.') => {
+    setSetupUnlocked(false);
+    setSetupCodeInput('');
+    setSetupFeedback({ tone: 'success', message: feedbackMessage });
+  };
+
   const unlockSetup = async () => {
     setSetupFeedback(null);
 
@@ -557,7 +569,7 @@ export function WocApp() {
 
       setSetupUnlocked(true);
       setSetupCodeInput('');
-      setSetupFeedback({ tone: 'success', message: 'Setup unlocked for this session.' });
+      setSetupFeedback({ tone: 'success', message: 'Setup unlocked for this editing session.' });
     } catch {
       setSetupFeedback({ tone: 'error', message: 'Setup unlock could not be completed.' });
     }
@@ -570,7 +582,7 @@ export function WocApp() {
 
   const saveSetupConfig = () => {
     saveSetupConfigToStorage(setupConfig);
-    setSetupFeedback({ tone: 'success', message: 'Setup config saved to this browser.' });
+    lockSetup('Setup config saved and locked. Re-enter the master code to edit again.');
   };
 
   const clearLocalRecords = () => {
@@ -686,6 +698,7 @@ export function WocApp() {
             setupFeedback={setupFeedback}
             onSetupCodeChange={setSetupCodeInput}
             onUnlockSetup={unlockSetup}
+            onLockSetup={() => lockSetup()}
             onUpdateSetupConfig={updateSetupConfig}
             onSaveSetupConfig={saveSetupConfig}
             onClearLocalRecords={clearLocalRecords}
