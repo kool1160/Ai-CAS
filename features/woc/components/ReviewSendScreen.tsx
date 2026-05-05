@@ -1,3 +1,4 @@
+import { printCorrectionReport } from '../logic/printCorrectionReport';
 import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/wocDataModel';
 import type { ActionFeedback } from '../types/wocSessionTypes';
 
@@ -30,6 +31,17 @@ export function ReviewSendScreen({
   onFinalReviewChange,
   onSendEmail,
 }: ReviewSendScreenProps) {
+  const handlePrintReport = () => {
+    if (!generatedPackage) return;
+
+    printCorrectionReport({
+      subjectLine: generatedPackage.subjectLine,
+      status: 'Draft / Pending Engineering Review',
+      generatedTimestamp: new Date().toLocaleString(),
+      reportText: generatedPackage.reportPreview,
+    });
+  };
+
   return (
     <section className="stack">
       <div className="screen-title">
@@ -54,6 +66,7 @@ export function ReviewSendScreen({
         <div className="action-row">
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyReport}>Copy Report</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyEmailDraft}>Copy Email Draft</button>
+          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={handlePrintReport}>Export / Print Report</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
         </div>
         {copyFeedback && (
