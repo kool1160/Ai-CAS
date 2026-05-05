@@ -1,6 +1,7 @@
-import type { ActionFeedback, SetupConfig } from '../types/wocSessionTypes';
+import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
 type MoreScreenProps = {
+  currentUser: CurrentUser;
   draftCount: number;
   historyCount: number;
   localRecordsFeedback: ActionFeedback;
@@ -14,9 +15,11 @@ type MoreScreenProps = {
   onUpdateSetupConfig: (key: keyof SetupConfig, value: string) => void;
   onSaveSetupConfig: () => void;
   onClearLocalRecords: () => void;
+  onLogout: () => void;
 };
 
 export function MoreScreen({
+  currentUser,
   draftCount,
   historyCount,
   localRecordsFeedback,
@@ -30,16 +33,33 @@ export function MoreScreen({
   onUpdateSetupConfig,
   onSaveSetupConfig,
   onClearLocalRecords,
+  onLogout,
 }: MoreScreenProps) {
   return (
     <section className="stack">
       <div className="screen-title">
         <h1>More</h1>
-        <p>Settings, help, setup, and local records.</p>
+        <p>Settings, help, setup, local records, and current user access.</p>
       </div>
       <article className="card">
+        <h2>Current User</h2>
+        <p>This local device login identifies who is submitting correction requests.</p>
+        <div className="placeholder-list" style={{ marginTop: 14 }}>
+          <div className="placeholder-item">
+            <strong>{currentUser.displayName}</strong>
+            <span>{currentUser.emailOrEmployeeId}</span>
+            <span>Logged in: {currentUser.loginTimestamp}</span>
+          </div>
+        </div>
+        <div className="action-row">
+          <button className="button secondary full-width" type="button" onClick={onLogout}>Logout</button>
+        </div>
+        <p className="field-help">This is a local access lock, not full enterprise authentication.</p>
+      </article>
+
+      <article className="card">
         <h2>Settings / Help</h2>
-        <p>Future settings can live here without disrupting the main correction workflow.</p>
+        <p>Core settings and help information without disrupting the correction workflow.</p>
         <div className="placeholder-list" style={{ marginTop: 14 }}>
           <div className="placeholder-item">
             <strong>System Purpose</strong>
@@ -47,14 +67,14 @@ export function MoreScreen({
           </div>
           <div className="placeholder-item">
             <strong>Build Status</strong>
-            <span>Milestone 13: Setup/Admin routing configuration.</span>
+            <span>Milestone 16: User login / local app access lock.</span>
           </div>
         </div>
       </article>
 
       <article className="card">
         <h2>Setup / Admin</h2>
-        <p>Local demo setup. This is not enterprise authentication or role-based security.</p>
+        <p>Local demo setup. This remains separate from user login and still requires the master code.</p>
         {!setupUnlocked ? (
           <div className="form-grid" style={{ marginTop: 14 }}>
             <label>
