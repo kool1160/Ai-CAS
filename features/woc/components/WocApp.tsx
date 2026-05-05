@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  clearLocalRecordsStorage,
+  loadDraftRecordsFromStorage,
+  loadHistoryRecordsFromStorage,
+  saveDraftRecordsToStorage,
+  saveHistoryRecordsToStorage,
+} from '../logic/localRecordsStorage';
+import {
   createGeneratedPackage,
   defaultWocConfirmations,
   defaultWocCorrectionData,
@@ -79,6 +86,8 @@ export function WocApp() {
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [localRecordsLoaded, setLocalRecordsLoaded] = useState(false);
+  const [localRecordsFeedback, setLocalRecordsFeedback] = useState<ActionFeedback>(null);
 
   useEffect(() => {
     return () => {
@@ -87,6 +96,25 @@ export function WocApp() {
       }
     };
   }, [uploadedFile?.previewUrl]);
+
+  useEffect(() => {
+    const loadedDrafts = loadDraftRecordsFromStorage();
+    const loadedHistory = loadHistoryRecordsFromStorage();
+
+    setDraftRecords(loadedDrafts);
+    setHistoryRecords(loadedHistory);
+    setLocalRecordsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!localRecordsLoaded) return;
+    saveDraftRecordsToStorage(draftRecords);
+  }, [draftRecords, localRecordsLoaded]);
+
+  useEffect(() => {
+    if (!localRecordsLoaded) return;
+    saveHistoryRecordsToStorage(historyRecords);
+  }, [historyRecords, localRecordsLoaded]);
 
   const gateStatus = useMemo(
     () => getGateStatus(wocData, confirmations, generatedPackage),
@@ -328,7 +356,7 @@ export function WocApp() {
 
       setDraftRecords((current) => [record, ...current]);
       setSelectedDraftId(record.draftId);
-      setSaveFeedback({ tone: 'success', message: `${draftId} saved for this session.` });
+      setSaveFeedback({ tone: 'success', message: `${draftId} saved for this browser.` });
     } catch {
       setSaveFeedback({ tone: 'error', message: 'Draft could not be saved. Try again.' });
     }
@@ -365,7 +393,7 @@ export function WocApp() {
     }
 
     setIsSending(true);
-    setSendFeedback({ tone: 'success', message: 'Sending email to Christophertroyhilton@gmail.com...' });
+    setSendFeedback({ tone: 'success', message: 'Sending email...' });
 
     try {
       const response = await fetch('/api/send-correction', {
@@ -392,13 +420,27 @@ export function WocApp() {
       }
 
       const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
+      const recipient = typeof payload?.recipient === 'string' ? payload.recipient : 'configured recipient';
       addSentHistoryRecord(resendId);
-      setSendFeedback({ tone: 'success', message: `Email sent to Christophertroyhilton@gmail.com.${resendId ? ` Resend ID: ${resendId}` : ''}` });
+      setSendFeedback({ tone: 'success', message: `Email sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
     } catch {
       setSendFeedback({ tone: 'error', message: 'Email send could not be completed. Copy controls remain available.' });
     } finally {
       setIsSending(false);
     }
+  };
+
+  const clearLocalRecords = () => {
+    const confirmed = window.confirm('Clear all local Drafts and History from this browser? This cannot be undone.');
+
+    if (!confirmed) return;
+
+    clearLocalRecordsStorage();
+    setDraftRecords([]);
+    setHistoryRecords([]);
+    setSelectedDraftId(null);
+    setSelectedHistoryId(null);
+    setLocalRecordsFeedback({ tone: 'success', message: 'Drafts and History were cleared from this browser.' });
   };
 
   const getFieldConfirmed = (key: keyof WocCorrectionData) => {
@@ -472,7 +514,14 @@ export function WocApp() {
         )}
         {activeScreen === 'drafts' && <DraftsScreen draftRecords={draftRecords} selectedDraft={selectedDraft} onSelectDraft={setSelectedDraftId} />}
         {activeScreen === 'history' && <HistoryScreen historyRecords={historyRecords} selectedHistory={selectedHistory} onSelectHistory={setSelectedHistoryId} />}
-        {activeScreen === 'more' && <MoreScreen />}
+        {activeScreen === 'more' && (
+          <MoreScreen
+            draftCount={draftRecords.length}
+            historyCount={historyRecords.length}
+            localRecordsFeedback={localRecordsFeedback}
+            onClearLocalRecords={clearLocalRecords}
+          />
+        )}
       </div>
 
       <BottomNav activeScreen={activeScreen} items={bottomNav} onNavigate={setActiveScreen} />
