@@ -42,6 +42,19 @@ type DraftRecord = {
   status: 'Draft';
 };
 
+type HistoryRecord = {
+  historyId: string;
+  completedTimestamp: string;
+  subjectLine: string;
+  workOrderNumber: string;
+  partNumber: string;
+  affectedArea: string;
+  correctionType: string;
+  reportText: string;
+  emailDraftText: string;
+  status: 'Completed / Sent Placeholder';
+};
+
 const bottomNav: NavItem[] = [
   { label: 'Home', screen: 'home' },
   { label: 'Capture', screen: 'capture' },
@@ -66,8 +79,11 @@ export default function Home() {
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
   const [copyFeedback, setCopyFeedback] = useState<ActionFeedback>(null);
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
+  const [sendFeedback, setSendFeedback] = useState<ActionFeedback>(null);
   const [draftRecords, setDraftRecords] = useState<DraftRecord[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
+  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
 
   const gateStatus = useMemo(
     () => getGateStatus(wocData, confirmations, generatedPackage),
@@ -77,6 +93,11 @@ export default function Home() {
   const selectedDraft = useMemo(
     () => draftRecords.find((draft) => draft.draftId === selectedDraftId) ?? null,
     [draftRecords, selectedDraftId],
+  );
+
+  const selectedHistory = useMemo(
+    () => historyRecords.find((record) => record.historyId === selectedHistoryId) ?? null,
+    [historyRecords, selectedHistoryId],
   );
 
   const currentStepLabel = useMemo(() => {
@@ -100,6 +121,7 @@ export default function Home() {
     setGeneratedPackage(null);
     setCopyFeedback(null);
     setSaveFeedback(null);
+    setSendFeedback(null);
   };
 
   const updateAffectedArea = (value: string) => {
@@ -112,6 +134,7 @@ export default function Home() {
     setGeneratedPackage(null);
     setCopyFeedback(null);
     setSaveFeedback(null);
+    setSendFeedback(null);
   };
 
   const confirmWorkOrderData = () => {
@@ -158,11 +181,13 @@ export default function Home() {
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
     setCopyFeedback(null);
     setSaveFeedback(null);
+    setSendFeedback(null);
     setActiveScreen('review');
   };
 
   const setFinalReviewConfirmed = (confirmed: boolean) => {
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: confirmed }));
+    setSendFeedback(null);
   };
 
   const copyTextToClipboard = async (text: string | undefined, label: string) => {
@@ -207,6 +232,37 @@ export default function Home() {
       setSaveFeedback({ tone: 'success', message: `${draftId} saved for this session.` });
     } catch {
       setSaveFeedback({ tone: 'error', message: 'Draft could not be saved. Try again.' });
+    }
+  };
+
+  const saveCompletedHistoryRecord = () => {
+    if (!generatedPackage || !gateStatus.sendReady) {
+      setSendFeedback({ tone: 'error', message: 'Final review is required before creating a completed history record.' });
+      return;
+    }
+
+    try {
+      const completedTimestamp = new Date().toLocaleString();
+      const nextHistoryNumber = historyRecords.length + 1;
+      const historyId = `HISTORY-${String(nextHistoryNumber).padStart(4, '0')}`;
+      const record: HistoryRecord = {
+        historyId,
+        completedTimestamp,
+        subjectLine: generatedPackage.subjectLine,
+        workOrderNumber: wocData.workOrderNumber,
+        partNumber: wocData.partNumber,
+        affectedArea: getEffectiveAffectedArea(wocData),
+        correctionType: wocData.correctionType,
+        reportText: generatedPackage.reportPreview,
+        emailDraftText: generatedPackage.emailPreview,
+        status: 'Completed / Sent Placeholder',
+      };
+
+      setHistoryRecords((current) => [record, ...current]);
+      setSelectedHistoryId(record.historyId);
+      setSendFeedback({ tone: 'success', message: `${historyId} saved to History. Actual email sending is still placeholder only.` });
+    } catch {
+      setSendFeedback({ tone: 'error', message: 'History record could not be created. Try again.' });
     }
   };
 
@@ -448,6 +504,9 @@ export default function Home() {
               {saveFeedback && (
                 <p className="field-help">{saveFeedback.tone === 'success' ? 'Saved: ' : 'Save error: '}{saveFeedback.message}</p>
               )}
+              {sendFeedback && (
+                <p className="field-help">{sendFeedback.tone === 'success' ? 'History: ' : 'History error: '}{sendFeedback.message}</p>
+              )}
               <label style={{ marginTop: 14 }}>
                 <input
                   checked={confirmations.finalReviewConfirmed}
@@ -458,7 +517,7 @@ export default function Home() {
                 Final review confirmed
               </label>
               <div className="action-row">
-                <button className="button danger full-width" type="button" disabled={!gateStatus.sendReady}>Send / Confirm Send</button>
+                <button className="button danger full-width" type="button" disabled={!gateStatus.sendReady} onClick={saveCompletedHistoryRecord}>Send / Confirm Send</button>
               </div>
             </article>
           </section>
@@ -511,14 +570,42 @@ export default function Home() {
           <section className="stack">
             <div className="screen-title">
               <h1>History</h1>
-              <p>Placeholder list for submitted or copied correction history.</p>
+              <p>Completed correction packages for this app session.</p>
             </div>
             <div className="placeholder-list">
-              <div className="placeholder-item">
-                <strong>History placeholder</strong>
-                <span>Submitted records will appear here when history behavior is wired.</span>
-              </div>
+              {historyRecords.length === 0 ? (
+                <div className="placeholder-item">
+                  <strong>No completed records</strong>
+                  <span>Complete final review, then tap Send / Confirm Send to create a session history record.</span>
+                </div>
+              ) : (
+                historyRecords.map((record) => (
+                  <div className="placeholder-item" key={record.historyId}>
+                    <strong>{record.historyId} · {record.subjectLine}</strong>
+                    <span>{record.status} · WO {record.workOrderNumber} · Part {record.partNumber}</span>
+                    <span>{record.affectedArea} · {record.correctionType} · {record.completedTimestamp}</span>
+                    <div className="action-row">
+                      <button className="button secondary" type="button" onClick={() => setSelectedHistoryId(record.historyId)}>Open History</button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
+            {selectedHistory && (
+              <article className="card">
+                <div className="card-header">
+                  <div>
+                    <h2>{selectedHistory.historyId}</h2>
+                    <p>{selectedHistory.status} · {selectedHistory.completedTimestamp}</p>
+                  </div>
+                  <span className="field-status confirmed">Completed</span>
+                </div>
+                <h3>Completed Engineering Report</h3>
+                <div className="preview-box">{selectedHistory.reportText}</div>
+                <h3 style={{ marginTop: 14 }}>Completed Email Draft</h3>
+                <div className="preview-box">{selectedHistory.emailDraftText}</div>
+              </article>
+            )}
           </section>
         )}
 
@@ -538,7 +625,7 @@ export default function Home() {
                 </div>
                 <div className="placeholder-item">
                   <strong>Build Status</strong>
-                  <span>Milestone 5: Session draft saving and Drafts review.</span>
+                  <span>Milestone 6: Session history behavior.</span>
                 </div>
               </div>
             </article>
