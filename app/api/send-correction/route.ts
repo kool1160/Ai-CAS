@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const TARGET_RECIPIENT = 'kool1160@gmail.com';
-const RESEND_FROM = 'REFAB Connect <onboarding@resend.dev>';
+const DEFAULT_RESEND_FROM = 'REFAB Connect <onboarding@resend.dev>';
 
 type SendCorrectionRequest = {
   subjectLine?: string;
@@ -11,17 +10,39 @@ type SendCorrectionRequest = {
   partNumber?: string;
   correctionType?: string;
   affectedArea?: string;
+  recipientEmail?: string;
+  senderDisplayName?: string;
+  submittedByName?: string;
+  submittedByEmail?: string;
+  companyName?: string;
 };
 
 function cleanValue(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function resolveRecipient(payload: SendCorrectionRequest) {
+  return cleanValue(payload.recipientEmail) || cleanValue(process.env.REFAB_CONNECT_EMAIL_TO);
+}
+
+function resolveSender() {
+  return cleanValue(process.env.REFAB_CONNECT_EMAIL_FROM) || DEFAULT_RESEND_FROM;
+}
+
 function buildEmailBody(payload: SendCorrectionRequest) {
   const emailDraftText = cleanValue(payload.emailDraftText);
   const reportText = cleanValue(payload.reportText);
+  const companyName = cleanValue(payload.companyName);
+  const submittedByName = cleanValue(payload.submittedByName);
+  const submittedByEmail = cleanValue(payload.submittedByEmail);
 
-  return `${emailDraftText}
+  const submittedByLines = [
+    companyName ? `Company: ${companyName}` : '',
+    submittedByName ? `Submitted By: ${submittedByName}` : '',
+    submittedByEmail ? `Submitted By Email: ${submittedByEmail}` : '',
+  ].filter(Boolean);
+
+  return `${emailDraftText}${submittedByLines.length ? `\n\n${submittedByLines.join('\n')}` : ''}
 
 ---
 
@@ -51,6 +72,15 @@ export async function POST(request: Request) {
   const subjectLine = cleanValue(payload.subjectLine);
   const reportText = cleanValue(payload.reportText);
   const emailDraftText = cleanValue(payload.emailDraftText);
+  const recipient = resolveRecipient(payload);
+  const from = resolveSender();
+
+  if (!recipient) {
+    return NextResponse.json(
+      { error: 'No Engineering recipient email is configured. Add one in Setup/Admin or set REFAB_CONNECT_EMAIL_TO.' },
+      { status: 400 },
+    );
+  }
 
   if (!subjectLine || !reportText || !emailDraftText) {
     return NextResponse.json(
@@ -66,8 +96,8 @@ export async function POST(request: Request) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: RESEND_FROM,
-      to: [TARGET_RECIPIENT],
+      from,
+      to: [recipient],
       subject: subjectLine,
       text: buildEmailBody(payload),
     }),
@@ -88,7 +118,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     sent: true,
-    recipient: TARGET_RECIPIENT,
+    recipient,
     resendId: typeof responseBody?.id === 'string' ? responseBody.id : null,
   });
 }
