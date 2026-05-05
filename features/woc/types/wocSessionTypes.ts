@@ -12,6 +12,14 @@ export type ActionFeedback = {
   message: string;
 } | null;
 
+export type UploadedFileInfo = {
+  name: string;
+  type: string;
+  size: number;
+  previewUrl: string | null;
+  isImage: boolean;
+};
+
 export type DraftRecord = {
   draftId: string;
   createdTimestamp: string;
