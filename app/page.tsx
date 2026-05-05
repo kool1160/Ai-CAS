@@ -8,6 +8,7 @@ import {
   createGeneratedPackage,
   defaultWocConfirmations,
   defaultWocCorrectionData,
+  getEffectiveAffectedArea,
   getGateStatus,
   otherAffectedAreaOption,
   resetDependentConfirmations,
@@ -23,10 +24,23 @@ type NavItem = {
   screen: Screen;
 };
 
-type CopyFeedback = {
+type ActionFeedback = {
   tone: 'success' | 'error';
   message: string;
 } | null;
+
+type DraftRecord = {
+  draftId: string;
+  createdTimestamp: string;
+  subjectLine: string;
+  workOrderNumber: string;
+  partNumber: string;
+  affectedArea: string;
+  correctionType: string;
+  reportText: string;
+  emailDraftText: string;
+  status: 'Draft';
+};
 
 const bottomNav: NavItem[] = [
   { label: 'Home', screen: 'home' },
@@ -50,11 +64,19 @@ export default function Home() {
   const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
   const [manualEntry, setManualEntry] = useState('');
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
-  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
+  const [copyFeedback, setCopyFeedback] = useState<ActionFeedback>(null);
+  const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
+  const [draftRecords, setDraftRecords] = useState<DraftRecord[]>([]);
+  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
 
   const gateStatus = useMemo(
     () => getGateStatus(wocData, confirmations, generatedPackage),
     [confirmations, generatedPackage, wocData],
+  );
+
+  const selectedDraft = useMemo(
+    () => draftRecords.find((draft) => draft.draftId === selectedDraftId) ?? null,
+    [draftRecords, selectedDraftId],
   );
 
   const currentStepLabel = useMemo(() => {
@@ -77,6 +99,7 @@ export default function Home() {
     setConfirmations((current) => resetDependentConfirmations(current, key, value));
     setGeneratedPackage(null);
     setCopyFeedback(null);
+    setSaveFeedback(null);
   };
 
   const updateAffectedArea = (value: string) => {
@@ -88,6 +111,7 @@ export default function Home() {
     setConfirmations((current) => resetDependentConfirmations(current, 'affectedArea', value));
     setGeneratedPackage(null);
     setCopyFeedback(null);
+    setSaveFeedback(null);
   };
 
   const confirmWorkOrderData = () => {
@@ -133,6 +157,7 @@ export default function Home() {
     setGeneratedPackage(createGeneratedPackage(wocData));
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
     setCopyFeedback(null);
+    setSaveFeedback(null);
     setActiveScreen('review');
   };
 
@@ -151,6 +176,37 @@ export default function Home() {
       setCopyFeedback({ tone: 'success', message: `${label} copied to clipboard.` });
     } catch {
       setCopyFeedback({ tone: 'error', message: `${label} could not be copied. Use manual selection as fallback.` });
+    }
+  };
+
+  const saveCurrentDraft = () => {
+    if (!generatedPackage) {
+      setSaveFeedback({ tone: 'error', message: 'Generate a draft before saving.' });
+      return;
+    }
+
+    try {
+      const createdTimestamp = new Date().toLocaleString();
+      const nextDraftNumber = draftRecords.length + 1;
+      const draftId = `DRAFT-${String(nextDraftNumber).padStart(4, '0')}`;
+      const record: DraftRecord = {
+        draftId,
+        createdTimestamp,
+        subjectLine: generatedPackage.subjectLine,
+        workOrderNumber: wocData.workOrderNumber,
+        partNumber: wocData.partNumber,
+        affectedArea: getEffectiveAffectedArea(wocData),
+        correctionType: wocData.correctionType,
+        reportText: generatedPackage.reportPreview,
+        emailDraftText: generatedPackage.emailPreview,
+        status: 'Draft',
+      };
+
+      setDraftRecords((current) => [record, ...current]);
+      setSelectedDraftId(record.draftId);
+      setSaveFeedback({ tone: 'success', message: `${draftId} saved for this session.` });
+    } catch {
+      setSaveFeedback({ tone: 'error', message: 'Draft could not be saved. Try again.' });
     }
   };
 
@@ -384,10 +440,13 @@ export default function Home() {
                 >
                   Copy Email Draft
                 </button>
-                <button className="button secondary" type="button" disabled={!generatedPackage}>Save Draft</button>
+                <button className="button secondary" type="button" disabled={!generatedPackage} onClick={saveCurrentDraft}>Save Draft</button>
               </div>
               {copyFeedback && (
                 <p className="field-help">{copyFeedback.tone === 'success' ? 'Copied: ' : 'Copy error: '}{copyFeedback.message}</p>
+              )}
+              {saveFeedback && (
+                <p className="field-help">{saveFeedback.tone === 'success' ? 'Saved: ' : 'Save error: '}{saveFeedback.message}</p>
               )}
               <label style={{ marginTop: 14 }}>
                 <input
@@ -409,21 +468,42 @@ export default function Home() {
           <section className="stack">
             <div className="screen-title">
               <h1>Drafts</h1>
-              <p>Current generated correction package.</p>
+              <p>Saved correction packages for this app session.</p>
             </div>
             <div className="placeholder-list">
-              {generatedPackage ? (
+              {draftRecords.length === 0 ? (
                 <div className="placeholder-item">
-                  <strong>{generatedPackage.subjectLine}</strong>
-                  <span>{wocData.correctionType} · Generated {generatedPackage.generatedAt}</span>
+                  <strong>No saved drafts</strong>
+                  <span>Generate a correction package, then use Save Draft on Review / Send.</span>
                 </div>
               ) : (
-                <div className="placeholder-item">
-                  <strong>No active generated draft</strong>
-                  <span>Draft behavior will be wired after core gates are stable.</span>
-                </div>
+                draftRecords.map((draft) => (
+                  <div className="placeholder-item" key={draft.draftId}>
+                    <strong>{draft.draftId} · {draft.subjectLine}</strong>
+                    <span>{draft.status} · WO {draft.workOrderNumber} · Part {draft.partNumber}</span>
+                    <span>{draft.affectedArea} · {draft.correctionType} · {draft.createdTimestamp}</span>
+                    <div className="action-row">
+                      <button className="button secondary" type="button" onClick={() => setSelectedDraftId(draft.draftId)}>Open Draft</button>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
+            {selectedDraft && (
+              <article className="card">
+                <div className="card-header">
+                  <div>
+                    <h2>{selectedDraft.draftId}</h2>
+                    <p>{selectedDraft.status} · {selectedDraft.createdTimestamp}</p>
+                  </div>
+                  <span className="field-status confirmed">Saved</span>
+                </div>
+                <h3>Saved Engineering Report</h3>
+                <div className="preview-box">{selectedDraft.reportText}</div>
+                <h3 style={{ marginTop: 14 }}>Saved Email Draft</h3>
+                <div className="preview-box">{selectedDraft.emailDraftText}</div>
+              </article>
+            )}
           </section>
         )}
 
@@ -458,7 +538,7 @@ export default function Home() {
                 </div>
                 <div className="placeholder-item">
                   <strong>Build Status</strong>
-                  <span>Milestone 4: Review copy controls.</span>
+                  <span>Milestone 5: Session draft saving and Drafts review.</span>
                 </div>
               </div>
             </article>
