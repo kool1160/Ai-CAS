@@ -20,6 +20,15 @@ export type UploadedFileInfo = {
   isImage: boolean;
 };
 
+export type ExtractedWorkOrderData = {
+  workOrderNumber?: string;
+  partNumber?: string;
+  revision?: string;
+  customerOrJob?: string;
+  quantity?: string;
+  notes?: string;
+};
+
 export type DraftRecord = {
   draftId: string;
   createdTimestamp: string;
