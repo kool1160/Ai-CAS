@@ -41,14 +41,14 @@ export function CaptureScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Capture Router</h1>
-        <p>Upload a router/work order image or use manual entry. Extraction fills fields only; user confirmation is still required.</p>
+        <p>Upload a router or work order image, extract the header data, or enter details manually when needed.</p>
       </div>
 
       <article className="card">
         <div className="card-header">
           <div>
-            <h2>Upload File / Photo</h2>
-            <p>Select an image from your device library/files. Camera capture is not active yet.</p>
+            <h2>Upload + Extract</h2>
+            <p>Select a work order image from your device, then extract the key router fields for review.</p>
           </div>
           <span className="step-pill">Step 1</span>
         </div>
@@ -79,7 +79,7 @@ export function CaptureScreen({
             </strong>
             <span className="field-value">{uploadedFile.name}</span>
             <span className="field-help">{uploadedFile.type || 'Unknown file type'} · {formatFileSize(uploadedFile.size)}</span>
-            {!uploadedFile.isImage && <span className="field-help">M9 extraction currently supports image files only. Manual entry remains available.</span>}
+            {!uploadedFile.isImage && <span className="field-help">Extraction is optimized for uploaded images. Manual entry remains available for other file types.</span>}
             {uploadedFile.isImage && uploadedFile.previewUrl && (
               <img alt="Uploaded router preview" className="upload-preview" src={uploadedFile.previewUrl} />
             )}
@@ -88,8 +88,8 @@ export function CaptureScreen({
       </article>
 
       <article className="card">
-        <h2>Manual Entry Fallback</h2>
-        <p>Manual fallback remains visible so the shop-floor user is never blocked by extraction failure.</p>
+        <h2>Manual Entry</h2>
+        <p>Use this path when the uploaded image is unclear or the router details need to be entered directly.</p>
         <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Router/Header Notes
@@ -101,7 +101,7 @@ export function CaptureScreen({
           </label>
         </div>
         <div className="action-row">
-          <button className="button primary full-width" type="button" onClick={onCaptureRouter}>Capture Router</button>
+          <button className="button primary full-width" type="button" onClick={onCaptureRouter}>Continue to Confirm</button>
         </div>
       </article>
     </section>
