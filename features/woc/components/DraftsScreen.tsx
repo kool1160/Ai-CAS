@@ -35,6 +35,7 @@ export function DraftsScreen({
       partNumber: selectedDraft.partNumber,
       affectedArea: selectedDraft.affectedArea,
       correctionType: selectedDraft.correctionType,
+      submittedBy: selectedDraft.submittedBy,
       status: selectedDraft.status,
       generatedTimestamp: selectedDraft.createdTimestamp,
       reportText: selectedDraft.reportText,
@@ -59,6 +60,7 @@ export function DraftsScreen({
               <strong>{draft.draftId} · {draft.subjectLine}</strong>
               <span>{draft.status} · WO {draft.workOrderNumber} · Part {draft.partNumber}</span>
               <span>{draft.affectedArea} · {draft.correctionType} · {draft.createdTimestamp}</span>
+              {draft.submittedBy && <span>Submitted By: {draft.submittedBy}</span>}
               <div className="action-row">
                 <button className="button secondary" type="button" onClick={() => onSelectDraft(draft.draftId)}>Open Draft</button>
               </div>
@@ -75,6 +77,7 @@ export function DraftsScreen({
             </div>
             <span className="field-status confirmed">Saved</span>
           </div>
+          {selectedDraft.submittedBy && <p className="field-help">Submitted By: {selectedDraft.submittedBy}</p>}
           <h3>Saved Engineering Report</h3>
           <div className="preview-box">{selectedDraft.reportText}</div>
           <h3 style={{ marginTop: 14 }}>Saved Email Draft</h3>
