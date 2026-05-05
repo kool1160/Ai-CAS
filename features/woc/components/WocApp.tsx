@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   createGeneratedPackage,
   defaultWocConfirmations,
@@ -13,7 +13,7 @@ import {
   type WocConfirmationState,
   type WocCorrectionData,
 } from '../state/wocDataModel';
-import type { ActionFeedback, DraftRecord, HistoryRecord, NavItem, Screen, WorkflowStep } from '../types/wocSessionTypes';
+import type { ActionFeedback, DraftRecord, HistoryRecord, NavItem, Screen, UploadedFileInfo, WorkflowStep } from '../types/wocSessionTypes';
 import { BottomNav } from './BottomNav';
 import { CaptureScreen } from './CaptureScreen';
 import { ConfirmScreen } from './ConfirmScreen';
@@ -56,6 +56,8 @@ export function WocApp() {
   const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
   const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
   const [manualEntry, setManualEntry] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<UploadedFileInfo | null>(null);
+  const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
   const [copyFeedback, setCopyFeedback] = useState<ActionFeedback>(null);
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
@@ -64,6 +66,14 @@ export function WocApp() {
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (uploadedFile?.previewUrl) {
+        URL.revokeObjectURL(uploadedFile.previewUrl);
+      }
+    };
+  }, [uploadedFile?.previewUrl]);
 
   const gateStatus = useMemo(
     () => getGateStatus(wocData, confirmations, generatedPackage),
@@ -100,6 +110,42 @@ export function WocApp() {
     setCopyFeedback(null);
     setSaveFeedback(null);
     setSendFeedback(null);
+  };
+
+  const handleUploadFile = (file: File | null) => {
+    setUploadedFile((current) => {
+      if (current?.previewUrl) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+
+      if (!file) {
+        setUploadFeedback('No file selected.');
+        return null;
+      }
+
+      const isImage = file.type.startsWith('image/');
+      const previewUrl = isImage ? URL.createObjectURL(file) : null;
+
+      setUploadFeedback(`${file.name} selected. OCR / AI Vision extraction is not active yet.`);
+
+      return {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        previewUrl,
+        isImage,
+      };
+    });
+  };
+
+  const clearUploadedFile = () => {
+    setUploadedFile((current) => {
+      if (current?.previewUrl) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+      return null;
+    });
+    setUploadFeedback('Uploaded file cleared.');
   };
 
   const confirmWorkOrderData = () => {
@@ -250,7 +296,17 @@ export function WocApp() {
         </div>
 
         {activeScreen === 'home' && <HomeScreen workflow={workflow} onStartCapture={startCapture} />}
-        {activeScreen === 'capture' && <CaptureScreen manualEntry={manualEntry} onManualEntryChange={setManualEntry} onCaptureRouter={goToConfirm} />}
+        {activeScreen === 'capture' && (
+          <CaptureScreen
+            manualEntry={manualEntry}
+            uploadedFile={uploadedFile}
+            uploadFeedback={uploadFeedback}
+            onManualEntryChange={setManualEntry}
+            onUploadFile={handleUploadFile}
+            onClearUpload={clearUploadedFile}
+            onCaptureRouter={goToConfirm}
+          />
+        )}
         {activeScreen === 'confirm' && (
           <ConfirmScreen
             wocData={wocData}
