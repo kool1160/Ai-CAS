@@ -31,6 +31,8 @@ function sanitizeDraftRecord(value: unknown): DraftRecord | null {
     correctionType: stringValue(value.correctionType),
     reportText,
     emailDraftText,
+    submittedBy: stringValue(value.submittedBy),
+    submittedById: stringValue(value.submittedById),
     status: 'Draft',
   };
 }
@@ -59,6 +61,8 @@ function sanitizeHistoryRecord(value: unknown): HistoryRecord | null {
     correctionType: stringValue(value.correctionType),
     reportText,
     emailDraftText,
+    submittedBy: stringValue(value.submittedBy),
+    submittedById: stringValue(value.submittedById),
     resendId,
     status,
   };
