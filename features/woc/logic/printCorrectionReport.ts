@@ -29,6 +29,17 @@ function buildRow(label: string, value?: string) {
   return `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(cleaned)}</td></tr>`;
 }
 
+function getReportValue(reportText: string, label: string) {
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`^${escapedLabel}:\\s*(.+)$`, 'im');
+  const match = reportText.match(pattern);
+  return match?.[1]?.trim() ?? '';
+}
+
+function resolveField(explicitValue: string | undefined, reportText: string, label: string) {
+  return explicitValue?.trim() || getReportValue(reportText, label);
+}
+
 export function printCorrectionReport(report: PrintCorrectionReportInput) {
   const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=1100');
 
@@ -39,19 +50,37 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
 
   const generatedTimestamp = report.generatedTimestamp || new Date().toLocaleString();
   const title = report.subjectLine?.trim() || 'Engineering Correction Report';
+  const workOrderNumber = resolveField(report.workOrderNumber, report.reportText, 'Work Order Number');
+  const partNumber = resolveField(report.partNumber, report.reportText, 'Part Number');
+  const revision = resolveField(report.revision, report.reportText, 'Revision');
+  const customerOrJob = resolveField(report.customerOrJob, report.reportText, 'Customer / Job');
+  const quantity = resolveField(report.quantity, report.reportText, 'Quantity');
+  const affectedArea = resolveField(report.affectedArea, report.reportText, 'Affected Area');
+  const correctionType = resolveField(report.correctionType, report.reportText, 'Correction Type');
+  const submittedBy = resolveField(report.submittedBy, report.reportText, 'Submitted By / Source');
+  const status = resolveField(report.status, report.reportText, 'Status');
+  const issueSummary = getReportValue(report.reportText, 'Issue Summary');
+  const requestedAction = getReportValue(report.reportText, 'Requested Engineering Action');
 
   const metadataRows = [
-    buildRow('Work Order Number', report.workOrderNumber),
-    buildRow('Part Number', report.partNumber),
-    buildRow('Revision', report.revision),
-    buildRow('Customer / Job', report.customerOrJob),
-    buildRow('Quantity', report.quantity),
-    buildRow('Affected Area', report.affectedArea),
-    buildRow('Correction Type', report.correctionType),
-    buildRow('Submitted By / Source', report.submittedBy),
-    buildRow('Status', report.status),
+    buildRow('Work Order Number', workOrderNumber),
+    buildRow('Part Number', partNumber),
+    buildRow('Revision', revision),
+    buildRow('Customer / Job', customerOrJob),
+    buildRow('Quantity', quantity),
+    buildRow('Affected Area', affectedArea),
+    buildRow('Correction Type', correctionType),
+    buildRow('Submitted By / Source', submittedBy),
+    buildRow('Status', status),
     buildRow('Generated', generatedTimestamp),
   ].join('');
+
+  const issueSummaryBlock = issueSummary
+    ? `<section class="callout"><h2>Issue Summary</h2><p>${escapeHtml(issueSummary)}</p></section>`
+    : '';
+  const requestedActionBlock = requestedAction
+    ? `<section class="callout"><h2>Requested Engineering Action</h2><p>${escapeHtml(requestedAction)}</p></section>`
+    : '';
 
   printWindow.document.write(`<!doctype html>
 <html>
@@ -74,10 +103,25 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
       margin: 0 auto;
       padding: 0.42in;
     }
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #111827;
+      background: #111827;
+      color: #ffffff;
+      padding: 9px 11px;
+      margin-bottom: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
     .header {
-      border-bottom: 2px solid #111827;
-      padding-bottom: 12px;
-      margin-bottom: 16px;
+      border: 1px solid #111827;
+      border-left: 8px solid #111827;
+      padding: 14px 16px;
+      margin-bottom: 14px;
     }
     .kicker {
       color: #374151;
@@ -87,10 +131,10 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
       text-transform: uppercase;
     }
     h1 {
-      margin: 4px 0 4px;
+      margin: 5px 0 4px;
       color: #111827;
       font-size: 24px;
-      line-height: 1.1;
+      line-height: 1.08;
     }
     .subtitle {
       margin: 0;
@@ -101,7 +145,7 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 0 0 16px;
+      margin: 0 0 14px;
     }
     th,
     td {
@@ -114,7 +158,7 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
       width: 34%;
       background: #f3f4f6;
       color: #111827;
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -122,12 +166,33 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
       color: #111827;
       font-weight: 600;
     }
+    .callout {
+      border: 1px solid #111827;
+      border-left: 6px solid #111827;
+      padding: 10px 12px;
+      margin: 0 0 12px;
+      break-inside: avoid;
+    }
+    .callout h2 {
+      margin: 0 0 5px;
+      color: #111827;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .callout p {
+      margin: 0;
+      color: #111827;
+      font-weight: 600;
+    }
     .section-title {
-      margin: 18px 0 8px;
-      border-bottom: 1px solid #d1d5db;
+      margin: 16px 0 8px;
+      border-bottom: 2px solid #111827;
       padding-bottom: 6px;
       color: #111827;
       font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .report-box {
       border: 1px solid #d1d5db;
@@ -155,15 +220,18 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
 </head>
 <body>
   <main class="page">
+    <div class="brand-bar"><span>REFAB CONNECT</span><span>AI-WOC</span></div>
     <header class="header">
-      <div class="kicker">Refab Connect / AI-WOC</div>
+      <div class="kicker">Work Order Correction System</div>
       <h1>Engineering Correction Report</h1>
-      <p class="subtitle">Work Order Correction System · Powered by Applied Intelligence Framework</p>
+      <p class="subtitle">Powered by Applied Intelligence Framework · Print-Ready Correction Document</p>
     </header>
     <table>
       <tbody>${metadataRows}</tbody>
     </table>
-    <h2 class="section-title">Correction Report</h2>
+    ${issueSummaryBlock}
+    ${requestedActionBlock}
+    <h2 class="section-title">Full Engineering Correction Report</h2>
     <section class="report-box">${escapeHtml(report.reportText)}</section>
     <footer class="footer">Generated from Refab Connect browser print/export. Review all information before release to Engineering.</footer>
   </main>
