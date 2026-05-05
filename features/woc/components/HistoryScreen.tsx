@@ -1,3 +1,4 @@
+import { printCorrectionReport } from '../logic/printCorrectionReport';
 import type { HistoryRecord } from '../types/wocSessionTypes';
 
 type HistoryScreenProps = {
@@ -7,17 +8,32 @@ type HistoryScreenProps = {
 };
 
 export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory }: HistoryScreenProps) {
+  const handlePrintHistoryReport = () => {
+    if (!selectedHistory) return;
+
+    printCorrectionReport({
+      subjectLine: selectedHistory.subjectLine,
+      workOrderNumber: selectedHistory.workOrderNumber,
+      partNumber: selectedHistory.partNumber,
+      affectedArea: selectedHistory.affectedArea,
+      correctionType: selectedHistory.correctionType,
+      status: selectedHistory.status,
+      generatedTimestamp: selectedHistory.completedTimestamp,
+      reportText: selectedHistory.reportText,
+    });
+  };
+
   return (
     <section className="stack">
       <div className="screen-title">
         <h1>History</h1>
-        <p>Completed correction packages for this app session.</p>
+        <p>Completed correction packages saved on this browser.</p>
       </div>
       <div className="placeholder-list">
         {historyRecords.length === 0 ? (
           <div className="placeholder-item">
             <strong>No completed records</strong>
-            <span>Complete final review, then tap Send / Confirm Send to create a session history record.</span>
+            <span>Sent correction packages will appear here after final review and send.</span>
           </div>
         ) : (
           historyRecords.map((record) => (
@@ -25,6 +41,7 @@ export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory
               <strong>{record.historyId} · {record.subjectLine}</strong>
               <span>{record.status} · WO {record.workOrderNumber} · Part {record.partNumber}</span>
               <span>{record.affectedArea} · {record.correctionType} · {record.completedTimestamp}</span>
+              {record.resendId && <span>Resend ID: {record.resendId}</span>}
               <div className="action-row">
                 <button className="button secondary" type="button" onClick={() => onSelectHistory(record.historyId)}>Open History</button>
               </div>
@@ -39,12 +56,15 @@ export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory
               <h2>{selectedHistory.historyId}</h2>
               <p>{selectedHistory.status} · {selectedHistory.completedTimestamp}</p>
             </div>
-            <span className="field-status confirmed">Completed</span>
+            <span className="field-status confirmed">Recorded</span>
           </div>
-          <h3>Completed Engineering Report</h3>
+          <h3>Saved Engineering Report</h3>
           <div className="preview-box">{selectedHistory.reportText}</div>
-          <h3 style={{ marginTop: 14 }}>Completed Email Draft</h3>
+          <h3 style={{ marginTop: 14 }}>Saved Email Draft</h3>
           <div className="preview-box">{selectedHistory.emailDraftText}</div>
+          <div className="action-row">
+            <button className="button secondary" type="button" onClick={handlePrintHistoryReport}>Export / Print Report</button>
+          </div>
         </article>
       )}
     </section>
