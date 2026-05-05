@@ -107,40 +107,84 @@ function getPrintStyles() {
     @media print {
       html,
       body {
+        width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
         background: #ffffff !important;
       }
       body > *:not(#${PRINT_ROOT_ID}):not(#${PRINT_STYLE_ID}) {
         display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
       }
       #${PRINT_ROOT_ID} {
         display: block !important;
         position: static !important;
         inset: auto !important;
+        width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         overflow: visible !important;
+        margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         color: #111827 !important;
+        break-after: avoid !important;
+        page-break-after: avoid !important;
       }
       #${PRINT_ROOT_ID} .print-actions {
         display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
       }
       #${PRINT_ROOT_ID} .page {
+        display: block !important;
         width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         color: #111827 !important;
         font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 10.5px !important;
-        line-height: 1.22 !important;
+        font-size: 11px !important;
+        line-height: 1.26 !important;
+        break-after: avoid !important;
+        page-break-after: avoid !important;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
+      }
+      #${PRINT_ROOT_ID} .footer {
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+      #${PRINT_ROOT_ID} .report-box {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
       }
     }
 
     @page {
       size: letter;
-      margin: 0.22in;
+      margin: 0.2in;
     }
 
     #${PRINT_ROOT_ID} .brand-bar {
@@ -156,6 +200,8 @@ function getPrintStyles() {
       font-weight: 700;
       letter-spacing: 0.07em;
       text-transform: uppercase;
+      break-after: avoid;
+      page-break-after: avoid;
     }
     #${PRINT_ROOT_ID} .header {
       border: 1px solid #111827;
@@ -163,6 +209,9 @@ function getPrintStyles() {
       padding: 8px 10px;
       margin-bottom: 8px;
       break-inside: avoid;
+      break-after: avoid;
+      page-break-inside: avoid;
+      page-break-after: avoid;
     }
     #${PRINT_ROOT_ID} .kicker {
       color: #374151;
@@ -188,6 +237,9 @@ function getPrintStyles() {
       border-collapse: collapse;
       margin: 0 0 8px;
       break-inside: avoid;
+      break-after: avoid;
+      page-break-inside: avoid;
+      page-break-after: avoid;
     }
     #${PRINT_ROOT_ID} th,
     #${PRINT_ROOT_ID} td {
@@ -214,6 +266,9 @@ function getPrintStyles() {
       padding: 6px 8px;
       margin: 0 0 7px;
       break-inside: avoid;
+      break-after: avoid;
+      page-break-inside: avoid;
+      page-break-after: avoid;
     }
     #${PRINT_ROOT_ID} .callout h2 {
       margin: 0 0 3px;
@@ -235,6 +290,8 @@ function getPrintStyles() {
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.035em;
+      break-after: avoid;
+      page-break-after: avoid;
     }
     #${PRINT_ROOT_ID} .report-box {
       border: 1px solid #d1d5db;
@@ -242,14 +299,16 @@ function getPrintStyles() {
       padding: 7px;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+      break-after: avoid;
+      page-break-after: avoid;
     }
     #${PRINT_ROOT_ID} .footer {
-      margin-top: 6px;
+      margin-top: 4px;
       border-top: 1px solid #d1d5db;
-      padding-top: 4px;
+      padding-top: 3px;
       color: #6b7280;
       font-size: 8px;
-      line-height: 1.15;
+      line-height: 1.1;
     }
   `;
 }
