@@ -52,5 +52,6 @@ export type HistoryRecord = {
   correctionType: string;
   reportText: string;
   emailDraftText: string;
-  status: 'Completed / Sent Placeholder';
+  resendId?: string | null;
+  status: 'Completed / Sent Placeholder' | 'Sent';
 };
