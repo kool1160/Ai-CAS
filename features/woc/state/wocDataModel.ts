@@ -114,7 +114,7 @@ export function buildEmailSubject(data: WocCorrectionData) {
   return `[${data.correctionType.trim()}] Work Order Correction Needed — WO ${data.workOrderNumber.trim()} / Part ${data.partNumber.trim()}`;
 }
 
-export function buildEngineeringReport(data: WocCorrectionData) {
+export function buildEngineeringReport(data: WocCorrectionData, submittedBy = 'Shop-floor correction request submitted through REFAB Connect / AI-WOC.') {
   const affectedArea = getEffectiveAffectedArea(data);
 
   return `ENGINEERING CORRECTION REPORT
@@ -141,13 +141,13 @@ ${data.issueDetails.trim()}
 ${data.requestedEngineeringAction.trim()}
 
 11. Submitted By / Source
-Shop-floor correction request submitted through REFAB Connect / AI-WOC.
+${submittedBy}
 
 12. Status
 Draft / Pending Engineering Review`;
 }
 
-export function buildEmailDraft(data: WocCorrectionData) {
+export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'REFAB Connect / AI-WOC') {
   const subject = buildEmailSubject(data);
   const affectedArea = getEffectiveAffectedArea(data);
 
@@ -175,15 +175,18 @@ ${data.issueDetails.trim()}
 Requested Engineering Action:
 ${data.requestedEngineeringAction.trim()}
 
+Submitted By:
+${submittedBy}
+
 Thank you,
 REFAB Connect / AI-WOC`;
 }
 
-export function createGeneratedPackage(data: WocCorrectionData): GeneratedCorrectionPackage {
+export function createGeneratedPackage(data: WocCorrectionData, submittedBy?: string): GeneratedCorrectionPackage {
   return {
     subjectLine: buildEmailSubject(data),
-    reportPreview: buildEngineeringReport(data),
-    emailPreview: buildEmailDraft(data),
+    reportPreview: buildEngineeringReport(data, submittedBy),
+    emailPreview: buildEmailDraft(data, submittedBy),
     generatedAt: new Date().toLocaleString(),
   };
 }
