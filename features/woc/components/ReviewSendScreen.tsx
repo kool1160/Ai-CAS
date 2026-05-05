@@ -34,14 +34,14 @@ export function ReviewSendScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Review / Send</h1>
-        <p>Review the generated Engineering report and email draft. Final review is required before sending.</p>
+        <p>Final check the Engineering report and email draft before sending the correction request.</p>
       </div>
 
       <article className="card">
         <div className="card-header">
           <div>
             <h2>{generatedPackage ? 'Engineering Report Ready' : 'Draft Not Generated'}</h2>
-            <p>Final review gate controls whether the send button is enabled.</p>
+            <p>Review the correction package and confirm it before email send unlocks.</p>
           </div>
           <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Ready to Send' : 'Review'}</span>
         </div>
