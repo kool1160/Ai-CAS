@@ -73,13 +73,13 @@ function getPrintStyles() {
         z-index: 2;
         display: flex;
         gap: 8px;
-        margin: -16px -16px 14px;
-        padding: 12px 16px;
+        margin: -16px -16px 12px;
+        padding: 10px 16px;
         background: #111827;
         border-bottom: 1px solid #374151;
       }
       #${PRINT_ROOT_ID} .print-actions button {
-        min-height: 42px;
+        min-height: 40px;
         border: 1px solid #d1d5db;
         border-radius: 10px;
         padding: 0 14px;
@@ -95,12 +95,12 @@ function getPrintStyles() {
       #${PRINT_ROOT_ID} .page {
         width: min(100%, 8.5in);
         margin: 0 auto;
-        padding: 0.25in;
+        padding: 0.22in;
         background: #ffffff;
         color: #111827;
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 12px;
-        line-height: 1.45;
+        font-size: 11px;
+        line-height: 1.28;
       }
     }
 
@@ -131,8 +131,8 @@ function getPrintStyles() {
         background: #ffffff !important;
         color: #111827 !important;
         font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 12px !important;
-        line-height: 1.45 !important;
+        font-size: 10.5px !important;
+        line-height: 1.22 !important;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
       }
@@ -140,7 +140,7 @@ function getPrintStyles() {
 
     @page {
       size: letter;
-      margin: 0.35in;
+      margin: 0.22in;
     }
 
     #${PRINT_ROOT_ID} .brand-bar {
@@ -150,57 +150,59 @@ function getPrintStyles() {
       border: 1px solid #111827;
       background: #111827;
       color: #ffffff;
-      padding: 9px 11px;
-      margin-bottom: 12px;
-      font-size: 10px;
+      padding: 6px 9px;
+      margin-bottom: 7px;
+      font-size: 8.5px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
     }
     #${PRINT_ROOT_ID} .header {
       border: 1px solid #111827;
-      border-left: 8px solid #111827;
-      padding: 14px 16px;
-      margin-bottom: 14px;
+      border-left: 6px solid #111827;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      break-inside: avoid;
     }
     #${PRINT_ROOT_ID} .kicker {
       color: #374151;
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
     }
     #${PRINT_ROOT_ID} h1 {
-      margin: 5px 0 4px;
+      margin: 2px 0 2px;
       color: #111827;
-      font-size: 24px;
-      line-height: 1.08;
+      font-size: 18px;
+      line-height: 1.02;
     }
     #${PRINT_ROOT_ID} .subtitle {
       margin: 0;
       color: #4b5563;
-      font-size: 12px;
+      font-size: 9.5px;
       font-weight: 700;
     }
     #${PRINT_ROOT_ID} table {
       width: 100%;
       border-collapse: collapse;
-      margin: 0 0 14px;
+      margin: 0 0 8px;
+      break-inside: avoid;
     }
     #${PRINT_ROOT_ID} th,
     #${PRINT_ROOT_ID} td {
       border: 1px solid #d1d5db;
-      padding: 8px 9px;
+      padding: 4px 6px;
       vertical-align: top;
       text-align: left;
     }
     #${PRINT_ROOT_ID} th {
-      width: 34%;
+      width: 32%;
       background: #f3f4f6;
       color: #111827;
-      font-size: 10px;
+      font-size: 8.5px;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.035em;
     }
     #${PRINT_ROOT_ID} td {
       color: #111827;
@@ -208,17 +210,17 @@ function getPrintStyles() {
     }
     #${PRINT_ROOT_ID} .callout {
       border: 1px solid #111827;
-      border-left: 6px solid #111827;
-      padding: 10px 12px;
-      margin: 0 0 12px;
+      border-left: 5px solid #111827;
+      padding: 6px 8px;
+      margin: 0 0 7px;
       break-inside: avoid;
     }
     #${PRINT_ROOT_ID} .callout h2 {
-      margin: 0 0 5px;
+      margin: 0 0 3px;
       color: #111827;
-      font-size: 13px;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.035em;
     }
     #${PRINT_ROOT_ID} .callout p {
       margin: 0;
@@ -226,27 +228,28 @@ function getPrintStyles() {
       font-weight: 600;
     }
     #${PRINT_ROOT_ID} .section-title {
-      margin: 16px 0 8px;
-      border-bottom: 2px solid #111827;
-      padding-bottom: 6px;
+      margin: 8px 0 5px;
+      border-bottom: 1px solid #111827;
+      padding-bottom: 3px;
       color: #111827;
-      font-size: 15px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.035em;
     }
     #${PRINT_ROOT_ID} .report-box {
       border: 1px solid #d1d5db;
       background: #ffffff;
-      padding: 12px;
+      padding: 7px;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
     #${PRINT_ROOT_ID} .footer {
-      margin-top: 18px;
+      margin-top: 6px;
       border-top: 1px solid #d1d5db;
-      padding-top: 8px;
+      padding-top: 4px;
       color: #6b7280;
-      font-size: 10px;
+      font-size: 8px;
+      line-height: 1.15;
     }
   `;
 }
