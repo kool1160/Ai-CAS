@@ -92,6 +92,10 @@ function buildSendSetupPayload(setupConfig: SetupConfig, currentUser: CurrentUse
   };
 }
 
+function normalizePin(value: string) {
+  return value.replace(/\D/g, '').slice(0, 4);
+}
+
 export function WocApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -99,6 +103,7 @@ export function WocApp() {
   const [loginDisplayName, setLoginDisplayName] = useState('');
   const [loginEmailOrEmployeeId, setLoginEmailOrEmployeeId] = useState('');
   const [loginFeedback, setLoginFeedback] = useState<ActionFeedback>(null);
+
   const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
   const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
   const [manualEntry, setManualEntry] = useState('');
@@ -107,20 +112,26 @@ export function WocApp() {
   const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
   const [extractionFeedback, setExtractionFeedback] = useState<ActionFeedback>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
   const [copyFeedback, setCopyFeedback] = useState<ActionFeedback>(null);
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
   const [sendFeedback, setSendFeedback] = useState<ActionFeedback>(null);
   const [isSending, setIsSending] = useState(false);
+  const [sendPin, setSendPin] = useState('');
+
   const [draftRecords, setDraftRecords] = useState<DraftRecord[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [draftFinalReviewConfirmed, setDraftFinalReviewConfirmed] = useState(false);
   const [draftActionFeedback, setDraftActionFeedback] = useState<ActionFeedback>(null);
   const [isSendingDraft, setIsSendingDraft] = useState(false);
+  const [draftSendPin, setDraftSendPin] = useState('');
+
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [localRecordsLoaded, setLocalRecordsLoaded] = useState(false);
   const [localRecordsFeedback, setLocalRecordsFeedback] = useState<ActionFeedback>(null);
+
   const [setupConfig, setSetupConfig] = useState<SetupConfig>(defaultSetupConfig);
   const [setupCodeInput, setSetupCodeInput] = useState('');
   const [setupUnlocked, setSetupUnlocked] = useState(false);
@@ -135,13 +146,10 @@ export function WocApp() {
   }, [uploadedFile?.previewUrl]);
 
   useEffect(() => {
-    const loadedDrafts = loadDraftRecordsFromStorage();
-    const loadedHistory = loadHistoryRecordsFromStorage();
-
     setCurrentUser(loadCurrentUserFromStorage());
     setCurrentUserLoaded(true);
-    setDraftRecords(loadedDrafts);
-    setHistoryRecords(loadedHistory);
+    setDraftRecords(loadDraftRecordsFromStorage());
+    setHistoryRecords(loadHistoryRecordsFromStorage());
     setSetupConfig(loadSetupConfigFromStorage());
     setLocalRecordsLoaded(true);
   }, []);
@@ -163,21 +171,17 @@ export function WocApp() {
   }, [activeScreen]);
 
   const submittedByLabel = useMemo(() => getSubmittedByLabel(currentUser), [currentUser]);
+  const gateStatus = useMemo(() => getGateStatus(wocData, confirmations, generatedPackage), [wocData, confirmations, generatedPackage]);
+  const selectedDraft = useMemo(() => draftRecords.find((draft) => draft.draftId === selectedDraftId) ?? null, [draftRecords, selectedDraftId]);
+  const selectedHistory = useMemo(() => historyRecords.find((record) => record.historyId === selectedHistoryId) ?? null, [historyRecords, selectedHistoryId]);
 
-  const gateStatus = useMemo(
-    () => getGateStatus(wocData, confirmations, generatedPackage),
-    [confirmations, generatedPackage, wocData],
-  );
-
-  const selectedDraft = useMemo(
-    () => draftRecords.find((draft) => draft.draftId === selectedDraftId) ?? null,
-    [draftRecords, selectedDraftId],
-  );
-
-  const selectedHistory = useMemo(
-    () => historyRecords.find((record) => record.historyId === selectedHistoryId) ?? null,
-    [historyRecords, selectedHistoryId],
-  );
+  const clearGeneratedOutput = () => {
+    setGeneratedPackage(null);
+    setCopyFeedback(null);
+    setSaveFeedback(null);
+    setSendFeedback(null);
+    setSendPin('');
+  };
 
   const handleLogin = () => {
     if (!loginDisplayName.trim() || !loginEmailOrEmployeeId.trim()) {
@@ -201,16 +205,15 @@ export function WocApp() {
     setSetupCodeInput('');
     setGeneratedPackage(null);
     setConfirmations(defaultWocConfirmations);
+    setSendPin('');
+    setDraftSendPin('');
     setActiveScreen('home');
   };
 
   const updateWocData = (key: keyof WocCorrectionData, value: string) => {
     setWocData((current) => ({ ...current, [key]: value }));
     setConfirmations((current) => resetDependentConfirmations(current, key, value));
-    setGeneratedPackage(null);
-    setCopyFeedback(null);
-    setSaveFeedback(null);
-    setSendFeedback(null);
+    clearGeneratedOutput();
   };
 
   const updateAffectedArea = (value: string) => {
@@ -220,17 +223,12 @@ export function WocApp() {
       customAffectedArea: value === otherAffectedAreaOption ? current.customAffectedArea : '',
     }));
     setConfirmations((current) => resetDependentConfirmations(current, 'affectedArea', value));
-    setGeneratedPackage(null);
-    setCopyFeedback(null);
-    setSaveFeedback(null);
-    setSendFeedback(null);
+    clearGeneratedOutput();
   };
 
   const handleUploadFile = (file: File | null) => {
     setUploadedFile((current) => {
-      if (current?.previewUrl) {
-        URL.revokeObjectURL(current.previewUrl);
-      }
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
 
       if (!file) {
         setSelectedUploadFile(null);
@@ -247,24 +245,16 @@ export function WocApp() {
       setUploadFeedback(
         isImage
           ? `${file.name} selected. Ready for Extract Text / Data.`
-          : `${file.name} selected. M9 extraction supports image files only; manual entry is still available.`,
+          : `${file.name} selected. M9 extraction supports uploaded image files only; manual entry is still available.`,
       );
 
-      return {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        previewUrl,
-        isImage,
-      };
+      return { name: file.name, type: file.type, size: file.size, previewUrl, isImage };
     });
   };
 
   const clearUploadedFile = () => {
     setUploadedFile((current) => {
-      if (current?.previewUrl) {
-        URL.revokeObjectURL(current.previewUrl);
-      }
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
       return null;
     });
     setSelectedUploadFile(null);
@@ -287,10 +277,7 @@ export function WocApp() {
       partNumberConfirmed: false,
       finalReviewConfirmed: false,
     }));
-    setGeneratedPackage(null);
-    setCopyFeedback(null);
-    setSaveFeedback(null);
-    setSendFeedback(null);
+    clearGeneratedOutput();
 
     if (extracted.notes?.trim()) {
       setManualEntry(extracted.notes.trim());
@@ -315,10 +302,7 @@ export function WocApp() {
       const formData = new FormData();
       formData.append('file', selectedUploadFile);
 
-      const response = await fetch('/api/extract-work-order', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch('/api/extract-work-order', { method: 'POST', body: formData });
       const payload = await response.json();
 
       if (!response.ok) {
@@ -338,19 +322,11 @@ export function WocApp() {
   };
 
   const confirmWorkOrderData = () => {
-    setConfirmations((current) => ({
-      ...current,
-      workOrderDataConfirmed: Boolean(wocData.workOrderNumber.trim()),
-      finalReviewConfirmed: false,
-    }));
+    setConfirmations((current) => ({ ...current, workOrderDataConfirmed: Boolean(wocData.workOrderNumber.trim()), finalReviewConfirmed: false }));
   };
 
   const confirmPartNumber = () => {
-    setConfirmations((current) => ({
-      ...current,
-      partNumberConfirmed: Boolean(wocData.partNumber.trim()),
-      finalReviewConfirmed: false,
-    }));
+    setConfirmations((current) => ({ ...current, partNumberConfirmed: Boolean(wocData.partNumber.trim()), finalReviewConfirmed: false }));
   };
 
   const confirmAllRequiredData = () => {
@@ -362,19 +338,6 @@ export function WocApp() {
     }));
   };
 
-  const startCapture = () => {
-    setActiveScreen('capture');
-  };
-
-  const goToConfirm = () => {
-    setActiveScreen('confirm');
-  };
-
-  const goToGenerate = () => {
-    if (!gateStatus.confirmReady) return;
-    setActiveScreen('generate');
-  };
-
   const generateDraft = () => {
     if (!gateStatus.generateReady) return;
     setGeneratedPackage(createGeneratedPackage(wocData, submittedByLabel));
@@ -382,12 +345,14 @@ export function WocApp() {
     setCopyFeedback(null);
     setSaveFeedback(null);
     setSendFeedback(null);
+    setSendPin('');
     setActiveScreen('review');
   };
 
   const setFinalReviewConfirmed = (confirmed: boolean) => {
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: confirmed }));
     setSendFeedback(null);
+    setSendPin('');
   };
 
   const copyTextToClipboard = async (text: string | undefined, label: string, setFeedback: (feedback: ActionFeedback) => void) => {
@@ -412,8 +377,7 @@ export function WocApp() {
 
     try {
       const createdTimestamp = new Date().toLocaleString();
-      const nextDraftNumber = draftRecords.length + 1;
-      const draftId = `DRAFT-${String(nextDraftNumber).padStart(4, '0')}`;
+      const draftId = `DRAFT-${String(draftRecords.length + 1).padStart(4, '0')}`;
       const record: DraftRecord = {
         draftId,
         createdTimestamp,
@@ -432,6 +396,7 @@ export function WocApp() {
       setDraftRecords((current) => [record, ...current]);
       setSelectedDraftId(record.draftId);
       setDraftFinalReviewConfirmed(false);
+      setDraftSendPin('');
       setDraftActionFeedback(null);
       setSaveFeedback({ tone: 'success', message: `${draftId} saved for this browser.` });
     } catch {
@@ -443,8 +408,7 @@ export function WocApp() {
     if (!generatedPackage) return;
 
     const completedTimestamp = new Date().toLocaleString();
-    const nextHistoryNumber = historyRecords.length + 1;
-    const historyId = `HISTORY-${String(nextHistoryNumber).padStart(4, '0')}`;
+    const historyId = `HISTORY-${String(historyRecords.length + 1).padStart(4, '0')}`;
     const record: HistoryRecord = {
       historyId,
       completedTimestamp,
@@ -467,8 +431,7 @@ export function WocApp() {
 
   const addSentHistoryRecordFromDraft = (draft: DraftRecord, resendId: string | null) => {
     const completedTimestamp = new Date().toLocaleString();
-    const nextHistoryNumber = historyRecords.length + 1;
-    const historyId = `HISTORY-${String(nextHistoryNumber).padStart(4, '0')}`;
+    const historyId = `HISTORY-${String(historyRecords.length + 1).padStart(4, '0')}`;
     const record: HistoryRecord = {
       historyId,
       completedTimestamp,
@@ -495,15 +458,18 @@ export function WocApp() {
       return;
     }
 
+    if (sendPin.length !== 4) {
+      setSendFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending.' });
+      return;
+    }
+
     setIsSending(true);
     setSendFeedback({ tone: 'success', message: 'Sending email...' });
 
     try {
       const response = await fetch('/api/send-correction', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subjectLine: generatedPackage.subjectLine,
           reportText: generatedPackage.reportPreview,
@@ -512,6 +478,7 @@ export function WocApp() {
           partNumber: wocData.partNumber,
           affectedArea: getEffectiveAffectedArea(wocData),
           correctionType: wocData.correctionType,
+          sendPin,
           ...buildSendSetupPayload(setupConfig, currentUser),
         }),
       });
@@ -520,6 +487,7 @@ export function WocApp() {
       if (!response.ok) {
         const message = typeof payload?.error === 'string' ? payload.error : 'Email send failed. Copy controls remain available.';
         setSendFeedback({ tone: 'error', message });
+        setSendPin('');
         return;
       }
 
@@ -527,8 +495,10 @@ export function WocApp() {
       const recipient = typeof payload?.recipient === 'string' ? payload.recipient : 'configured recipient';
       addSentHistoryRecord(resendId);
       setSendFeedback({ tone: 'success', message: `Email sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
+      setSendPin('');
     } catch {
       setSendFeedback({ tone: 'error', message: 'Email send could not be completed. Copy controls remain available.' });
+      setSendPin('');
     } finally {
       setIsSending(false);
     }
@@ -537,6 +507,7 @@ export function WocApp() {
   const selectDraft = (draftId: string) => {
     setSelectedDraftId(draftId);
     setDraftFinalReviewConfirmed(false);
+    setDraftSendPin('');
     setDraftActionFeedback(null);
   };
 
@@ -551,15 +522,18 @@ export function WocApp() {
       return;
     }
 
+    if (draftSendPin.length !== 4) {
+      setDraftActionFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending.' });
+      return;
+    }
+
     setIsSendingDraft(true);
     setDraftActionFeedback({ tone: 'success', message: 'Sending saved draft email...' });
 
     try {
       const response = await fetch('/api/send-correction', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subjectLine: selectedDraft.subjectLine,
           reportText: selectedDraft.reportText,
@@ -568,6 +542,7 @@ export function WocApp() {
           partNumber: selectedDraft.partNumber,
           affectedArea: selectedDraft.affectedArea,
           correctionType: selectedDraft.correctionType,
+          sendPin: draftSendPin,
           ...buildSendSetupPayload(setupConfig, currentUser),
         }),
       });
@@ -576,6 +551,7 @@ export function WocApp() {
       if (!response.ok) {
         const message = typeof payload?.error === 'string' ? payload.error : 'Saved draft email send failed. Copy controls remain available.';
         setDraftActionFeedback({ tone: 'error', message });
+        setDraftSendPin('');
         return;
       }
 
@@ -584,8 +560,10 @@ export function WocApp() {
       addSentHistoryRecordFromDraft(selectedDraft, resendId);
       setDraftActionFeedback({ tone: 'success', message: `Saved draft sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setDraftFinalReviewConfirmed(false);
+      setDraftSendPin('');
     } catch {
       setDraftActionFeedback({ tone: 'error', message: 'Saved draft email send could not be completed. Copy controls remain available.' });
+      setDraftSendPin('');
     } finally {
       setIsSendingDraft(false);
     }
@@ -603,9 +581,7 @@ export function WocApp() {
     try {
       const response = await fetch('/api/setup/unlock', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: setupCodeInput }),
       });
       const payload = await response.json();
@@ -636,7 +612,6 @@ export function WocApp() {
 
   const clearLocalRecords = () => {
     const confirmed = window.confirm('Clear all local Drafts and History from this browser? This cannot be undone.');
-
     if (!confirmed) return;
 
     clearLocalRecordsStorage();
@@ -644,6 +619,7 @@ export function WocApp() {
     setHistoryRecords([]);
     setSelectedDraftId(null);
     setDraftFinalReviewConfirmed(false);
+    setDraftSendPin('');
     setDraftActionFeedback(null);
     setSelectedHistoryId(null);
     setLocalRecordsFeedback({ tone: 'success', message: 'Drafts and History were cleared from this browser.' });
@@ -660,9 +636,7 @@ export function WocApp() {
     if (key === 'partNumber') confirmPartNumber();
   };
 
-  if (!currentUserLoaded) {
-    return null;
-  }
+  if (!currentUserLoaded) return null;
 
   if (!currentUser) {
     return (
@@ -690,7 +664,7 @@ export function WocApp() {
           <span className="step-pill">REFAB CONNECT · {stepLabels[activeScreen]}</span>
         </div>
 
-        {activeScreen === 'home' && <HomeScreen workflow={workflow} onStartCapture={startCapture} />}
+        {activeScreen === 'home' && <HomeScreen workflow={workflow} onStartCapture={() => setActiveScreen('capture')} />}
         {activeScreen === 'capture' && (
           <CaptureScreen
             manualEntry={manualEntry}
@@ -702,7 +676,7 @@ export function WocApp() {
             onUploadFile={handleUploadFile}
             onClearUpload={clearUploadedFile}
             onExtractData={extractUploadedData}
-            onCaptureRouter={goToConfirm}
+            onCaptureRouter={() => setActiveScreen('confirm')}
           />
         )}
         {activeScreen === 'confirm' && (
@@ -713,7 +687,9 @@ export function WocApp() {
             onUpdateField={updateWocData}
             onConfirmField={confirmField}
             onConfirmRequired={confirmAllRequiredData}
-            onContinue={goToGenerate}
+            onContinue={() => {
+              if (gateStatus.confirmReady) setActiveScreen('generate');
+            }}
           />
         )}
         {activeScreen === 'generate' && (
@@ -731,6 +707,7 @@ export function WocApp() {
             submittedBy={submittedByLabel}
             sendReady={gateStatus.sendReady}
             isSending={isSending}
+            sendPin={sendPin}
             copyFeedback={copyFeedback}
             saveFeedback={saveFeedback}
             sendFeedback={sendFeedback}
@@ -739,6 +716,10 @@ export function WocApp() {
             onCopyEmailDraft={() => copyTextToClipboard(generatedPackage?.emailPreview, 'Email draft', setCopyFeedback)}
             onSaveDraft={saveCurrentDraft}
             onFinalReviewChange={setFinalReviewConfirmed}
+            onSendPinChange={(value) => {
+              setSendPin(normalizePin(value));
+              setSendFeedback(null);
+            }}
             onSendEmail={sendCorrectionEmail}
           />
         )}
@@ -748,12 +729,18 @@ export function WocApp() {
             selectedDraft={selectedDraft}
             draftFinalReviewConfirmed={draftFinalReviewConfirmed}
             isSendingDraft={isSendingDraft}
+            draftSendPin={draftSendPin}
             draftActionFeedback={draftActionFeedback}
             onSelectDraft={selectDraft}
             onCopyDraftReport={() => copyTextToClipboard(selectedDraft?.reportText, 'Saved draft report', setDraftActionFeedback)}
             onCopyDraftEmail={() => copyTextToClipboard(selectedDraft?.emailDraftText, 'Saved draft email', setDraftActionFeedback)}
             onDraftFinalReviewChange={(confirmed) => {
               setDraftFinalReviewConfirmed(confirmed);
+              setDraftSendPin('');
+              setDraftActionFeedback(null);
+            }}
+            onDraftSendPinChange={(value) => {
+              setDraftSendPin(normalizePin(value));
               setDraftActionFeedback(null);
             }}
             onSendDraftEmail={sendSelectedDraftEmail}
