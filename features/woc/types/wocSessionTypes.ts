@@ -29,6 +29,14 @@ export type ExtractedWorkOrderData = {
   notes?: string;
 };
 
+export type SetupConfig = {
+  companyName: string;
+  engineeringRecipientEmail: string;
+  senderDisplayName: string;
+  defaultSubmittedByName: string;
+  defaultSubmittedByEmail: string;
+};
+
 export type DraftRecord = {
   draftId: string;
   createdTimestamp: string;
