@@ -1,3 +1,4 @@
+import { printCorrectionReport } from '../logic/printCorrectionReport';
 import type { ActionFeedback, DraftRecord } from '../types/wocSessionTypes';
 
 type DraftsScreenProps = {
@@ -25,6 +26,21 @@ export function DraftsScreen({
   onDraftFinalReviewChange,
   onSendDraftEmail,
 }: DraftsScreenProps) {
+  const handlePrintDraftReport = () => {
+    if (!selectedDraft) return;
+
+    printCorrectionReport({
+      subjectLine: selectedDraft.subjectLine,
+      workOrderNumber: selectedDraft.workOrderNumber,
+      partNumber: selectedDraft.partNumber,
+      affectedArea: selectedDraft.affectedArea,
+      correctionType: selectedDraft.correctionType,
+      status: selectedDraft.status,
+      generatedTimestamp: selectedDraft.createdTimestamp,
+      reportText: selectedDraft.reportText,
+    });
+  };
+
   return (
     <section className="stack">
       <div className="screen-title">
@@ -67,6 +83,7 @@ export function DraftsScreen({
           <div className="action-row">
             <button className="button secondary" type="button" disabled={isSendingDraft} onClick={onCopyDraftReport}>Copy Report</button>
             <button className="button secondary" type="button" disabled={isSendingDraft} onClick={onCopyDraftEmail}>Copy Email Draft</button>
+            <button className="button secondary" type="button" disabled={isSendingDraft} onClick={handlePrintDraftReport}>Export / Print Report</button>
           </div>
 
           {draftActionFeedback && (
