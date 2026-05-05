@@ -84,6 +84,9 @@ export function WocApp() {
   const [isSending, setIsSending] = useState(false);
   const [draftRecords, setDraftRecords] = useState<DraftRecord[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
+  const [draftFinalReviewConfirmed, setDraftFinalReviewConfirmed] = useState(false);
+  const [draftActionFeedback, setDraftActionFeedback] = useState<ActionFeedback>(null);
+  const [isSendingDraft, setIsSendingDraft] = useState(false);
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [localRecordsLoaded, setLocalRecordsLoaded] = useState(false);
@@ -317,17 +320,17 @@ export function WocApp() {
     setSendFeedback(null);
   };
 
-  const copyTextToClipboard = async (text: string | undefined, label: string) => {
+  const copyTextToClipboard = async (text: string | undefined, label: string, setFeedback: (feedback: ActionFeedback) => void) => {
     if (!text) {
-      setCopyFeedback({ tone: 'error', message: `Generate a draft before copying the ${label}.` });
+      setFeedback({ tone: 'error', message: `Generate or open a draft before copying the ${label}.` });
       return;
     }
 
     try {
       await navigator.clipboard.writeText(text);
-      setCopyFeedback({ tone: 'success', message: `${label} copied to clipboard.` });
+      setFeedback({ tone: 'success', message: `${label} copied to clipboard.` });
     } catch {
-      setCopyFeedback({ tone: 'error', message: `${label} could not be copied. Use manual selection as fallback.` });
+      setFeedback({ tone: 'error', message: `${label} could not be copied. Use manual selection as fallback.` });
     }
   };
 
@@ -356,6 +359,8 @@ export function WocApp() {
 
       setDraftRecords((current) => [record, ...current]);
       setSelectedDraftId(record.draftId);
+      setDraftFinalReviewConfirmed(false);
+      setDraftActionFeedback(null);
       setSaveFeedback({ tone: 'success', message: `${draftId} saved for this browser.` });
     } catch {
       setSaveFeedback({ tone: 'error', message: 'Draft could not be saved. Try again.' });
@@ -378,6 +383,28 @@ export function WocApp() {
       correctionType: wocData.correctionType,
       reportText: generatedPackage.reportPreview,
       emailDraftText: generatedPackage.emailPreview,
+      resendId,
+      status: 'Sent',
+    };
+
+    setHistoryRecords((current) => [record, ...current]);
+    setSelectedHistoryId(record.historyId);
+  };
+
+  const addSentHistoryRecordFromDraft = (draft: DraftRecord, resendId: string | null) => {
+    const completedTimestamp = new Date().toLocaleString();
+    const nextHistoryNumber = historyRecords.length + 1;
+    const historyId = `HISTORY-${String(nextHistoryNumber).padStart(4, '0')}`;
+    const record: HistoryRecord = {
+      historyId,
+      completedTimestamp,
+      subjectLine: draft.subjectLine,
+      workOrderNumber: draft.workOrderNumber,
+      partNumber: draft.partNumber,
+      affectedArea: draft.affectedArea,
+      correctionType: draft.correctionType,
+      reportText: draft.reportText,
+      emailDraftText: draft.emailDraftText,
       resendId,
       status: 'Sent',
     };
@@ -430,6 +457,62 @@ export function WocApp() {
     }
   };
 
+  const selectDraft = (draftId: string) => {
+    setSelectedDraftId(draftId);
+    setDraftFinalReviewConfirmed(false);
+    setDraftActionFeedback(null);
+  };
+
+  const sendSelectedDraftEmail = async () => {
+    if (!selectedDraft) {
+      setDraftActionFeedback({ tone: 'error', message: 'Open a saved draft before sending.' });
+      return;
+    }
+
+    if (!draftFinalReviewConfirmed) {
+      setDraftActionFeedback({ tone: 'error', message: 'Final review is required before sending this saved draft.' });
+      return;
+    }
+
+    setIsSendingDraft(true);
+    setDraftActionFeedback({ tone: 'success', message: 'Sending saved draft email...' });
+
+    try {
+      const response = await fetch('/api/send-correction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subjectLine: selectedDraft.subjectLine,
+          reportText: selectedDraft.reportText,
+          emailDraftText: selectedDraft.emailDraftText,
+          workOrderNumber: selectedDraft.workOrderNumber,
+          partNumber: selectedDraft.partNumber,
+          affectedArea: selectedDraft.affectedArea,
+          correctionType: selectedDraft.correctionType,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message = typeof payload?.error === 'string' ? payload.error : 'Saved draft email send failed. Copy controls remain available.';
+        setDraftActionFeedback({ tone: 'error', message });
+        return;
+      }
+
+      const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
+      const recipient = typeof payload?.recipient === 'string' ? payload.recipient : 'configured recipient';
+      addSentHistoryRecordFromDraft(selectedDraft, resendId);
+      setDraftActionFeedback({ tone: 'success', message: `Saved draft sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
+      setDraftFinalReviewConfirmed(false);
+    } catch {
+      setDraftActionFeedback({ tone: 'error', message: 'Saved draft email send could not be completed. Copy controls remain available.' });
+    } finally {
+      setIsSendingDraft(false);
+    }
+  };
+
   const clearLocalRecords = () => {
     const confirmed = window.confirm('Clear all local Drafts and History from this browser? This cannot be undone.');
 
@@ -439,6 +522,8 @@ export function WocApp() {
     setDraftRecords([]);
     setHistoryRecords([]);
     setSelectedDraftId(null);
+    setDraftFinalReviewConfirmed(false);
+    setDraftActionFeedback(null);
     setSelectedHistoryId(null);
     setLocalRecordsFeedback({ tone: 'success', message: 'Drafts and History were cleared from this browser.' });
   };
@@ -505,14 +590,30 @@ export function WocApp() {
             saveFeedback={saveFeedback}
             sendFeedback={sendFeedback}
             confirmations={confirmations}
-            onCopyReport={() => copyTextToClipboard(generatedPackage?.reportPreview, 'Engineering report')}
-            onCopyEmailDraft={() => copyTextToClipboard(generatedPackage?.emailPreview, 'Email draft')}
+            onCopyReport={() => copyTextToClipboard(generatedPackage?.reportPreview, 'Engineering report', setCopyFeedback)}
+            onCopyEmailDraft={() => copyTextToClipboard(generatedPackage?.emailPreview, 'Email draft', setCopyFeedback)}
             onSaveDraft={saveCurrentDraft}
             onFinalReviewChange={setFinalReviewConfirmed}
             onSendEmail={sendCorrectionEmail}
           />
         )}
-        {activeScreen === 'drafts' && <DraftsScreen draftRecords={draftRecords} selectedDraft={selectedDraft} onSelectDraft={setSelectedDraftId} />}
+        {activeScreen === 'drafts' && (
+          <DraftsScreen
+            draftRecords={draftRecords}
+            selectedDraft={selectedDraft}
+            draftFinalReviewConfirmed={draftFinalReviewConfirmed}
+            isSendingDraft={isSendingDraft}
+            draftActionFeedback={draftActionFeedback}
+            onSelectDraft={selectDraft}
+            onCopyDraftReport={() => copyTextToClipboard(selectedDraft?.reportText, 'Saved draft report', setDraftActionFeedback)}
+            onCopyDraftEmail={() => copyTextToClipboard(selectedDraft?.emailDraftText, 'Saved draft email', setDraftActionFeedback)}
+            onDraftFinalReviewChange={(confirmed) => {
+              setDraftFinalReviewConfirmed(confirmed);
+              setDraftActionFeedback(null);
+            }}
+            onSendDraftEmail={sendSelectedDraftEmail}
+          />
+        )}
         {activeScreen === 'history' && <HistoryScreen historyRecords={historyRecords} selectedHistory={selectedHistory} onSelectHistory={setSelectedHistoryId} />}
         {activeScreen === 'more' && (
           <MoreScreen
