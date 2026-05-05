@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  clearCurrentUserFromStorage,
+  createCurrentUser,
+  getSubmittedByLabel,
+  loadCurrentUserFromStorage,
+  saveCurrentUserToStorage,
+} from '../logic/currentUserStorage';
+import {
   clearLocalRecordsStorage,
   loadDraftRecordsFromStorage,
   loadHistoryRecordsFromStorage,
@@ -27,6 +34,7 @@ import {
 } from '../state/wocDataModel';
 import type {
   ActionFeedback,
+  CurrentUser,
   DraftRecord,
   ExtractedWorkOrderData,
   HistoryRecord,
@@ -43,6 +51,7 @@ import { DraftsScreen } from './DraftsScreen';
 import { GenerateScreen } from './GenerateScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { HomeScreen } from './HomeScreen';
+import { LoginScreen } from './LoginScreen';
 import { MoreScreen } from './MoreScreen';
 import { ReviewSendScreen } from './ReviewSendScreen';
 
@@ -73,18 +82,23 @@ const stepLabels: Record<Screen, string> = {
   more: 'More',
 };
 
-function buildSendSetupPayload(setupConfig: SetupConfig) {
+function buildSendSetupPayload(setupConfig: SetupConfig, currentUser: CurrentUser | null) {
   return {
     recipientEmail: setupConfig.engineeringRecipientEmail,
     senderDisplayName: setupConfig.senderDisplayName,
-    submittedByName: setupConfig.defaultSubmittedByName,
-    submittedByEmail: setupConfig.defaultSubmittedByEmail,
+    submittedByName: currentUser?.displayName || setupConfig.defaultSubmittedByName,
+    submittedByEmail: currentUser?.emailOrEmployeeId || setupConfig.defaultSubmittedByEmail,
     companyName: setupConfig.companyName,
   };
 }
 
 export function WocApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
+  const [loginDisplayName, setLoginDisplayName] = useState('');
+  const [loginEmailOrEmployeeId, setLoginEmailOrEmployeeId] = useState('');
+  const [loginFeedback, setLoginFeedback] = useState<ActionFeedback>(null);
   const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
   const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
   const [manualEntry, setManualEntry] = useState('');
@@ -124,6 +138,8 @@ export function WocApp() {
     const loadedDrafts = loadDraftRecordsFromStorage();
     const loadedHistory = loadHistoryRecordsFromStorage();
 
+    setCurrentUser(loadCurrentUserFromStorage());
+    setCurrentUserLoaded(true);
     setDraftRecords(loadedDrafts);
     setHistoryRecords(loadedHistory);
     setSetupConfig(loadSetupConfigFromStorage());
@@ -146,6 +162,8 @@ export function WocApp() {
     setSetupCodeInput('');
   }, [activeScreen]);
 
+  const submittedByLabel = useMemo(() => getSubmittedByLabel(currentUser), [currentUser]);
+
   const gateStatus = useMemo(
     () => getGateStatus(wocData, confirmations, generatedPackage),
     [confirmations, generatedPackage, wocData],
@@ -160,6 +178,31 @@ export function WocApp() {
     () => historyRecords.find((record) => record.historyId === selectedHistoryId) ?? null,
     [historyRecords, selectedHistoryId],
   );
+
+  const handleLogin = () => {
+    if (!loginDisplayName.trim() || !loginEmailOrEmployeeId.trim()) {
+      setLoginFeedback({ tone: 'error', message: 'Enter a user name and email or employee ID.' });
+      return;
+    }
+
+    const nextUser = createCurrentUser(loginDisplayName, loginEmailOrEmployeeId);
+    saveCurrentUserToStorage(nextUser);
+    setCurrentUser(nextUser);
+    setLoginDisplayName('');
+    setLoginEmailOrEmployeeId('');
+    setLoginFeedback(null);
+    setActiveScreen('home');
+  };
+
+  const handleLogout = () => {
+    clearCurrentUserFromStorage();
+    setCurrentUser(null);
+    setSetupUnlocked(false);
+    setSetupCodeInput('');
+    setGeneratedPackage(null);
+    setConfirmations(defaultWocConfirmations);
+    setActiveScreen('home');
+  };
 
   const updateWocData = (key: keyof WocCorrectionData, value: string) => {
     setWocData((current) => ({ ...current, [key]: value }));
@@ -334,7 +377,7 @@ export function WocApp() {
 
   const generateDraft = () => {
     if (!gateStatus.generateReady) return;
-    setGeneratedPackage(createGeneratedPackage(wocData));
+    setGeneratedPackage(createGeneratedPackage(wocData, submittedByLabel));
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
     setCopyFeedback(null);
     setSaveFeedback(null);
@@ -381,6 +424,8 @@ export function WocApp() {
         correctionType: wocData.correctionType,
         reportText: generatedPackage.reportPreview,
         emailDraftText: generatedPackage.emailPreview,
+        submittedBy: submittedByLabel,
+        submittedById: currentUser?.userId,
         status: 'Draft',
       };
 
@@ -410,6 +455,8 @@ export function WocApp() {
       correctionType: wocData.correctionType,
       reportText: generatedPackage.reportPreview,
       emailDraftText: generatedPackage.emailPreview,
+      submittedBy: submittedByLabel,
+      submittedById: currentUser?.userId,
       resendId,
       status: 'Sent',
     };
@@ -432,6 +479,8 @@ export function WocApp() {
       correctionType: draft.correctionType,
       reportText: draft.reportText,
       emailDraftText: draft.emailDraftText,
+      submittedBy: draft.submittedBy || submittedByLabel,
+      submittedById: draft.submittedById || currentUser?.userId,
       resendId,
       status: 'Sent',
     };
@@ -463,7 +512,7 @@ export function WocApp() {
           partNumber: wocData.partNumber,
           affectedArea: getEffectiveAffectedArea(wocData),
           correctionType: wocData.correctionType,
-          ...buildSendSetupPayload(setupConfig),
+          ...buildSendSetupPayload(setupConfig, currentUser),
         }),
       });
       const payload = await response.json();
@@ -519,7 +568,7 @@ export function WocApp() {
           partNumber: selectedDraft.partNumber,
           affectedArea: selectedDraft.affectedArea,
           correctionType: selectedDraft.correctionType,
-          ...buildSendSetupPayload(setupConfig),
+          ...buildSendSetupPayload(setupConfig, currentUser),
         }),
       });
       const payload = await response.json();
@@ -611,6 +660,29 @@ export function WocApp() {
     if (key === 'partNumber') confirmPartNumber();
   };
 
+  if (!currentUserLoaded) {
+    return null;
+  }
+
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        displayName={loginDisplayName}
+        emailOrEmployeeId={loginEmailOrEmployeeId}
+        loginFeedback={loginFeedback}
+        onDisplayNameChange={(value) => {
+          setLoginDisplayName(value);
+          setLoginFeedback(null);
+        }}
+        onEmailOrEmployeeIdChange={(value) => {
+          setLoginEmailOrEmployeeId(value);
+          setLoginFeedback(null);
+        }}
+        onLogin={handleLogin}
+      />
+    );
+  }
+
   return (
     <main className="app-shell">
       <div className="app-frame">
@@ -656,6 +728,7 @@ export function WocApp() {
         {activeScreen === 'review' && (
           <ReviewSendScreen
             generatedPackage={generatedPackage}
+            submittedBy={submittedByLabel}
             sendReady={gateStatus.sendReady}
             isSending={isSending}
             copyFeedback={copyFeedback}
@@ -689,6 +762,7 @@ export function WocApp() {
         {activeScreen === 'history' && <HistoryScreen historyRecords={historyRecords} selectedHistory={selectedHistory} onSelectHistory={setSelectedHistoryId} />}
         {activeScreen === 'more' && (
           <MoreScreen
+            currentUser={currentUser}
             draftCount={draftRecords.length}
             historyCount={historyRecords.length}
             localRecordsFeedback={localRecordsFeedback}
@@ -702,6 +776,7 @@ export function WocApp() {
             onUpdateSetupConfig={updateSetupConfig}
             onSaveSetupConfig={saveSetupConfig}
             onClearLocalRecords={clearLocalRecords}
+            onLogout={handleLogout}
           />
         )}
       </div>
