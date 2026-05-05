@@ -1,29 +1,77 @@
+import type { ChangeEvent } from 'react';
+import type { UploadedFileInfo } from '../types/wocSessionTypes';
+
 type CaptureScreenProps = {
   manualEntry: string;
+  uploadedFile: UploadedFileInfo | null;
+  uploadFeedback: string | null;
   onManualEntryChange: (value: string) => void;
+  onUploadFile: (file: File | null) => void;
+  onClearUpload: () => void;
   onCaptureRouter: () => void;
 };
 
-export function CaptureScreen({ manualEntry, onManualEntryChange, onCaptureRouter }: CaptureScreenProps) {
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function CaptureScreen({
+  manualEntry,
+  uploadedFile,
+  uploadFeedback,
+  onManualEntryChange,
+  onUploadFile,
+  onClearUpload,
+  onCaptureRouter,
+}: CaptureScreenProps) {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onUploadFile(event.target.files?.[0] ?? null);
+    event.target.value = '';
+  };
+
   return (
     <section className="stack">
       <div className="screen-title">
         <h1>Capture Router</h1>
-        <p>Capture the work order/header data. OCR and AI Vision are intentionally not wired in this milestone.</p>
+        <p>Upload a router/work order file or use manual entry. OCR and AI Vision are intentionally not wired in this milestone.</p>
       </div>
 
       <article className="card">
         <div className="card-header">
           <div>
-            <h2>Photo / Upload</h2>
-            <p>Placeholder capture controls for the clean screen flow.</p>
+            <h2>Upload File / Photo</h2>
+            <p>Select an image or file from your device library/files. No camera, OCR, or AI Vision runs yet.</p>
           </div>
           <span className="step-pill">Step 1</span>
         </div>
         <div className="action-row">
-          <button className="button secondary" type="button">Take Photo</button>
-          <button className="button secondary" type="button">Upload File</button>
+          <label className="button secondary" htmlFor="router-upload-input">
+            Upload File / Photo
+          </label>
+          <input
+            accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
+            id="router-upload-input"
+            onChange={handleFileChange}
+            type="file"
+          />
+          <button className="button secondary" type="button" disabled={!uploadedFile} onClick={onClearUpload}>Clear Upload</button>
         </div>
+        {uploadFeedback && <p className="field-help">{uploadFeedback}</p>}
+        {uploadedFile && (
+          <div className="field-row" style={{ marginTop: 14 }}>
+            <strong>
+              Selected File
+              <span className="field-status confirmed">Ready</span>
+            </strong>
+            <span className="field-value">{uploadedFile.name}</span>
+            <span className="field-help">{uploadedFile.type || 'Unknown file type'} · {formatFileSize(uploadedFile.size)}</span>
+            {uploadedFile.isImage && uploadedFile.previewUrl && (
+              <img alt="Uploaded router preview" className="upload-preview" src={uploadedFile.previewUrl} />
+            )}
+          </div>
+        )}
       </article>
 
       <article className="card">
