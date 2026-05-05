@@ -17,6 +17,7 @@ export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory
       partNumber: selectedHistory.partNumber,
       affectedArea: selectedHistory.affectedArea,
       correctionType: selectedHistory.correctionType,
+      submittedBy: selectedHistory.submittedBy,
       status: selectedHistory.status,
       generatedTimestamp: selectedHistory.completedTimestamp,
       reportText: selectedHistory.reportText,
@@ -41,6 +42,7 @@ export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory
               <strong>{record.historyId} · {record.subjectLine}</strong>
               <span>{record.status} · WO {record.workOrderNumber} · Part {record.partNumber}</span>
               <span>{record.affectedArea} · {record.correctionType} · {record.completedTimestamp}</span>
+              {record.submittedBy && <span>Submitted By: {record.submittedBy}</span>}
               {record.resendId && <span>Resend ID: {record.resendId}</span>}
               <div className="action-row">
                 <button className="button secondary" type="button" onClick={() => onSelectHistory(record.historyId)}>Open History</button>
@@ -58,6 +60,7 @@ export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory
             </div>
             <span className="field-status confirmed">Recorded</span>
           </div>
+          {selectedHistory.submittedBy && <p className="field-help">Submitted By: {selectedHistory.submittedBy}</p>}
           <h3>Saved Engineering Report</h3>
           <div className="preview-box">{selectedHistory.reportText}</div>
           <h3 style={{ marginTop: 14 }}>Saved Email Draft</h3>
