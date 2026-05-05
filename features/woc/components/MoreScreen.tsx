@@ -15,7 +15,7 @@ export function MoreScreen() {
           </div>
           <div className="placeholder-item">
             <strong>Build Status</strong>
-            <span>Milestone 7: Component cleanup / structure split.</span>
+            <span>Milestone 6: Session history behavior.</span>
           </div>
         </div>
       </article>
