@@ -15,7 +15,7 @@ type MoreScreenProps = {
   onUpdateSetupConfig: (key: keyof SetupConfig, value: string) => void;
   onSaveSetupConfig: () => void;
   onClearLocalRecords: () => void;
-  onLockApp: () => void;
+  onLogout: () => void;
 };
 
 export function MoreScreen({
@@ -33,7 +33,7 @@ export function MoreScreen({
   onUpdateSetupConfig,
   onSaveSetupConfig,
   onClearLocalRecords,
-  onLockApp,
+  onLogout,
 }: MoreScreenProps) {
   return (
     <section className="stack">
@@ -52,7 +52,7 @@ export function MoreScreen({
           </div>
         </div>
         <div className="action-row">
-          <button className="button secondary full-width" type="button" onClick={onLockApp}>Lock App</button>
+          <button className="button secondary full-width" type="button" onClick={onLogout}>Lock App</button>
         </div>
         <p className="field-help">Lock App keeps the saved user identity and returns to the 4-digit App PIN screen.</p>
       </article>
