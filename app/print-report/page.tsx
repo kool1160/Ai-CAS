@@ -87,17 +87,17 @@ export default function PrintReportPage() {
         }
 
         .print-report-page {
-          min-height: 100vh;
+          min-height: 0;
           background: #ffffff;
           color: #000000;
-          padding: 16px;
+          padding: 12px;
         }
 
         .print-controls {
           display: flex;
           gap: 8px;
           max-width: 8.5in;
-          margin: 0 auto 12px;
+          margin: 0 auto 10px;
         }
 
         .print-controls button {
@@ -121,7 +121,7 @@ export default function PrintReportPage() {
           background: #ffffff;
           color: #111827;
           font-size: 11px;
-          line-height: 1.26;
+          line-height: 1.24;
         }
 
         .brand-bar {
@@ -132,7 +132,7 @@ export default function PrintReportPage() {
           background: #ffffff;
           color: #000000;
           padding: 5px 8px;
-          margin-bottom: 7px;
+          margin-bottom: 6px;
           font-size: 8.5px;
           font-weight: 700;
           letter-spacing: 0.07em;
@@ -142,8 +142,8 @@ export default function PrintReportPage() {
         .header {
           border: 1px solid #111827;
           border-left: 6px solid #111827;
-          padding: 8px 10px;
-          margin-bottom: 8px;
+          padding: 7px 10px;
+          margin-bottom: 7px;
           background: #ffffff;
         }
 
@@ -172,7 +172,7 @@ export default function PrintReportPage() {
         table {
           width: 100%;
           border-collapse: collapse;
-          margin: 0 0 8px;
+          margin: 0 0 7px;
           background: #ffffff;
         }
 
@@ -203,7 +203,7 @@ export default function PrintReportPage() {
           border: 1px solid #111827;
           border-left: 5px solid #111827;
           padding: 6px 8px;
-          margin: 0 0 7px;
+          margin: 0 0 6px;
           background: #ffffff;
         }
 
@@ -222,7 +222,7 @@ export default function PrintReportPage() {
         }
 
         .section-title {
-          margin: 8px 0 5px;
+          margin: 7px 0 4px;
           border-bottom: 1px solid #111827;
           padding-bottom: 3px;
           color: #111827;
@@ -235,14 +235,14 @@ export default function PrintReportPage() {
           border: 1px solid #d1d5db;
           background: #ffffff;
           color: #111827;
-          padding: 7px;
+          padding: 6px;
           white-space: pre-wrap;
           overflow-wrap: anywhere;
         }
 
         .error-box {
           max-width: 8.5in;
-          margin: 40px auto;
+          margin: 24px auto;
           border: 1px solid #d1d5db;
           padding: 16px;
           color: #111827;
@@ -251,24 +251,59 @@ export default function PrintReportPage() {
 
         @page {
           size: letter;
-          margin: 0.2in;
+          margin: 0.18in;
         }
 
         @media print {
-          .print-report-page {
+          html,
+          body {
+            width: auto !important;
+            height: auto !important;
             min-height: 0 !important;
+            margin: 0 !important;
             padding: 0 !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+          }
+
+          #__next,
+          .print-report-page {
+            display: block !important;
+            width: auto !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            break-after: avoid !important;
+            page-break-after: avoid !important;
           }
 
           .print-controls {
             display: none !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
           }
 
           .report-page {
+            display: block !important;
             width: auto !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
             margin: 0 !important;
+            padding: 0 !important;
             font-size: 11px !important;
-            line-height: 1.26 !important;
+            line-height: 1.22 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             break-after: avoid !important;
             page-break-after: avoid !important;
           }
@@ -281,6 +316,10 @@ export default function PrintReportPage() {
           .report-box {
             break-after: avoid !important;
             page-break-after: avoid !important;
+          }
+
+          .report-box {
+            margin-bottom: 0 !important;
           }
         }
       `}</style>
