@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const TARGET_RECIPIENT = 'Christophertroyhilton@gmail.com';
+const TARGET_RECIPIENT = 'kool1160@gmail.com';
 const RESEND_FROM = 'REFAB Connect <onboarding@resend.dev>';
 
 type SendCorrectionRequest = {
