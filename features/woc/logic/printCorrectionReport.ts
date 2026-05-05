@@ -59,45 +59,23 @@ function getPrintStyles() {
         inset: 0;
         z-index: 99999;
         overflow: auto;
-        padding: 16px;
+        padding: 12px;
         background: #ffffff;
-        color: #111827;
+        color: #000000;
         -webkit-overflow-scrolling: touch;
       }
+      #${PRINT_ROOT_ID},
       #${PRINT_ROOT_ID} * {
         box-sizing: border-box;
-      }
-      #${PRINT_ROOT_ID} .print-actions {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        display: flex;
-        gap: 8px;
-        margin: -16px -16px 12px;
-        padding: 10px 16px;
-        background: #111827;
-        border-bottom: 1px solid #374151;
-      }
-      #${PRINT_ROOT_ID} .print-actions button {
-        min-height: 40px;
-        border: 1px solid #d1d5db;
-        border-radius: 10px;
-        padding: 0 14px;
-        background: #ffffff;
-        color: #111827;
-        font: 700 13px Arial, Helvetica, sans-serif;
-      }
-      #${PRINT_ROOT_ID} .print-actions button.primary {
-        background: #2563eb;
-        border-color: #2563eb;
-        color: #ffffff;
+        box-shadow: none !important;
+        text-shadow: none !important;
       }
       #${PRINT_ROOT_ID} .page {
         width: min(100%, 8.5in);
         margin: 0 auto;
-        padding: 0.22in;
+        padding: 0.18in;
         background: #ffffff;
-        color: #111827;
+        color: #000000;
         font-family: Arial, Helvetica, sans-serif;
         font-size: 11px;
         line-height: 1.28;
@@ -146,16 +124,6 @@ function getPrintStyles() {
         break-after: avoid !important;
         page-break-after: avoid !important;
       }
-      #${PRINT_ROOT_ID} .print-actions {
-        display: none !important;
-        height: 0 !important;
-        min-height: 0 !important;
-        max-height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        background: transparent !important;
-      }
       #${PRINT_ROOT_ID} .page {
         display: block !important;
         width: auto !important;
@@ -173,25 +141,6 @@ function getPrintStyles() {
         page-break-after: avoid !important;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
-      }
-      #${PRINT_ROOT_ID} .brand-bar {
-        background: #ffffff !important;
-        color: #000000 !important;
-        border: 1px solid #111827 !important;
-      }
-      #${PRINT_ROOT_ID} .brand-bar span {
-        background: transparent !important;
-        color: #000000 !important;
-      }
-      #${PRINT_ROOT_ID} .footer {
-        display: none !important;
-        height: 0 !important;
-        min-height: 0 !important;
-        max-height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        background: transparent !important;
       }
       #${PRINT_ROOT_ID} .report-box {
         background: #ffffff !important;
@@ -211,9 +160,9 @@ function getPrintStyles() {
       align-items: center;
       justify-content: space-between;
       border: 1px solid #111827;
-      background: #111827;
-      color: #ffffff;
-      padding: 6px 9px;
+      background: #ffffff;
+      color: #000000;
+      padding: 5px 8px;
       margin-bottom: 7px;
       font-size: 8.5px;
       font-weight: 700;
@@ -373,10 +322,6 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
   printRoot.id = PRINT_ROOT_ID;
   printRoot.setAttribute('aria-label', 'Printable Engineering Correction Report');
   printRoot.innerHTML = `
-    <div class="print-actions">
-      <button class="primary" type="button" data-print-report>Print / Save PDF</button>
-      <button type="button" data-close-print>Close</button>
-    </div>
     <main class="page">
       <div class="brand-bar"><span>REFAB CONNECT</span><span>AI-WOC</span></div>
       <header class="header">
@@ -397,8 +342,7 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
   document.body.appendChild(style);
   document.body.appendChild(printRoot);
 
-  printRoot.querySelector('[data-close-print]')?.addEventListener('click', removeExistingPrintOverlay);
-  printRoot.querySelector('[data-print-report]')?.addEventListener('click', () => window.print());
+  window.addEventListener('afterprint', removeExistingPrintOverlay, { once: true });
 
   requestAnimationFrame(() => {
     window.setTimeout(() => window.print(), 250);
