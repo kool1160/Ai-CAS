@@ -34,25 +34,27 @@ export function LoginScreen({
       <div className="app-frame">
         <section className="stack home-screen">
           <div className="hero">
-            <span className="status-pill"><span className="status-dot" />ACCESS REQUIRED</span>
+            <span className="status-pill"><span className="status-dot" />APP LOCKED</span>
             <div className="brand-mark">
               <h1 className="brand-title">Refab Connect</h1>
               <p className="brand-subtitle">Work Order Correction System</p>
-              <p className="brand-subtitle">Local device access lock</p>
+              <p className="brand-subtitle">App Access PIN</p>
             </div>
             <p className="helper-text">
-              {isReturningUser ? 'Enter your 4-digit App PIN to unlock.' : 'Set up your identity once, then unlock with a 4-digit App PIN.'}
+              {isReturningUser
+                ? 'Enter the 4-digit App Access PIN to prevent casual or accidental use.'
+                : 'Set up the submitting user once, then protect app access with a 4-digit PIN.'}
             </p>
           </div>
 
           <article className="card">
             <div className="card-header">
               <div>
-                <h2>{isReturningUser ? 'Unlock App' : 'First-Time User Setup'}</h2>
+                <h2>{isReturningUser ? 'Unlock to Connect' : 'First-Time Setup'}</h2>
                 <p>
                   {isReturningUser
-                    ? `Saved user: ${savedUser?.displayName} (${savedUser?.emailOrEmployeeId})`
-                    : 'User identity is saved so reports know who submitted the correction.'}
+                    ? `Submitted By: ${savedUser?.displayName} (${savedUser?.emailOrEmployeeId})`
+                    : 'This saved identity appears on reports as Submitted By.'}
                 </p>
               </div>
               <span className="field-status">M16</span>
@@ -83,7 +85,7 @@ export function LoginScreen({
 
             <div className="form-grid" style={{ marginTop: isReturningUser ? 0 : 14 }}>
               <label>
-                4-Digit App PIN
+                4-Digit App Access PIN
                 <input
                   inputMode="numeric"
                   maxLength={4}
@@ -102,7 +104,7 @@ export function LoginScreen({
 
             <div className="action-row">
               <button className="button primary full-width" type="button" disabled={appUnlockPin.length !== 4} onClick={isReturningUser ? onUnlockApp : onSetupUser}>
-                {isReturningUser ? 'Unlock App' : 'Save User + Unlock'}
+                {isReturningUser ? 'Unlock to Connect' : 'Save User + Unlock'}
               </button>
             </div>
 
@@ -112,7 +114,7 @@ export function LoginScreen({
               </div>
             )}
 
-            <p className="field-help">This is a local device access lock, not full enterprise authentication. Send Email still requires the separate 4-digit Send PIN.</p>
+            <p className="field-help">This is a lightweight childproof / accidental-use lock. Send Email still requires the separate 4-digit Send PIN. Setup/Admin still requires the master code.</p>
           </article>
         </section>
       </div>
