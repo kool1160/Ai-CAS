@@ -100,8 +100,10 @@ export function WocApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
+  const [appUnlocked, setAppUnlocked] = useState(false);
   const [loginDisplayName, setLoginDisplayName] = useState('');
   const [loginEmailOrEmployeeId, setLoginEmailOrEmployeeId] = useState('');
+  const [appUnlockPin, setAppUnlockPin] = useState('');
   const [loginFeedback, setLoginFeedback] = useState<ActionFeedback>(null);
 
   const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
@@ -183,28 +185,62 @@ export function WocApp() {
     setSendPin('');
   };
 
-  const handleLogin = () => {
+  const handleSetupUser = () => {
     if (!loginDisplayName.trim() || !loginEmailOrEmployeeId.trim()) {
       setLoginFeedback({ tone: 'error', message: 'Enter a user name and email or employee ID.' });
       return;
     }
 
-    const nextUser = createCurrentUser(loginDisplayName, loginEmailOrEmployeeId);
+    if (appUnlockPin.length !== 4) {
+      setLoginFeedback({ tone: 'error', message: 'Set a 4-digit App PIN.' });
+      return;
+    }
+
+    const nextUser = createCurrentUser(loginDisplayName, loginEmailOrEmployeeId, appUnlockPin);
     saveCurrentUserToStorage(nextUser);
     setCurrentUser(nextUser);
+    setAppUnlocked(true);
+    setLoginDisplayName('');
+    setLoginEmailOrEmployeeId('');
+    setAppUnlockPin('');
+    setLoginFeedback(null);
+    setActiveScreen('home');
+  };
+
+  const handleUnlockApp = () => {
+    if (!currentUser) return;
+
+    if (appUnlockPin !== currentUser.appUnlockPin) {
+      setLoginFeedback({ tone: 'error', message: 'Incorrect App PIN.' });
+      setAppUnlockPin('');
+      return;
+    }
+
+    setAppUnlocked(true);
+    setAppUnlockPin('');
+    setLoginFeedback(null);
+    setActiveScreen('home');
+  };
+
+  const handleResetUser = () => {
+    const confirmed = window.confirm('Reset the saved local user? You will need to enter name, ID, and a new App PIN again.');
+    if (!confirmed) return;
+
+    clearCurrentUserFromStorage();
+    setCurrentUser(null);
+    setAppUnlocked(false);
+    setAppUnlockPin('');
     setLoginDisplayName('');
     setLoginEmailOrEmployeeId('');
     setLoginFeedback(null);
     setActiveScreen('home');
   };
 
-  const handleLogout = () => {
-    clearCurrentUserFromStorage();
-    setCurrentUser(null);
+  const handleLockApp = () => {
+    setAppUnlocked(false);
+    setAppUnlockPin('');
     setSetupUnlocked(false);
     setSetupCodeInput('');
-    setGeneratedPackage(null);
-    setConfirmations(defaultWocConfirmations);
     setSendPin('');
     setDraftSendPin('');
     setActiveScreen('home');
@@ -638,11 +674,13 @@ export function WocApp() {
 
   if (!currentUserLoaded) return null;
 
-  if (!currentUser) {
+  if (!currentUser || !appUnlocked) {
     return (
       <LoginScreen
+        savedUser={currentUser}
         displayName={loginDisplayName}
         emailOrEmployeeId={loginEmailOrEmployeeId}
+        appUnlockPin={appUnlockPin}
         loginFeedback={loginFeedback}
         onDisplayNameChange={(value) => {
           setLoginDisplayName(value);
@@ -652,7 +690,13 @@ export function WocApp() {
           setLoginEmailOrEmployeeId(value);
           setLoginFeedback(null);
         }}
-        onLogin={handleLogin}
+        onAppUnlockPinChange={(value) => {
+          setAppUnlockPin(normalizePin(value));
+          setLoginFeedback(null);
+        }}
+        onSetupUser={handleSetupUser}
+        onUnlockApp={handleUnlockApp}
+        onResetUser={handleResetUser}
       />
     );
   }
@@ -763,7 +807,7 @@ export function WocApp() {
             onUpdateSetupConfig={updateSetupConfig}
             onSaveSetupConfig={saveSetupConfig}
             onClearLocalRecords={clearLocalRecords}
-            onLogout={handleLogout}
+            onLogout={handleLockApp}
           />
         )}
       </div>
