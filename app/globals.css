@@ -1,25 +1,25 @@
 :root {
   --bg: #02050a;
-  --bg-soft: #050b12;
+  --bg-deep: #000206;
   --panel: #08111d;
-  --panel-strong: #0c1827;
-  --panel-raised: #101d2d;
+  --panel-strong: #0d1b2b;
+  --panel-raised: #122033;
   --border: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-strong: rgba(255, 255, 255, 0.22);
   --text: #f8fbff;
-  --muted: #9ca9b8;
-  --muted-strong: #c4ceda;
+  --muted: #98a8ba;
+  --muted-strong: #c7d1de;
   --blue: #1f8cff;
-  --blue-strong: #4da3ff;
-  --blue-soft: rgba(31, 140, 255, 0.15);
+  --blue-strong: #58aaff;
+  --blue-soft: rgba(31, 140, 255, 0.16);
   --red: #e53935;
-  --red-strong: #ff5a55;
-  --red-soft: rgba(229, 57, 53, 0.14);
+  --red-strong: #ff5c58;
+  --red-soft: rgba(229, 57, 53, 0.15);
   --green: #35d07f;
-  --green-soft: rgba(53, 208, 127, 0.14);
-  --shadow-soft: 0 20px 70px rgba(0, 0, 0, 0.28);
-  --shadow-glow: 0 0 44px rgba(31, 140, 255, 0.13);
-  --nav-clearance: 236px;
+  --green-soft: rgba(53, 208, 127, 0.15);
+  --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.38);
+  --shadow-glow: 0 0 54px rgba(31, 140, 255, 0.16);
+  --nav-clearance: 240px;
 }
 
 * {
@@ -33,18 +33,35 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 50% -12rem, rgba(31, 140, 255, 0.19), transparent 34rem),
-    radial-gradient(circle at 8% 18rem, rgba(229, 57, 53, 0.08), transparent 24rem),
-    linear-gradient(180deg, #040910 0%, var(--bg) 48%, #010306 100%);
+  background-color: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
+  position: relative;
   min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% -15rem, rgba(31, 140, 255, 0.28), transparent 36rem),
+    radial-gradient(circle at 8% 18rem, rgba(229, 57, 53, 0.1), transparent 25rem),
+    linear-gradient(180deg, #050b13 0%, var(--bg) 46%, var(--bg-deep) 100%);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(2, 5, 10, 1) 0%, rgba(2, 5, 10, 0.94) 9%, rgba(2, 5, 10, 0) 30%),
+    radial-gradient(circle at 50% 0, rgba(31, 140, 255, 0.22), transparent 28rem);
 }
 
 button,
@@ -67,13 +84,28 @@ button:disabled {
 .app-shell {
   width: 100%;
   min-height: 100vh;
-  padding: 20px 16px calc(var(--nav-clearance) + env(safe-area-inset-bottom));
+  padding: calc(18px + env(safe-area-inset-top)) 16px calc(var(--nav-clearance) + env(safe-area-inset-bottom));
+  background: transparent;
 }
 
 .app-frame {
+  position: relative;
   width: min(100%, 460px);
   margin: 0 auto;
   padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+.app-frame::before {
+  content: "";
+  position: absolute;
+  top: 76px;
+  left: 12%;
+  right: 12%;
+  height: 220px;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(31, 140, 255, 0.2), transparent 68%);
+  filter: blur(4px);
 }
 
 .status-pill,
@@ -87,17 +119,23 @@ button:disabled {
   padding: 8px 12px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 850;
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
 }
 
+.step-pill {
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .status-pill {
-  background: linear-gradient(180deg, rgba(53, 208, 127, 0.17), rgba(53, 208, 127, 0.08));
+  background: linear-gradient(180deg, rgba(53, 208, 127, 0.18), rgba(53, 208, 127, 0.08));
   color: var(--green);
-  border-color: rgba(53, 208, 127, 0.36);
-  box-shadow: 0 0 26px rgba(53, 208, 127, 0.1);
+  border-color: rgba(53, 208, 127, 0.38);
+  box-shadow: 0 0 28px rgba(53, 208, 127, 0.12);
 }
 
 .status-dot {
@@ -105,7 +143,7 @@ button:disabled {
   height: 8px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 18px rgba(53, 208, 127, 0.75);
+  box-shadow: 0 0 18px rgba(53, 208, 127, 0.8);
 }
 
 .hero {
@@ -113,19 +151,20 @@ button:disabled {
   gap: 18px;
   justify-items: center;
   text-align: center;
-  border: 1px solid rgba(31, 140, 255, 0.19);
-  border-radius: 30px;
+  border: 1px solid rgba(31, 140, 255, 0.25);
+  border-radius: 32px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-    radial-gradient(circle at top, rgba(31, 140, 255, 0.18), transparent 16rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022)),
+    radial-gradient(circle at 50% -15%, rgba(31, 140, 255, 0.32), transparent 17rem),
+    radial-gradient(circle at 95% 0, rgba(53, 208, 127, 0.1), transparent 14rem),
     var(--panel);
-  box-shadow: var(--shadow-soft), var(--shadow-glow);
-  padding: 26px 18px 20px;
+  box-shadow: var(--shadow-soft), var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 28px 18px 21px;
 }
 
 .brand-mark {
   display: grid;
-  gap: 5px;
+  gap: 6px;
   justify-items: center;
   margin-top: 4px;
 }
@@ -133,16 +172,17 @@ button:disabled {
 .brand-kicker {
   color: var(--blue-strong);
   font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.19em;
+  font-weight: 950;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 24px rgba(31, 140, 255, 0.25);
 }
 
 .brand-title {
   margin: 0;
   max-width: 10ch;
-  font-size: clamp(34px, 11vw, 48px);
-  line-height: 0.94;
-  letter-spacing: -0.06em;
+  font-size: clamp(35px, 11.5vw, 50px);
+  line-height: 0.92;
+  letter-spacing: -0.065em;
 }
 
 .brand-subtitle,
@@ -155,13 +195,13 @@ button:disabled {
 .brand-subtitle {
   margin: 0;
   font-size: 14px;
-  line-height: 1.35;
+  line-height: 1.36;
 }
 
 .helper-text {
   margin: 0;
   color: var(--muted-strong);
-  font-weight: 750;
+  font-weight: 800;
 }
 
 .screen-title {
@@ -172,40 +212,57 @@ button:disabled {
 
 .screen-title h1 {
   margin: 0;
-  font-size: 29px;
+  font-size: 30px;
   line-height: 1;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.047em;
 }
 
 .screen-title p {
   margin: 0;
   color: var(--muted);
   font-size: 14px;
-  line-height: 1.48;
+  line-height: 1.5;
 }
 
 .card-grid,
 .stack {
   display: grid;
-  gap: 13px;
+  gap: 14px;
 }
 
 .stack {
-  padding-bottom: calc(42px + env(safe-area-inset-bottom));
+  padding-bottom: calc(44px + env(safe-area-inset-bottom));
 }
 
 .card {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 25px;
+  border-radius: 26px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.063), rgba(255, 255, 255, 0.018)),
     var(--panel);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.045);
   padding: 18px;
 }
 
-.card:nth-of-type(1) {
-  border-color: rgba(255, 255, 255, 0.15);
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+
+.card-grid .card,
+.workflow-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
+    linear-gradient(135deg, rgba(31, 140, 255, 0.09), rgba(255, 255, 255, 0.01)),
+    var(--panel);
 }
 
 .card-header {
@@ -236,14 +293,15 @@ button:disabled {
 .card p {
   margin: 8px 0 0;
   font-size: 14px;
-  line-height: 1.48;
+  line-height: 1.5;
 }
 
 .workflow-card {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
+  gap: 13px;
   align-items: start;
+  border-color: rgba(31, 140, 255, 0.16);
 }
 
 .workflow-card h3 {
@@ -253,14 +311,14 @@ button:disabled {
 .step-number {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(31, 140, 255, 0.25);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(31, 140, 255, 0.19), rgba(31, 140, 255, 0.08));
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(31, 140, 255, 0.28);
+  border-radius: 15px;
+  background: linear-gradient(180deg, rgba(31, 140, 255, 0.22), rgba(31, 140, 255, 0.08));
   color: var(--blue-strong);
   font-weight: 950;
-  box-shadow: 0 0 18px rgba(31, 140, 255, 0.08);
+  box-shadow: 0 0 22px rgba(31, 140, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .form-grid {
@@ -273,7 +331,7 @@ label {
   gap: 7px;
   color: var(--muted-strong);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 label:has(input[type="checkbox"]),
@@ -300,7 +358,7 @@ textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 17px;
-  background: rgba(255, 255, 255, 0.058);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   padding: 13px 14px;
   outline: none;
@@ -316,9 +374,9 @@ input[type="url"]:focus,
 input[type="password"]:focus,
 select:focus,
 textarea:focus {
-  border-color: rgba(31, 140, 255, 0.62);
-  background: rgba(255, 255, 255, 0.075);
-  box-shadow: 0 0 0 4px rgba(31, 140, 255, 0.09);
+  border-color: rgba(31, 140, 255, 0.66);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(31, 140, 255, 0.1);
 }
 
 input[type="checkbox"],
@@ -348,13 +406,13 @@ select option {
 
 .button {
   display: inline-flex;
-  min-height: 48px;
+  min-height: 49px;
   align-items: center;
   justify-content: center;
   border-radius: 16px;
   padding: 0 16px;
   color: white;
-  font-weight: 900;
+  font-weight: 950;
   text-decoration: none;
   cursor: pointer;
   line-height: 1;
@@ -366,25 +424,25 @@ select option {
 }
 
 .button.primary {
-  background: linear-gradient(135deg, #238eff, #0c5ec7);
-  box-shadow: 0 16px 34px rgba(31, 140, 255, 0.24);
+  background: linear-gradient(135deg, #2a96ff, #0b5bc5);
+  box-shadow: 0 16px 36px rgba(31, 140, 255, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .button.danger {
   background: linear-gradient(135deg, var(--red-strong), #b91f1b);
-  box-shadow: 0 16px 34px rgba(229, 57, 53, 0.22);
+  box-shadow: 0 16px 36px rgba(229, 57, 53, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .button.success {
   background: linear-gradient(135deg, #3ee38e, #168a50);
   color: #02130a;
-  box-shadow: 0 16px 34px rgba(53, 208, 127, 0.16);
+  box-shadow: 0 16px 34px rgba(53, 208, 127, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .button.secondary {
   border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.065);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
 .full-width {
@@ -402,7 +460,7 @@ select option {
   border: 1px solid var(--border);
   border-radius: 19px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.036);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .field-row strong {
@@ -424,34 +482,34 @@ select option {
 .field-help {
   margin: 9px 0 0;
   font-size: 13px;
-  line-height: 1.42;
+  line-height: 1.43;
 }
 
 .field-status.confirmed {
-  background: linear-gradient(180deg, rgba(53, 208, 127, 0.17), rgba(53, 208, 127, 0.07));
-  border-color: rgba(53, 208, 127, 0.34);
+  background: linear-gradient(180deg, rgba(53, 208, 127, 0.18), rgba(53, 208, 127, 0.08));
+  border-color: rgba(53, 208, 127, 0.36);
   color: var(--green);
 }
 
 .upload-preview {
   width: 100%;
-  max-height: 270px;
+  max-height: 278px;
   border: 1px solid var(--border);
   border-radius: 18px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 18px 36px rgba(0, 0, 0, 0.22);
 }
 
 .preview-box {
   min-height: 132px;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border: 1px dashed rgba(255, 255, 255, 0.22);
   border-radius: 19px;
   padding: 15px;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--muted-strong);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.56;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -466,11 +524,13 @@ select option {
   gap: 4px;
   width: min(calc(100% - 24px), 460px);
   transform: translateX(-50%);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 25px;
-  background: rgba(4, 10, 17, 0.92);
-  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55), 0 0 36px rgba(31, 140, 255, 0.08);
-  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)),
+    rgba(3, 9, 16, 0.94);
+  box-shadow: 0 22px 76px rgba(0, 0, 0, 0.6), 0 0 42px rgba(31, 140, 255, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
   padding: 8px;
 }
 
@@ -481,14 +541,14 @@ select option {
   color: var(--muted);
   padding: 10px 6px;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 900;
   cursor: pointer;
 }
 
 .nav-button.active {
-  background: linear-gradient(180deg, rgba(31, 140, 255, 0.2), rgba(31, 140, 255, 0.09));
+  background: linear-gradient(180deg, rgba(31, 140, 255, 0.24), rgba(31, 140, 255, 0.1));
   color: var(--blue-strong);
-  box-shadow: inset 0 0 0 1px rgba(31, 140, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(31, 140, 255, 0.2), 0 0 18px rgba(31, 140, 255, 0.08);
 }
 
 .placeholder-list {
@@ -500,7 +560,7 @@ select option {
   border: 1px solid var(--border);
   border-radius: 19px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.036);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .placeholder-item strong,
@@ -529,7 +589,7 @@ select option {
 
   .card,
   .hero {
-    border-radius: 21px;
+    border-radius: 22px;
     padding: 15px;
   }
 
