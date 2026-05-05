@@ -123,6 +123,12 @@ function getPrintStyles() {
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
+        background: transparent !important;
+      }
+      #${PRINT_ROOT_ID},
+      #${PRINT_ROOT_ID} * {
+        box-shadow: none !important;
+        text-shadow: none !important;
       }
       #${PRINT_ROOT_ID} {
         display: block !important;
@@ -136,7 +142,7 @@ function getPrintStyles() {
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
-        color: #111827 !important;
+        color: #000000 !important;
         break-after: avoid !important;
         page-break-after: avoid !important;
       }
@@ -148,6 +154,7 @@ function getPrintStyles() {
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
+        background: transparent !important;
       }
       #${PRINT_ROOT_ID} .page {
         display: block !important;
@@ -158,7 +165,7 @@ function getPrintStyles() {
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
-        color: #111827 !important;
+        color: #000000 !important;
         font-family: Arial, Helvetica, sans-serif !important;
         font-size: 11px !important;
         line-height: 1.26 !important;
@@ -166,6 +173,15 @@ function getPrintStyles() {
         page-break-after: avoid !important;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
+      }
+      #${PRINT_ROOT_ID} .brand-bar {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #111827 !important;
+      }
+      #${PRINT_ROOT_ID} .brand-bar span {
+        background: transparent !important;
+        color: #000000 !important;
       }
       #${PRINT_ROOT_ID} .footer {
         display: none !important;
@@ -175,8 +191,11 @@ function getPrintStyles() {
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
+        background: transparent !important;
       }
       #${PRINT_ROOT_ID} .report-box {
+        background: #ffffff !important;
+        color: #000000 !important;
         break-after: avoid !important;
         page-break-after: avoid !important;
       }
@@ -212,6 +231,7 @@ function getPrintStyles() {
       break-after: avoid;
       page-break-inside: avoid;
       page-break-after: avoid;
+      background: #ffffff;
     }
     #${PRINT_ROOT_ID} .kicker {
       color: #374151;
@@ -240,6 +260,7 @@ function getPrintStyles() {
       break-after: avoid;
       page-break-inside: avoid;
       page-break-after: avoid;
+      background: #ffffff;
     }
     #${PRINT_ROOT_ID} th,
     #${PRINT_ROOT_ID} td {
@@ -257,6 +278,7 @@ function getPrintStyles() {
       letter-spacing: 0.035em;
     }
     #${PRINT_ROOT_ID} td {
+      background: #ffffff;
       color: #111827;
       font-weight: 600;
     }
@@ -269,6 +291,7 @@ function getPrintStyles() {
       break-after: avoid;
       page-break-inside: avoid;
       page-break-after: avoid;
+      background: #ffffff;
     }
     #${PRINT_ROOT_ID} .callout h2 {
       margin: 0 0 3px;
@@ -296,19 +319,12 @@ function getPrintStyles() {
     #${PRINT_ROOT_ID} .report-box {
       border: 1px solid #d1d5db;
       background: #ffffff;
+      color: #111827;
       padding: 7px;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       break-after: avoid;
       page-break-after: avoid;
-    }
-    #${PRINT_ROOT_ID} .footer {
-      margin-top: 4px;
-      border-top: 1px solid #d1d5db;
-      padding-top: 3px;
-      color: #6b7280;
-      font-size: 8px;
-      line-height: 1.1;
     }
   `;
 }
@@ -375,7 +391,6 @@ export function printCorrectionReport(report: PrintCorrectionReportInput) {
       ${requestedActionBlock}
       <h2 class="section-title">Full Engineering Correction Report</h2>
       <section class="report-box">${escapeHtml(report.reportText)}</section>
-      <footer class="footer">Generated from Refab Connect browser print/export. Review all information before release to Engineering.</footer>
     </main>
   `;
 
