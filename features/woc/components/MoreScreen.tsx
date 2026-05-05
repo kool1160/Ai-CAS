@@ -10,6 +10,7 @@ type MoreScreenProps = {
   setupFeedback: ActionFeedback;
   onSetupCodeChange: (value: string) => void;
   onUnlockSetup: () => void;
+  onLockSetup: () => void;
   onUpdateSetupConfig: (key: keyof SetupConfig, value: string) => void;
   onSaveSetupConfig: () => void;
   onClearLocalRecords: () => void;
@@ -25,6 +26,7 @@ export function MoreScreen({
   setupFeedback,
   onSetupCodeChange,
   onUnlockSetup,
+  onLockSetup,
   onUpdateSetupConfig,
   onSaveSetupConfig,
   onClearLocalRecords,
@@ -66,7 +68,7 @@ export function MoreScreen({
               />
             </label>
             <button className="button primary full-width" type="button" onClick={onUnlockSetup}>Unlock Setup</button>
-            <p className="field-help">Setup unlock lasts for this app session only. The code is not saved in localStorage.</p>
+            <p className="field-help">Setup unlock lasts only while you are editing. The code is not saved in localStorage.</p>
           </div>
         ) : (
           <div className="form-grid" style={{ marginTop: 14 }}>
@@ -116,7 +118,8 @@ export function MoreScreen({
               />
             </label>
             <button className="button success full-width" type="button" onClick={onSaveSetupConfig}>Save Setup Config</button>
-            <p className="field-help">Engineering Recipient Email controls email routing. If blank, the server fallback REFAB_CONNECT_EMAIL_TO is used.</p>
+            <button className="button secondary full-width" type="button" onClick={onLockSetup}>Lock Setup</button>
+            <p className="field-help">Engineering Recipient Email controls email routing. If blank, the server fallback REFAB_CONNECT_EMAIL_TO is used. Saving relocks Setup/Admin.</p>
           </div>
         )}
         {setupFeedback && (
