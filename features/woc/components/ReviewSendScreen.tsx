@@ -4,6 +4,7 @@ import type { ActionFeedback } from '../types/wocSessionTypes';
 
 type ReviewSendScreenProps = {
   generatedPackage: GeneratedCorrectionPackage;
+  submittedBy: string;
   sendReady: boolean;
   isSending: boolean;
   copyFeedback: ActionFeedback;
@@ -19,6 +20,7 @@ type ReviewSendScreenProps = {
 
 export function ReviewSendScreen({
   generatedPackage,
+  submittedBy,
   sendReady,
   isSending,
   copyFeedback,
@@ -36,8 +38,9 @@ export function ReviewSendScreen({
 
     printCorrectionReport({
       subjectLine: generatedPackage.subjectLine,
+      submittedBy,
       status: 'Draft / Pending Engineering Review',
-      generatedTimestamp: new Date().toLocaleString(),
+      generatedTimestamp: generatedPackage.generatedAt,
       reportText: generatedPackage.reportPreview,
     });
   };
