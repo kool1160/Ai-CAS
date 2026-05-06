@@ -50,7 +50,7 @@ export function CaptureScreen({
             <h2>Upload + Extract</h2>
             <p>Select a work order image from your device, then extract the key router fields for review.</p>
           </div>
-          <span className="step-pill">Step 1</span>
+          <span className="step-pill">01</span>
         </div>
         <div className="action-row">
           <label className="button secondary" htmlFor="router-upload-input">
