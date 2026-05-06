@@ -4,6 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'REFAB Connect',
   description: 'Work Order Correction System powered by Applied Intelligence Framework.',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
