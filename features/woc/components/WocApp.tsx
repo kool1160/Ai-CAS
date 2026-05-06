@@ -20,6 +20,7 @@ import {
   loadSetupConfigFromStorage,
   saveSetupConfigToStorage,
 } from '../logic/setupConfigStorage';
+import { buildLocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import {
   createGeneratedPackage,
   defaultWocConfirmations,
@@ -176,6 +177,10 @@ export function WocApp() {
   const gateStatus = useMemo(() => getGateStatus(wocData, confirmations, generatedPackage), [wocData, confirmations, generatedPackage]);
   const selectedDraft = useMemo(() => draftRecords.find((draft) => draft.draftId === selectedDraftId) ?? null, [draftRecords, selectedDraftId]);
   const selectedHistory = useMemo(() => historyRecords.find((record) => record.historyId === selectedHistoryId) ?? null, [historyRecords, selectedHistoryId]);
+  const analyticsSummary = useMemo(
+    () => buildLocalEngineeringAnalyticsSummary(draftRecords, historyRecords),
+    [draftRecords, historyRecords],
+  );
 
   const clearGeneratedOutput = () => {
     setGeneratedPackage(null);
@@ -796,6 +801,7 @@ export function WocApp() {
             currentUser={currentUser}
             draftCount={draftRecords.length}
             historyCount={historyRecords.length}
+            analyticsSummary={analyticsSummary}
             localRecordsFeedback={localRecordsFeedback}
             setupConfig={setupConfig}
             setupCodeInput={setupCodeInput}
