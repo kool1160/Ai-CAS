@@ -14,6 +14,15 @@ type LoginScreenProps = {
   onResetUser: () => void;
 };
 
+function resetViewportToTop() {
+  if (typeof window === 'undefined') return;
+
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  });
+}
+
 export function LoginScreen({
   savedUser,
   displayName,
@@ -28,6 +37,20 @@ export function LoginScreen({
   onResetUser,
 }: LoginScreenProps) {
   const isReturningUser = Boolean(savedUser);
+
+  const handleAccessAction = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    if (isReturningUser) {
+      onUnlockApp();
+    } else {
+      onSetupUser();
+    }
+
+    resetViewportToTop();
+  };
 
   return (
     <main className="app-shell">
@@ -103,7 +126,7 @@ export function LoginScreen({
             )}
 
             <div className="action-row">
-              <button className="button primary full-width" type="button" disabled={appUnlockPin.length !== 4} onClick={isReturningUser ? onUnlockApp : onSetupUser}>
+              <button className="button primary full-width" type="button" disabled={appUnlockPin.length !== 4} onClick={handleAccessAction}>
                 {isReturningUser ? 'Unlock to Connect' : 'Save User + Unlock'}
               </button>
             </div>
