@@ -90,24 +90,26 @@ export default function PrintReportPage() {
           min-height: 0;
           background: #ffffff;
           color: #000000;
-          padding: 12px;
+          padding: calc(18px + env(safe-area-inset-top)) 12px 12px;
         }
 
         .print-controls {
           display: flex;
           gap: 8px;
           max-width: 8.5in;
-          margin: 0 auto 10px;
+          margin: 0 auto 12px;
+          padding-top: 2px;
         }
 
         .print-controls button {
-          min-height: 40px;
+          min-height: 44px;
           border: 1px solid #111827;
-          border-radius: 8px;
+          border-radius: 10px;
           background: #ffffff;
           color: #111827;
-          padding: 0 14px;
-          font: 700 13px Arial, Helvetica, sans-serif;
+          padding: 0 16px;
+          font: 700 16px Arial, Helvetica, sans-serif;
+          touch-action: manipulation;
         }
 
         .print-controls button.primary {
