@@ -379,7 +379,7 @@ export default function PrintReportPage() {
             </div>
             <img
               className="ai-print-logo"
-              src="/assets/applied-intelligence-print-logo.svg"
+              src="/assets/applied-intelligence-logo.png"
               alt="Applied Intelligence"
             />
           </header>
