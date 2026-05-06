@@ -1,3 +1,4 @@
+import { prepareEvidenceAttachment } from '../logic/evidenceAttachmentPreparation';
 import type { DraftRecord, HistoryRecord } from '../types/wocSessionTypes';
 import {
   CORRECTION_RECORD_SCHEMA_VERSION,
@@ -55,30 +56,27 @@ function parseEvidenceSize(value: string) {
 
 function evidenceFields(record: DraftRecord | HistoryRecord): CorrectionRecordEvidence {
   if (typeof record.evidenceAttached === 'boolean') {
-    return {
+    const prepared = prepareEvidenceAttachment({
       evidenceAttached: record.evidenceAttached,
       evidenceFileName: record.evidenceFileName?.trim() || '',
       evidenceFileType: record.evidenceFileType?.trim() || '',
       evidenceFileSize: typeof record.evidenceFileSize === 'number' ? record.evidenceFileSize : 0,
-    };
+    });
+
+    return prepared;
   }
 
   const attachedMatch = record.reportText.match(/Photo evidence attached:\s*(.+?)\s*\((.*?),\s*(.*?)\)\./i);
   if (!attachedMatch) {
-    return {
-      evidenceAttached: false,
-      evidenceFileName: '',
-      evidenceFileType: '',
-      evidenceFileSize: 0,
-    };
+    return prepareEvidenceAttachment({ evidenceAttached: false });
   }
 
-  return {
+  return prepareEvidenceAttachment({
     evidenceAttached: true,
     evidenceFileName: attachedMatch[1]?.trim() || '',
     evidenceFileType: attachedMatch[2]?.trim() || '',
     evidenceFileSize: parseEvidenceSize(attachedMatch[3] ?? ''),
-  };
+  });
 }
 
 function baseRecordFields(record: DraftRecord | HistoryRecord): BackendReadyBaseFields {
