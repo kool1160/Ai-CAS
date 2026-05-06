@@ -142,11 +142,28 @@ export default function PrintReportPage() {
         }
 
         .header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
           border: 1px solid #111827;
           border-left: 6px solid #111827;
-          padding: 7px 10px;
+          padding: 6px 9px;
           margin-bottom: 7px;
           background: #ffffff;
+        }
+
+        .header-title-block {
+          min-width: 0;
+        }
+
+        .ai-print-logo {
+          flex: 0 0 auto;
+          width: 124px;
+          max-width: 33%;
+          height: auto;
+          display: block;
+          object-fit: contain;
         }
 
         .kicker {
@@ -256,6 +273,17 @@ export default function PrintReportPage() {
           margin: 0.18in;
         }
 
+        @media (max-width: 520px) {
+          .header {
+            align-items: flex-start;
+          }
+
+          .ai-print-logo {
+            width: 104px;
+            max-width: 38%;
+          }
+        }
+
         @media print {
           html,
           body {
@@ -320,6 +348,15 @@ export default function PrintReportPage() {
             page-break-after: avoid !important;
           }
 
+          .header {
+            padding: 5px 8px !important;
+          }
+
+          .ai-print-logo {
+            width: 112px !important;
+            max-width: 31% !important;
+          }
+
           .report-box {
             margin-bottom: 0 !important;
           }
@@ -335,9 +372,16 @@ export default function PrintReportPage() {
         <article className="report-page">
           <div className="brand-bar"><span>REFAB CONNECT</span><span>AI-WOC</span></div>
           <header className="header">
-            <div className="kicker">Work Order Correction System</div>
-            <h1>Engineering Correction Report</h1>
-            <p className="subtitle">Powered by Applied Intelligence Framework · Print-Ready Correction Document</p>
+            <div className="header-title-block">
+              <div className="kicker">Work Order Correction System</div>
+              <h1>Engineering Correction Report</h1>
+              <p className="subtitle">Powered by Applied Intelligence Framework · Print-Ready Correction Document</p>
+            </div>
+            <img
+              className="ai-print-logo"
+              src="/assets/applied-intelligence-print-logo.svg"
+              alt="Applied Intelligence"
+            />
           </header>
 
           <table>
