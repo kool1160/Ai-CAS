@@ -44,12 +44,40 @@ function parseSubmittedBy(submittedBy?: string, submittedById?: string): Correct
   };
 }
 
+function parseEvidenceSize(value: string) {
+  const trimmed = value.trim().toUpperCase();
+  const amount = Number.parseFloat(trimmed.replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(amount)) return 0;
+  if (trimmed.includes('MB')) return Math.round(amount * 1024 * 1024);
+  if (trimmed.includes('KB')) return Math.round(amount * 1024);
+  return Math.round(amount);
+}
+
 function evidenceFields(record: DraftRecord | HistoryRecord): CorrectionRecordEvidence {
+  if (typeof record.evidenceAttached === 'boolean') {
+    return {
+      evidenceAttached: record.evidenceAttached,
+      evidenceFileName: record.evidenceFileName?.trim() || '',
+      evidenceFileType: record.evidenceFileType?.trim() || '',
+      evidenceFileSize: typeof record.evidenceFileSize === 'number' ? record.evidenceFileSize : 0,
+    };
+  }
+
+  const attachedMatch = record.reportText.match(/Photo evidence attached:\s*(.+?)\s*\((.*?),\s*(.*?)\)\./i);
+  if (!attachedMatch) {
+    return {
+      evidenceAttached: false,
+      evidenceFileName: '',
+      evidenceFileType: '',
+      evidenceFileSize: 0,
+    };
+  }
+
   return {
-    evidenceAttached: Boolean(record.evidenceAttached),
-    evidenceFileName: record.evidenceFileName?.trim() || '',
-    evidenceFileType: record.evidenceFileType?.trim() || '',
-    evidenceFileSize: typeof record.evidenceFileSize === 'number' ? record.evidenceFileSize : 0,
+    evidenceAttached: true,
+    evidenceFileName: attachedMatch[1]?.trim() || '',
+    evidenceFileType: attachedMatch[2]?.trim() || '',
+    evidenceFileSize: parseEvidenceSize(attachedMatch[3] ?? ''),
   };
 }
 
