@@ -24,11 +24,13 @@
 
 * {
   box-sizing: border-box;
+  min-width: 0;
 }
 
 html,
 body {
   width: 100%;
+  max-width: 100%;
   min-height: 100%;
   margin: 0;
   padding: 0;
@@ -83,15 +85,19 @@ button:disabled {
 
 .app-shell {
   width: 100%;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
   padding: calc(18px + env(safe-area-inset-top)) 16px calc(var(--nav-clearance) + env(safe-area-inset-bottom));
   background: transparent;
 }
 
 .app-frame {
   position: relative;
-  width: min(100%, 460px);
+  width: 100%;
+  max-width: 460px;
   margin: 0 auto;
+  overflow-x: hidden;
   padding-bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
@@ -112,6 +118,7 @@ button:disabled {
 .step-pill,
 .field-status {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   gap: 8px;
   border: 1px solid var(--border);
@@ -123,6 +130,7 @@ button:disabled {
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .step-pill {
@@ -139,6 +147,7 @@ button:disabled {
 }
 
 .status-dot {
+  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -148,6 +157,7 @@ button:disabled {
 
 .hero {
   display: grid;
+  max-width: 100%;
   gap: 18px;
   justify-items: center;
   text-align: center;
@@ -164,6 +174,7 @@ button:disabled {
 
 .brand-mark {
   display: grid;
+  max-width: 100%;
   gap: 6px;
   justify-items: center;
   margin-top: 4px;
@@ -183,6 +194,7 @@ button:disabled {
   font-size: clamp(35px, 11.5vw, 50px);
   line-height: 0.92;
   letter-spacing: -0.065em;
+  overflow-wrap: anywhere;
 }
 
 .brand-subtitle,
@@ -196,16 +208,19 @@ button:disabled {
   margin: 0;
   font-size: 14px;
   line-height: 1.36;
+  overflow-wrap: anywhere;
 }
 
 .helper-text {
   margin: 0;
   color: var(--muted-strong);
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .screen-title {
   display: grid;
+  max-width: 100%;
   gap: 8px;
   margin: 8px 0 18px;
 }
@@ -215,6 +230,7 @@ button:disabled {
   font-size: 30px;
   line-height: 1;
   letter-spacing: -0.047em;
+  overflow-wrap: anywhere;
 }
 
 .screen-title p {
@@ -222,11 +238,13 @@ button:disabled {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .card-grid,
 .stack {
   display: grid;
+  max-width: 100%;
   gap: 14px;
 }
 
@@ -244,11 +262,13 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
 }
 
 .workflow-preview {
+  max-width: 100%;
   padding-bottom: calc(130px + env(safe-area-inset-bottom));
 }
 
 .card {
   position: relative;
+  max-width: 100%;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 26px;
@@ -280,6 +300,7 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
 
 .card-header {
   display: flex;
+  max-width: 100%;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
@@ -291,6 +312,7 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
   margin: 0;
   color: var(--text);
   letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
 }
 
 .card h2 {
@@ -307,11 +329,12 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
   margin: 8px 0 0;
   font-size: 14px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .workflow-card {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 13px;
   align-items: start;
   border-color: rgba(31, 140, 255, 0.16);
@@ -323,6 +346,7 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
 
 .step-number {
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
   width: 38px;
   height: 38px;
@@ -336,11 +360,13 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
 
 .form-grid {
   display: grid;
+  max-width: 100%;
   gap: 13px;
 }
 
 label {
   display: grid;
+  max-width: 100%;
   gap: 7px;
   color: var(--muted-strong);
   font-size: 13px;
@@ -369,10 +395,13 @@ input[type="password"],
 select,
 textarea {
   width: 100%;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 17px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
+  font-size: 16px;
+  line-height: 1.25;
   padding: 13px 14px;
   outline: none;
   transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
@@ -412,6 +441,7 @@ select option {
 
 .action-row {
   display: flex;
+  max-width: 100%;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
@@ -419,6 +449,7 @@ select option {
 
 .button {
   display: inline-flex;
+  min-width: 0;
   min-height: 49px;
   align-items: center;
   justify-content: center;
@@ -426,9 +457,11 @@ select option {
   padding: 0 16px;
   color: white;
   font-weight: 950;
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
-  line-height: 1;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
   transition: transform 120ms ease, box-shadow 150ms ease, background 150ms ease, opacity 150ms ease;
 }
 
@@ -464,11 +497,13 @@ select option {
 
 .field-list {
   display: grid;
+  max-width: 100%;
   gap: 10px;
 }
 
 .field-row {
   display: grid;
+  max-width: 100%;
   gap: 9px;
   border: 1px solid var(--border);
   border-radius: 19px;
@@ -506,6 +541,7 @@ select option {
 
 .upload-preview {
   width: 100%;
+  max-width: 100%;
   max-height: 278px;
   border: 1px solid var(--border);
   border-radius: 18px;
@@ -516,6 +552,7 @@ select option {
 
 .preview-box {
   min-height: 132px;
+  max-width: 100%;
   border: 1px dashed rgba(255, 255, 255, 0.22);
   border-radius: 19px;
   padding: 15px;
@@ -530,13 +567,15 @@ select option {
 .nav-dock {
   position: fixed;
   z-index: 20;
-  left: 50%;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
   bottom: calc(16px + env(safe-area-inset-bottom));
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
-  width: min(calc(100% - 24px), 460px);
-  transform: translateX(-50%);
+  width: auto;
+  max-width: 460px;
+  margin: 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 26px;
   background:
@@ -552,10 +591,12 @@ select option {
   border-radius: 17px;
   background: transparent;
   color: var(--muted);
-  padding: 10px 6px;
+  padding: 10px 4px;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1.1;
   cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
 .nav-button.active {
@@ -566,10 +607,12 @@ select option {
 
 .placeholder-list {
   display: grid;
+  max-width: 100%;
   gap: 10px;
 }
 
 .placeholder-item {
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 19px;
   padding: 14px;
@@ -595,6 +638,15 @@ select option {
   overflow-wrap: anywhere;
 }
 
+@media (min-width: 484px) {
+  .nav-dock {
+    left: 50%;
+    right: auto;
+    width: 460px;
+    transform: translateX(-50%);
+  }
+}
+
 @media (max-width: 380px) {
   .app-shell {
     padding-inline: 12px;
@@ -608,6 +660,6 @@ select option {
 
   .nav-button {
     font-size: 11px;
-    padding-inline: 4px;
+    padding-inline: 3px;
   }
 }
