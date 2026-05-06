@@ -3,6 +3,7 @@ import {
   CORRECTION_RECORD_SCHEMA_VERSION,
   CORRECTION_RECORD_SOURCE,
   type BackendReadyCorrectionRecord,
+  type CorrectionRecordEvidence,
   type CorrectionRecordSubmittedBy,
 } from './correctionRecordTypes';
 
@@ -20,6 +21,7 @@ type BackendReadyBaseFields = Pick<
   | 'subjectLine'
   | 'reportText'
   | 'emailDraftText'
+  | 'evidence'
   | 'source'
   | 'schemaVersion'
 >;
@@ -42,6 +44,15 @@ function parseSubmittedBy(submittedBy?: string, submittedById?: string): Correct
   };
 }
 
+function evidenceFields(record: DraftRecord | HistoryRecord): CorrectionRecordEvidence {
+  return {
+    evidenceAttached: Boolean(record.evidenceAttached),
+    evidenceFileName: record.evidenceFileName?.trim() || '',
+    evidenceFileType: record.evidenceFileType?.trim() || '',
+    evidenceFileSize: typeof record.evidenceFileSize === 'number' ? record.evidenceFileSize : 0,
+  };
+}
+
 function baseRecordFields(record: DraftRecord | HistoryRecord): BackendReadyBaseFields {
   return {
     workOrderNumber: record.workOrderNumber,
@@ -56,6 +67,7 @@ function baseRecordFields(record: DraftRecord | HistoryRecord): BackendReadyBase
     subjectLine: record.subjectLine,
     reportText: record.reportText,
     emailDraftText: record.emailDraftText,
+    evidence: evidenceFields(record),
     source: CORRECTION_RECORD_SOURCE,
     schemaVersion: CORRECTION_RECORD_SCHEMA_VERSION,
   };
