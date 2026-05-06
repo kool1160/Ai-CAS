@@ -14,6 +14,8 @@ export type LocalEngineeringAnalyticsSummary = {
   totalRecords: number;
   draftCount: number;
   historyCount: number;
+  evidenceAttachedCount: number;
+  evidenceMissingCount: number;
   byCorrectionType: AnalyticsCountItem[];
   byAffectedArea: AnalyticsCountItem[];
   repeatedPartNumbers: AnalyticsCountItem[];
@@ -53,11 +55,14 @@ export function buildLocalEngineeringAnalyticsSummary(
   const draftBackendRecords = draftsToBackendReadyCorrectionRecords(draftRecords);
   const historyBackendRecords = historyToBackendReadyCorrectionRecords(historyRecords);
   const records = [...draftBackendRecords, ...historyBackendRecords];
+  const evidenceAttachedCount = records.filter((record) => record.evidence.evidenceAttached).length;
 
   return {
     totalRecords: records.length,
     draftCount: draftRecords.length,
     historyCount: historyRecords.length,
+    evidenceAttachedCount,
+    evidenceMissingCount: records.length - evidenceAttachedCount,
     byCorrectionType: countBy(records, (record) => record.correctionType),
     byAffectedArea: countBy(records, (record) => record.affectedArea),
     repeatedPartNumbers: mostRepeated(records, (record) => record.partNumber),
