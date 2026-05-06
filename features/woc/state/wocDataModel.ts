@@ -37,6 +37,14 @@ export type WocDataField = {
 };
 
 export const otherAffectedAreaOption = 'Other / Manual Entry';
+export const photoEvidenceStorageKey = 'refab-connect-photo-evidence';
+
+export type PhotoEvidenceMetadata = {
+  evidenceAttached: boolean;
+  evidenceFileName: string;
+  evidenceFileType: string;
+  evidenceFileSize: number;
+};
 
 export const correctionTypeOptions = [
   'Incorrect Time / Rate',
@@ -110,12 +118,49 @@ function optionalLine(label: string, value: string) {
   return isFilled(value) ? `${label}: ${value.trim()}\n` : '';
 }
 
+function formatEvidenceFileSize(size: number) {
+  if (!Number.isFinite(size) || size <= 0) return 'unknown size';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function loadPhotoEvidenceMetadata(): PhotoEvidenceMetadata | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(photoEvidenceStorageKey);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<PhotoEvidenceMetadata>;
+    if (!parsed.evidenceAttached || typeof parsed.evidenceFileName !== 'string' || !parsed.evidenceFileName.trim()) return null;
+
+    return {
+      evidenceAttached: true,
+      evidenceFileName: parsed.evidenceFileName.trim(),
+      evidenceFileType: typeof parsed.evidenceFileType === 'string' ? parsed.evidenceFileType : '',
+      evidenceFileSize: typeof parsed.evidenceFileSize === 'number' ? parsed.evidenceFileSize : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function getPhotoEvidenceStatusLine() {
+  const evidence = loadPhotoEvidenceMetadata();
+  if (!evidence) return 'No photo evidence attached.';
+
+  const type = evidence.evidenceFileType || 'unknown image type';
+  return `Photo evidence attached: ${evidence.evidenceFileName} (${type}, ${formatEvidenceFileSize(evidence.evidenceFileSize)}). Image is local/session-only in M27 and is not attached to email or permanently stored.`;
+}
+
 export function buildEmailSubject(data: WocCorrectionData) {
   return `[${data.correctionType.trim()}] Work Order Correction Needed — WO ${data.workOrderNumber.trim()} / Part ${data.partNumber.trim()}`;
 }
 
 export function buildEngineeringReport(data: WocCorrectionData, submittedBy = 'Shop-floor correction request submitted through REFAB Connect / AI-WOC.') {
   const affectedArea = getEffectiveAffectedArea(data);
+  const photoEvidenceStatus = getPhotoEvidenceStatusLine();
 
   return `ENGINEERING CORRECTION REPORT
 
@@ -140,16 +185,20 @@ ${data.issueDetails.trim()}
 10. Requested Engineering Action
 ${data.requestedEngineeringAction.trim()}
 
-11. Submitted By / Source
+11. Photo Evidence
+${photoEvidenceStatus}
+
+12. Submitted By / Source
 ${submittedBy}
 
-12. Status
+13. Status
 Draft / Pending Engineering Review`;
 }
 
 export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'REFAB Connect / AI-WOC') {
   const subject = buildEmailSubject(data);
   const affectedArea = getEffectiveAffectedArea(data);
+  const photoEvidenceStatus = getPhotoEvidenceStatusLine();
 
   return `Subject: ${subject}
 
@@ -174,6 +223,9 @@ ${data.issueDetails.trim()}
 
 Requested Engineering Action:
 ${data.requestedEngineeringAction.trim()}
+
+Photo Evidence:
+${photoEvidenceStatus}
 
 Submitted By:
 ${submittedBy}
