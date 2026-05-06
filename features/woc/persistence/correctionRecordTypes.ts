@@ -11,6 +11,13 @@ export type CorrectionRecordSubmittedBy = {
   emailOrEmployeeId: string;
 };
 
+export type CorrectionRecordEvidence = {
+  evidenceAttached: boolean;
+  evidenceFileName: string;
+  evidenceFileType: string;
+  evidenceFileSize: number;
+};
+
 export type BackendReadyCorrectionRecord = {
   recordId: string;
   recordType: CorrectionRecordType;
@@ -30,6 +37,7 @@ export type BackendReadyCorrectionRecord = {
   subjectLine: string;
   reportText: string;
   emailDraftText: string;
+  evidence: CorrectionRecordEvidence;
   resendId: string | null;
   source: typeof CORRECTION_RECORD_SOURCE;
   schemaVersion: typeof CORRECTION_RECORD_SCHEMA_VERSION;
