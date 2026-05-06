@@ -6,7 +6,7 @@ type LaunchSplashProps = {
   children: ReactNode;
 };
 
-const splashDurationMs = 1050;
+const splashDurationMs = 2000;
 
 export function LaunchSplash({ children }: LaunchSplashProps) {
   const [showSplash, setShowSplash] = useState(true);
