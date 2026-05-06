@@ -11,9 +11,13 @@ function escapeRegExp(value: string) {
 }
 
 function getReportValue(reportText: string, label: string) {
-  const pattern = new RegExp(`^${escapeRegExp(label)}:\\s*(.+)$`, 'im');
-  const match = reportText.match(pattern);
-  return match?.[1]?.trim() ?? '';
+  const colonPattern = new RegExp(`^${escapeRegExp(label)}:\\s*(.+)$`, 'im');
+  const colonMatch = reportText.match(colonPattern);
+  if (colonMatch?.[1]?.trim()) return colonMatch[1].trim();
+
+  const numberedSectionPattern = new RegExp(`^\\d+\\.\\s*${escapeRegExp(label)}\\s*\\n(.+?)(?=\\n\\n\\d+\\.|$)`, 'ims');
+  const numberedSectionMatch = reportText.match(numberedSectionPattern);
+  return numberedSectionMatch?.[1]?.trim() ?? '';
 }
 
 function resolveField(explicitValue: string | undefined, reportText: string, label: string) {
@@ -65,6 +69,7 @@ export default function PrintReportPage() {
       ['Quantity', resolveField(report.quantity, report.reportText, 'Quantity')],
       ['Affected Area', resolveField(report.affectedArea, report.reportText, 'Affected Area')],
       ['Correction Type', resolveField(report.correctionType, report.reportText, 'Correction Type')],
+      ['Photo Evidence', resolveField(report.photoEvidenceStatus, report.reportText, 'Photo Evidence')],
       ['Submitted By / Source', resolveField(report.submittedBy, report.reportText, 'Submitted By / Source')],
       ['Status', resolveField(report.status, report.reportText, 'Status')],
       ['Generated', report.generatedTimestamp || new Date().toLocaleString()],
