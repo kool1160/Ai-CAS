@@ -64,6 +64,12 @@ export function validateBackendReadyCorrectionRecord(value: unknown): Correction
     addRequiredStringError(errors, value.submittedBy, 'emailOrEmployeeId');
   }
 
+  if (!isObject(value.evidence)) {
+    errors.push('evidence metadata is required.');
+  } else if (typeof value.evidence.evidenceAttached !== 'boolean') {
+    errors.push('evidence.evidenceAttached must be true or false.');
+  }
+
   if (value.source !== CORRECTION_RECORD_SOURCE) {
     errors.push(`source must be ${CORRECTION_RECORD_SOURCE}.`);
   }
