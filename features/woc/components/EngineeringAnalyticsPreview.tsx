@@ -52,6 +52,14 @@ export function EngineeringAnalyticsPreview({ summary }: EngineeringAnalyticsPre
               <strong>Sent / History Records</strong>
               <span>{summary.historyCount}</span>
             </div>
+            <div className="placeholder-item">
+              <strong>Photo Evidence Attached</strong>
+              <span>{summary.evidenceAttachedCount} local record{summary.evidenceAttachedCount === 1 ? '' : 's'}</span>
+            </div>
+            <div className="placeholder-item">
+              <strong>No Photo Evidence</strong>
+              <span>{summary.evidenceMissingCount} local record{summary.evidenceMissingCount === 1 ? '' : 's'}</span>
+            </div>
           </div>
 
           <section>
@@ -87,6 +95,7 @@ export function EngineeringAnalyticsPreview({ summary }: EngineeringAnalyticsPre
                   <strong>{record.recordId} · {record.recordType}</strong>
                   <span>{record.status} · WO {record.workOrderNumber} · Part {record.partNumber}</span>
                   <span>{record.affectedArea} · {record.correctionType}</span>
+                  <span>Photo Evidence: {record.evidence.evidenceAttached ? 'Attached' : 'Not attached'}</span>
                   <span>Submitted By: {record.submittedBy.displayName || record.submittedBy.emailOrEmployeeId || 'Unknown'}</span>
                 </div>
               ))}
