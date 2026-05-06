@@ -6,6 +6,24 @@ import {
   type CorrectionRecordSubmittedBy,
 } from './correctionRecordTypes';
 
+type BackendReadyBaseFields = Pick<
+  BackendReadyCorrectionRecord,
+  | 'workOrderNumber'
+  | 'partNumber'
+  | 'revision'
+  | 'customerOrJob'
+  | 'quantity'
+  | 'affectedArea'
+  | 'correctionType'
+  | 'issueSummary'
+  | 'requestedEngineeringAction'
+  | 'subjectLine'
+  | 'reportText'
+  | 'emailDraftText'
+  | 'source'
+  | 'schemaVersion'
+>;
+
 function getReportValue(reportText: string, label: string) {
   const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`^${escapedLabel}:\\s*(.+)$`, 'im');
@@ -24,7 +42,7 @@ function parseSubmittedBy(submittedBy?: string, submittedById?: string): Correct
   };
 }
 
-function baseRecordFields(record: DraftRecord | HistoryRecord) {
+function baseRecordFields(record: DraftRecord | HistoryRecord): BackendReadyBaseFields {
   return {
     workOrderNumber: record.workOrderNumber,
     partNumber: record.partNumber,
