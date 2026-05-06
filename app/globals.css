@@ -83,6 +83,93 @@ button:disabled {
   opacity: 0.48;
 }
 
+.launch-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 18% 38%, rgba(31, 140, 255, 0.24), transparent 16rem),
+    radial-gradient(circle at 88% 62%, rgba(229, 57, 53, 0.17), transparent 15rem),
+    linear-gradient(180deg, #050b13 0%, #02050a 54%, #000206 100%);
+  animation: splash-fade-in 180ms ease-out both;
+}
+
+.launch-splash-card {
+  display: grid;
+  width: min(100%, 390px);
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  border: 1px solid rgba(31, 140, 255, 0.22);
+  border-radius: 34px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022)),
+    radial-gradient(circle at 50% 0, rgba(31, 140, 255, 0.22), transparent 15rem),
+    rgba(5, 12, 22, 0.88);
+  box-shadow: 0 26px 90px rgba(0, 0, 0, 0.58), 0 0 62px rgba(31, 140, 255, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 34px 20px 28px;
+  backdrop-filter: blur(20px);
+}
+
+.launch-splash-kicker {
+  color: var(--blue-strong);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 24px rgba(31, 140, 255, 0.3);
+}
+
+.launch-splash h1 {
+  max-width: 12ch;
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(34px, 10vw, 48px);
+  line-height: 0.96;
+  letter-spacing: -0.06em;
+}
+
+.launch-splash p {
+  max-width: 28ch;
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.launch-splash-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+  border: 1px solid rgba(53, 208, 127, 0.3);
+  border-radius: 999px;
+  padding: 10px 13px;
+  background: rgba(53, 208, 127, 0.08);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+@keyframes splash-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(1.012);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .app-shell {
   width: 100%;
   max-width: 100%;
