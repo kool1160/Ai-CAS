@@ -1,3 +1,10 @@
+import {
+  buildPhotoEvidenceStatusLine,
+  loadPhotoEvidenceMetadataFromSession,
+  PHOTO_EVIDENCE_STORAGE_KEY,
+  type EvidenceAttachmentMetadata,
+} from '../logic/evidenceAttachmentPreparation';
+
 export type WocCorrectionData = {
   workOrderNumber: string;
   partNumber: string;
@@ -37,9 +44,9 @@ export type WocDataField = {
 };
 
 export const otherAffectedAreaOption = 'Other / Manual Entry';
-export const photoEvidenceStorageKey = 'refab-connect-photo-evidence';
+export const photoEvidenceStorageKey = PHOTO_EVIDENCE_STORAGE_KEY;
 
-export type PhotoEvidenceMetadata = {
+export type PhotoEvidenceMetadata = EvidenceAttachmentMetadata & {
   evidenceAttached: boolean;
   evidenceFileName: string;
   evidenceFileType: string;
@@ -118,40 +125,8 @@ function optionalLine(label: string, value: string) {
   return isFilled(value) ? `${label}: ${value.trim()}\n` : '';
 }
 
-function formatEvidenceFileSize(size: number) {
-  if (!Number.isFinite(size) || size <= 0) return 'unknown size';
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function loadPhotoEvidenceMetadata(): PhotoEvidenceMetadata | null {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const raw = window.sessionStorage.getItem(photoEvidenceStorageKey);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as Partial<PhotoEvidenceMetadata>;
-    if (!parsed.evidenceAttached || typeof parsed.evidenceFileName !== 'string' || !parsed.evidenceFileName.trim()) return null;
-
-    return {
-      evidenceAttached: true,
-      evidenceFileName: parsed.evidenceFileName.trim(),
-      evidenceFileType: typeof parsed.evidenceFileType === 'string' ? parsed.evidenceFileType : '',
-      evidenceFileSize: typeof parsed.evidenceFileSize === 'number' ? parsed.evidenceFileSize : 0,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function getPhotoEvidenceStatusLine() {
-  const evidence = loadPhotoEvidenceMetadata();
-  if (!evidence) return 'No photo evidence attached.';
-
-  const type = evidence.evidenceFileType || 'unknown image type';
-  return `Photo evidence attached: ${evidence.evidenceFileName} (${type}, ${formatEvidenceFileSize(evidence.evidenceFileSize)}). Image is local/session-only in M27 and is not attached to email or permanently stored.`;
+  return buildPhotoEvidenceStatusLine(loadPhotoEvidenceMetadataFromSession());
 }
 
 export function buildEmailSubject(data: WocCorrectionData) {
