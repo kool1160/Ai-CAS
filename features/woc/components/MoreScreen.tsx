@@ -1,9 +1,12 @@
+import { EngineeringAnalyticsPreview } from './EngineeringAnalyticsPreview';
+import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
 type MoreScreenProps = {
   currentUser: CurrentUser;
   draftCount: number;
   historyCount: number;
+  analyticsSummary: LocalEngineeringAnalyticsSummary;
   localRecordsFeedback: ActionFeedback;
   setupConfig: SetupConfig;
   setupCodeInput: string;
@@ -23,6 +26,7 @@ export function MoreScreen({
   currentUser,
   draftCount,
   historyCount,
+  analyticsSummary,
   localRecordsFeedback,
   setupConfig,
   setupCodeInput,
@@ -62,6 +66,8 @@ export function MoreScreen({
         <p className="field-help">Lock App keeps the saved identity and returns to the 4-digit App Access PIN screen. Reset Saved User clears the local profile and returns to first-time setup.</p>
       </article>
 
+      <EngineeringAnalyticsPreview summary={analyticsSummary} />
+
       <article className="card">
         <h2>Settings / Help</h2>
         <p>Core settings and help information without disrupting the correction workflow.</p>
@@ -72,7 +78,7 @@ export function MoreScreen({
           </div>
           <div className="placeholder-item">
             <strong>Build Status</strong>
-            <span>Milestone 16: Saved identity, childproof App Access PIN, and separate Send PIN.</span>
+            <span>Milestone 19: Local Engineering Analytics preview.</span>
           </div>
         </div>
       </article>
