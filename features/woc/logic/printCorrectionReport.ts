@@ -7,6 +7,7 @@ export type PrintCorrectionReportInput = {
   quantity?: string;
   affectedArea?: string;
   correctionType?: string;
+  photoEvidenceStatus?: string;
   submittedBy?: string;
   status?: string;
   generatedTimestamp?: string;
