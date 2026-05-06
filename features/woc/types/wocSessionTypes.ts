@@ -28,6 +28,13 @@ export type UploadedFileInfo = {
   isImage: boolean;
 };
 
+export type PhotoEvidenceRecordMetadata = {
+  evidenceAttached: boolean;
+  evidenceFileName?: string;
+  evidenceFileType?: string;
+  evidenceFileSize?: number;
+};
+
 export type ExtractedWorkOrderData = {
   workOrderNumber?: string;
   partNumber?: string;
@@ -57,6 +64,10 @@ export type DraftRecord = {
   emailDraftText: string;
   submittedBy?: string;
   submittedById?: string;
+  evidenceAttached?: boolean;
+  evidenceFileName?: string;
+  evidenceFileType?: string;
+  evidenceFileSize?: number;
   status: 'Draft';
 };
 
@@ -72,6 +83,10 @@ export type HistoryRecord = {
   emailDraftText: string;
   submittedBy?: string;
   submittedById?: string;
+  evidenceAttached?: boolean;
+  evidenceFileName?: string;
+  evidenceFileType?: string;
+  evidenceFileSize?: number;
   resendId?: string | null;
   status: 'Completed / Sent Placeholder' | 'Sent';
 };
