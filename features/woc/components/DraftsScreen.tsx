@@ -16,6 +16,32 @@ type DraftsScreenProps = {
   onSendDraftEmail: () => void;
 };
 
+function formatEvidenceFileSize(size: number | undefined) {
+  if (!size || size <= 0) return 'unknown size';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getEvidenceStatus(record: DraftRecord) {
+  if (record.evidenceAttached) {
+    const name = record.evidenceFileName || 'Photo evidence attached';
+    const type = record.evidenceFileType || 'unknown image type';
+    return `${name} · ${type} · ${formatEvidenceFileSize(record.evidenceFileSize)}`;
+  }
+
+  const attachedMatch = record.reportText.match(/Photo evidence attached:\s*(.+?)\s*\((.*?),\s*(.*?)\)\./i);
+  if (attachedMatch) {
+    return `${attachedMatch[1]?.trim() || 'Photo evidence attached'} · ${attachedMatch[2]?.trim() || 'unknown image type'} · ${attachedMatch[3]?.trim() || 'unknown size'}`;
+  }
+
+  return 'No photo evidence attached';
+}
+
+function hasEvidence(record: DraftRecord) {
+  return Boolean(record.evidenceAttached || record.reportText.match(/Photo evidence attached:/i));
+}
+
 export function DraftsScreen({
   draftRecords,
   selectedDraft,
@@ -39,6 +65,7 @@ export function DraftsScreen({
       partNumber: selectedDraft.partNumber,
       affectedArea: selectedDraft.affectedArea,
       correctionType: selectedDraft.correctionType,
+      photoEvidenceStatus: getEvidenceStatus(selectedDraft),
       submittedBy: selectedDraft.submittedBy,
       status: selectedDraft.status,
       generatedTimestamp: selectedDraft.createdTimestamp,
@@ -64,6 +91,7 @@ export function DraftsScreen({
               <strong>{draft.draftId} · {draft.subjectLine}</strong>
               <span>{draft.status} · WO {draft.workOrderNumber} · Part {draft.partNumber}</span>
               <span>{draft.affectedArea} · {draft.correctionType} · {draft.createdTimestamp}</span>
+              <span>Photo Evidence: {hasEvidence(draft) ? 'Attached' : 'Not attached'}</span>
               {draft.submittedBy && <span>Submitted By: {draft.submittedBy}</span>}
               <div className="action-row">
                 <button className="button secondary" type="button" onClick={() => onSelectDraft(draft.draftId)}>Open Draft</button>
@@ -82,6 +110,7 @@ export function DraftsScreen({
             <span className="field-status confirmed">Saved</span>
           </div>
           {selectedDraft.submittedBy && <p className="field-help">Submitted By: {selectedDraft.submittedBy}</p>}
+          <p className="field-help">Photo Evidence: {getEvidenceStatus(selectedDraft)}</p>
           <h3>Saved Engineering Report</h3>
           <div className="preview-box">{selectedDraft.reportText}</div>
           <h3 style={{ marginTop: 14 }}>Saved Email Draft</h3>
