@@ -16,6 +16,9 @@ export type CorrectionRecordEvidence = {
   evidenceFileName: string;
   evidenceFileType: string;
   evidenceFileSize: number;
+  evidenceAttachmentReady: boolean;
+  evidenceAttachmentIncluded: false;
+  evidenceAttachmentStatus: string;
 };
 
 export type BackendReadyCorrectionRecord = {
