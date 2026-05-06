@@ -66,8 +66,22 @@ export function validateBackendReadyCorrectionRecord(value: unknown): Correction
 
   if (!isObject(value.evidence)) {
     errors.push('evidence metadata is required.');
-  } else if (typeof value.evidence.evidenceAttached !== 'boolean') {
-    errors.push('evidence.evidenceAttached must be true or false.');
+  } else {
+    if (typeof value.evidence.evidenceAttached !== 'boolean') {
+      errors.push('evidence.evidenceAttached must be true or false.');
+    }
+
+    if (typeof value.evidence.evidenceAttachmentReady !== 'boolean') {
+      errors.push('evidence.evidenceAttachmentReady must be true or false.');
+    }
+
+    if (value.evidence.evidenceAttachmentIncluded !== false) {
+      errors.push('evidence.evidenceAttachmentIncluded must be false for M29.');
+    }
+
+    if (!stringValue(value.evidence.evidenceAttachmentStatus)) {
+      errors.push('evidence.evidenceAttachmentStatus is required.');
+    }
   }
 
   if (value.source !== CORRECTION_RECORD_SOURCE) {
