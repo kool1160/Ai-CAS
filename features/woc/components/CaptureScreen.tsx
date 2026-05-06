@@ -41,18 +41,29 @@ export function CaptureScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Capture Router</h1>
-        <p>Upload a router or work order image, extract the header data, or enter details manually when needed.</p>
+        <p>Take a photo or upload a router/work order image, extract the header data, or enter details manually when needed.</p>
       </div>
 
       <article className="card">
         <div className="card-header">
           <div>
-            <h2>Upload + Extract</h2>
-            <p>Select a work order image from your device, then extract the key router fields for review.</p>
+            <h2>Capture + Extract</h2>
+            <p>Snap a router photo or select a file from your device, then extract the key fields for review.</p>
           </div>
           <span className="step-pill">01</span>
         </div>
         <div className="action-row">
+          <label className="button primary" htmlFor="router-camera-input">
+            Take Photo
+          </label>
+          <input
+            accept="image/*"
+            capture="environment"
+            hidden
+            id="router-camera-input"
+            onChange={handleFileChange}
+            type="file"
+          />
           <label className="button secondary" htmlFor="router-upload-input">
             Upload File / Photo
           </label>
