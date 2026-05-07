@@ -803,30 +803,47 @@ select option {
     grid-column: 1 / -1;
   }
 
-  .review-panel-screen {
+  .review-panel-screen,
+  .record-review-screen {
     grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
   }
 
-  .review-panel-screen > .screen-title {
+  .review-panel-screen > .screen-title,
+  .record-review-screen > .screen-title {
     grid-column: 1 / -1;
   }
 
   .review-report-panel,
-  .review-action-panel {
+  .review-action-panel,
+  .record-list-panel,
+  .record-detail-panel {
     align-self: start;
   }
 
-  .review-panel-screen .preview-box {
+  .record-review-screen > .record-list-panel:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .record-list-panel {
+    max-height: min(68vh, 680px);
+    overflow: auto;
+    padding-right: 2px;
+  }
+
+  .review-panel-screen .preview-box,
+  .record-detail-panel .preview-box {
     max-height: min(62vh, 620px);
     overflow: auto;
   }
 
-  .review-action-panel {
+  .review-action-panel,
+  .record-detail-panel {
     position: sticky;
     top: calc(24px + env(safe-area-inset-top));
   }
 
-  .review-action-panel .preview-box {
+  .review-action-panel .preview-box,
+  .record-detail-panel .preview-box + h3 + .preview-box {
     max-height: min(42vh, 420px);
   }
 
