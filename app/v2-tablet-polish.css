@@ -1,0 +1,127 @@
+@media (min-width: 768px) {
+  .app-shell {
+    padding-bottom: calc(var(--nav-clearance) + env(safe-area-inset-bottom));
+  }
+
+  .screen-title {
+    margin-bottom: 20px;
+  }
+
+  .card-grid,
+  .stack,
+  .form-grid,
+  .placeholder-list {
+    gap: 16px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --nav-clearance: 124px;
+  }
+
+  .app-frame {
+    max-width: min(100%, 1180px);
+  }
+
+  .stack {
+    gap: 20px;
+  }
+
+  .screen-title {
+    margin: 4px 0 20px;
+  }
+
+  .screen-title h1 {
+    font-size: clamp(30px, 3vw, 38px);
+  }
+
+  .screen-title p {
+    max-width: 72ch;
+  }
+
+  .home-screen,
+  .review-panel-screen,
+  .record-review-screen,
+  .more-admin-screen {
+    column-gap: 22px;
+    row-gap: 18px;
+  }
+
+  .review-panel-screen,
+  .record-review-screen {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
+  }
+
+  .record-list-panel,
+  .record-detail-panel,
+  .review-report-panel,
+  .review-action-panel {
+    min-width: 0;
+  }
+
+  .record-list-panel {
+    padding-right: 4px;
+  }
+
+  .preview-box {
+    line-height: 1.6;
+  }
+
+  .more-admin-screen {
+    grid-template-columns: minmax(300px, 0.88fr) minmax(390px, 1.12fr);
+  }
+
+  .more-user-panel,
+  .more-settings-panel,
+  .more-records-panel {
+    grid-column: 1;
+  }
+
+  .more-analytics-panel,
+  .more-setup-panel {
+    grid-column: 2;
+  }
+
+  .more-setup-panel {
+    position: static;
+  }
+
+  .more-setup-panel .form-grid {
+    gap: 14px;
+  }
+
+  .more-admin-screen .button.full-width {
+    width: auto;
+    min-width: min(100%, 210px);
+  }
+
+  .more-admin-screen .action-row {
+    align-items: center;
+  }
+
+  .nav-dock {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 10px;
+  }
+}
+
+@media (min-width: 1180px) {
+  .app-shell {
+    padding-inline: clamp(44px, 7vw, 96px);
+  }
+
+  .app-frame {
+    max-width: min(100%, 1240px);
+  }
+
+  .review-panel-screen,
+  .record-review-screen,
+  .more-admin-screen {
+    column-gap: 24px;
+  }
+}
