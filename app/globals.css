@@ -803,6 +803,33 @@ select option {
     grid-column: 1 / -1;
   }
 
+  .review-panel-screen {
+    grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  }
+
+  .review-panel-screen > .screen-title {
+    grid-column: 1 / -1;
+  }
+
+  .review-report-panel,
+  .review-action-panel {
+    align-self: start;
+  }
+
+  .review-panel-screen .preview-box {
+    max-height: min(62vh, 620px);
+    overflow: auto;
+  }
+
+  .review-action-panel {
+    position: sticky;
+    top: calc(24px + env(safe-area-inset-top));
+  }
+
+  .review-action-panel .preview-box {
+    max-height: min(42vh, 420px);
+  }
+
   .home-screen {
     grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1fr);
     align-items: start;
