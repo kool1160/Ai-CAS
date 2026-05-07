@@ -1,0 +1,36 @@
+@media (min-width: 1024px) {
+  .more-admin-screen {
+    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1fr);
+    align-items: start;
+  }
+
+  .more-admin-screen > .screen-title {
+    grid-column: 1 / -1;
+  }
+
+  .more-user-panel,
+  .more-analytics-panel,
+  .more-settings-panel,
+  .more-setup-panel,
+  .more-records-panel {
+    align-self: start;
+  }
+
+  .more-analytics-panel {
+    display: grid;
+    gap: 14px;
+  }
+
+  .more-analytics-panel > .card {
+    margin: 0;
+  }
+
+  .more-setup-panel {
+    position: sticky;
+    top: calc(24px + env(safe-area-inset-top));
+  }
+
+  .more-setup-panel .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
