@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './v2-more-admin-layout.css';
 
 export const metadata: Metadata = {
   title: 'REFAB Connect',
