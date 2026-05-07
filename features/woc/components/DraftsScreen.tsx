@@ -74,12 +74,12 @@ export function DraftsScreen({
   };
 
   return (
-    <section className="stack">
+    <section className="stack record-review-screen drafts-review-screen">
       <div className="screen-title">
         <h1>Drafts</h1>
         <p>Saved correction packages for this browser.</p>
       </div>
-      <div className="placeholder-list">
+      <div className="placeholder-list record-list-panel">
         {draftRecords.length === 0 ? (
           <div className="placeholder-item">
             <strong>No saved drafts</strong>
@@ -101,7 +101,7 @@ export function DraftsScreen({
         )}
       </div>
       {selectedDraft && (
-        <article className="card">
+        <article className="card record-detail-panel draft-detail-panel">
           <div className="card-header">
             <div>
               <h2>{selectedDraft.draftId}</h2>
