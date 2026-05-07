@@ -42,12 +42,12 @@ export function MoreScreen({
   onResetUser,
 }: MoreScreenProps) {
   return (
-    <section className="stack">
+    <section className="stack more-admin-screen">
       <div className="screen-title">
         <h1>More</h1>
         <p>Settings, help, setup, local records, and current user access.</p>
       </div>
-      <article className="card">
+      <article className="card more-user-panel">
         <h2>Current User</h2>
         <p>This saved identity is used as Submitted By on correction reports.</p>
         <div className="placeholder-list" style={{ marginTop: 14 }}>
@@ -66,9 +66,11 @@ export function MoreScreen({
         <p className="field-help">Lock App keeps the saved identity and returns to the 4-digit App Access PIN screen. Reset Saved User clears the local profile and returns to first-time setup.</p>
       </article>
 
-      <EngineeringAnalyticsPreview summary={analyticsSummary} />
+      <div className="more-analytics-panel">
+        <EngineeringAnalyticsPreview summary={analyticsSummary} />
+      </div>
 
-      <article className="card">
+      <article className="card more-settings-panel">
         <h2>Settings / Help</h2>
         <p>Core settings and help information without disrupting the correction workflow.</p>
         <div className="placeholder-list" style={{ marginTop: 14 }}>
@@ -83,7 +85,7 @@ export function MoreScreen({
         </div>
       </article>
 
-      <article className="card">
+      <article className="card more-setup-panel">
         <h2>Setup / Admin</h2>
         <p>Local demo setup. This remains separate from App Access PIN and still requires the master code.</p>
         {!setupUnlocked ? (
@@ -158,7 +160,7 @@ export function MoreScreen({
         )}
       </article>
 
-      <article className="card">
+      <article className="card more-records-panel">
         <h2>Local Records</h2>
         <p>Drafts and History are saved locally on this device/browser only.</p>
         <div className="placeholder-list" style={{ marginTop: 14 }}>
