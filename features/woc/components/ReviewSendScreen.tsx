@@ -50,13 +50,13 @@ export function ReviewSendScreen({
   };
 
   return (
-    <section className="stack">
+    <section className="stack review-panel-screen">
       <div className="screen-title">
         <h1>Review / Send</h1>
         <p>Final check the Engineering report and email draft before sending the correction request.</p>
       </div>
 
-      <article className="card">
+      <article className="card review-report-panel">
         <div className="card-header">
           <div>
             <h2>{generatedPackage ? 'Engineering Report Ready' : 'Draft Not Generated'}</h2>
@@ -67,7 +67,7 @@ export function ReviewSendScreen({
         <div className="preview-box">{generatedPackage?.reportPreview ?? 'Generate a correction package before final review.'}</div>
       </article>
 
-      <article className="card">
+      <article className="card review-action-panel">
         <h2>Engineering Email Draft</h2>
         <div className="preview-box">{generatedPackage?.emailPreview ?? 'Generate a correction package before final review.'}</div>
         <div className="action-row">
