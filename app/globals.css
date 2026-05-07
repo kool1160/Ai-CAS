@@ -786,7 +786,41 @@ select option {
   }
 
   .app-frame {
-    max-width: min(100%, 920px);
+    max-width: min(100%, 1120px);
+  }
+
+  .stack {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .stack > .screen-title {
+    grid-column: 1 / -1;
+  }
+
+  .stack > .screen-title + .card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .home-screen {
+    grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1fr);
+    align-items: start;
+  }
+
+  .home-screen,
+  .workflow-preview {
+    padding-bottom: 0;
+  }
+
+  .placeholder-list,
+  .workflow-preview {
+    align-content: start;
+  }
+
+  .nav-dock {
+    width: min(620px, calc(100vw - 64px));
+    max-width: 620px;
   }
 }
 
