@@ -52,12 +52,12 @@ export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory
   };
 
   return (
-    <section className="stack">
+    <section className="stack record-review-screen history-review-screen">
       <div className="screen-title">
         <h1>History</h1>
         <p>Completed correction packages saved on this browser.</p>
       </div>
-      <div className="placeholder-list">
+      <div className="placeholder-list record-list-panel">
         {historyRecords.length === 0 ? (
           <div className="placeholder-item">
             <strong>No completed records</strong>
@@ -80,7 +80,7 @@ export function HistoryScreen({ historyRecords, selectedHistory, onSelectHistory
         )}
       </div>
       {selectedHistory && (
-        <article className="card">
+        <article className="card record-detail-panel history-detail-panel">
           <div className="card-header">
             <div>
               <h2>{selectedHistory.historyId}</h2>
