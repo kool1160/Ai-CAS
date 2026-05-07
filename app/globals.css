@@ -749,6 +749,47 @@ select option {
   }
 }
 
+@media (min-width: 768px) {
+  :root {
+    --nav-clearance: 156px;
+  }
+
+  .app-shell {
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-inline: clamp(20px, 5vw, 56px);
+  }
+
+  .app-frame {
+    max-width: min(100%, 760px);
+  }
+
+  .app-frame::before {
+    left: 18%;
+    right: 18%;
+    height: 260px;
+  }
+
+  .nav-dock {
+    width: min(560px, calc(100vw - 48px));
+    max-width: 560px;
+    gap: 6px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --nav-clearance: 132px;
+  }
+
+  .app-shell {
+    padding-inline: clamp(32px, 6vw, 80px);
+  }
+
+  .app-frame {
+    max-width: min(100%, 920px);
+  }
+}
+
 @media (max-width: 380px) {
   .app-shell {
     padding-inline: 12px;
