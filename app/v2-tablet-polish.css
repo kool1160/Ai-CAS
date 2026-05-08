@@ -74,17 +74,35 @@
 
   .more-admin-screen {
     grid-template-columns: minmax(300px, 0.88fr) minmax(390px, 1.12fr);
+    align-items: start;
+  }
+
+  .more-admin-screen > .screen-title {
+    grid-column: 1 / -1;
+  }
+
+  .more-left-column,
+  .more-right-column {
+    display: grid;
+    align-content: start;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .more-left-column {
+    grid-column: 1;
+  }
+
+  .more-right-column {
+    grid-column: 2;
   }
 
   .more-user-panel,
   .more-settings-panel,
-  .more-records-panel {
-    grid-column: 1;
-  }
-
+  .more-records-panel,
   .more-analytics-panel,
   .more-setup-panel {
-    grid-column: 2;
+    min-width: 0;
   }
 
   .more-setup-panel {
