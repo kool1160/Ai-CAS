@@ -89,24 +89,36 @@ function getMilestoneLabel(state: AgentConsoleWorkflowState) {
   return `${milestoneId} — ${milestoneName}`;
 }
 
+function getMilestoneId(state: AgentConsoleWorkflowState) {
+  return state.milestoneId.trim() || '[MILESTONE ID]';
+}
+
+function getCommitSha(state: AgentConsoleWorkflowState) {
+  return state.commitSha.trim() || '[COMMIT SHA]';
+}
+
+function getNotes(state: AgentConsoleWorkflowState) {
+  return state.notes.trim() || '[NOTES]';
+}
+
 function getFieldSummary(state: AgentConsoleWorkflowState) {
-  return `Milestone ID:\n${state.milestoneId.trim() || '[MILESTONE ID]'}\n\nMilestone Name:\n${state.milestoneName.trim() || '[MILESTONE NAME]'}\n\nStatus:\n${state.status.trim() || '[STATUS]'}\n\nCurrent Step:\n${state.currentStep.trim() || '[CURRENT STEP]'}\n\nCommit SHA:\n${state.commitSha.trim() || '[COMMIT SHA / NOT AVAILABLE]'}\n\nNotes:\n${state.notes.trim() || '[NOTES]'};`;
+  return `Milestone: ${getMilestoneLabel(state)}\nStatus: ${state.status.trim() || '[STATUS]'}\nCurrent Step: ${state.currentStep.trim() || '[CURRENT STEP]'}\nCommit: ${getCommitSha(state)}\nNotes: ${getNotes(state)}`;
 }
 
 function buildImplementationHandoff(state: AgentConsoleWorkflowState) {
-  return `REFAB CONNECT V3 — IMPLEMENTATION TASK\n\nMilestone:\n${getMilestoneLabel(state)}\n\nGoal:\nUse this Planning handoff to complete the approved milestone only.\n\nCurrent Workflow Fields:\n${getFieldSummary(state)}\n\nScope:\nFollow the approved Planning scope only.\nDo not expand features.\nDo not touch V2 files.\nDo not add backend/API/OpenAI/GitHub automation unless explicitly approved.\n\nRequired Output:\nReturn only a TASK RESULT CARD.\n\n# TASK RESULT CARD\n\nTask:\n${getMilestoneLabel(state)}\n\nResult:\nPass / Fail\n\nMilestone:\n${state.milestoneId.trim() || '[MILESTONE ID]'}\n\nCommit:\n[commit SHA]\n\nDeployment:\nPassed / Failed / Not applicable\n\nChanged:\n- [files changed]\n\nKey Output:\n[brief summary]\n\nErrors / Blockers:\n- [none or list]\n\nNext Needed:\nBring this result card back to Chat 1 for testing handoff.`;
+  return `REFAB CONNECT V3 — IMPLEMENTATION TASK\n\nMilestone:\n${getMilestoneLabel(state)}\n\nCurrent State:\n${getFieldSummary(state)}\n\nScope Rules:\n- Complete only the approved milestone scope.\n- Do not touch V2 files.\n- Do not add backend, API, OpenAI, GitHub automation, or unrelated features unless explicitly approved.\n\nReturn only this card:\n\n# TASK RESULT CARD\n\nTask:\n${getMilestoneLabel(state)}\n\nResult:\nPass / Fail\n\nMilestone:\n${getMilestoneId(state)}\n\nCommit:\n[commit SHA]\n\nDeployment:\nPassed / Failed / Not applicable\n\nChanged:\n- [files changed]\n\nKey Output:\n[brief summary]\n\nErrors / Blockers:\n- [none or list]\n\nNext Needed:\nBring this result card back to Chat 1 for testing handoff.`;
 }
 
 function buildTestingHandoff(state: AgentConsoleWorkflowState) {
-  return `REFAB CONNECT V3 — TESTING HANDOFF\n\nMilestone:\n${getMilestoneLabel(state)}\n\nTest Scope:\nReview only the approved milestone changes.\nDo not test unapproved future features.\nDo not implement code.\n\nCurrent Workflow Fields:\n${getFieldSummary(state)}\n\nImplementation Result:\n${state.implementationResult.trim() || '[PASTE IMPLEMENTATION RESULT CARD HERE]'}\n\nAcceptance Checks:\n- Confirm the approved files/areas changed as expected.\n- Confirm no V2 files changed.\n- Confirm no backend/API/OpenAI/GitHub automation was added unless approved.\n- Confirm existing V3 screens still load where applicable.\n- Report pass/fail clearly.\n\nRequired Output:\nReturn only a TEST RESULT CARD.\n\n# TEST RESULT CARD\n\nTested:\n${getMilestoneLabel(state)}\n\nResult:\nPass / Fail\n\nDevice / Browser:\n[device/browser or static repo inspection]\n\nMilestone:\n${state.milestoneId.trim() || '[MILESTONE ID]'}\n\nDeployment:\nPassed / Failed / Not applicable\n\nPassed:\n- [checks passed]\n\nFailed:\n- [checks failed or None]\n\nIssues / Blockers:\n- [none or list]\n\nRecommendation:\nPass to Planning / Return to Implementation`;
+  return `REFAB CONNECT V3 — TESTING HANDOFF\n\nMilestone:\n${getMilestoneLabel(state)}\n\nCurrent State:\n${getFieldSummary(state)}\n\nImplementation Result:\n${state.implementationResult.trim() || '[PASTE IMPLEMENTATION RESULT CARD HERE]'}\n\nTest Only:\n- Approved milestone scope.\n- Changed files/areas.\n- Existing V3 screen safety where applicable.\n- No V2 file changes.\n- No unapproved backend/API/OpenAI/GitHub automation.\n\nReturn only this card:\n\n# TEST RESULT CARD\n\nTested:\n${getMilestoneLabel(state)}\n\nResult:\nPass / Fail\n\nDevice / Browser:\n[device/browser or static repo inspection]\n\nMilestone:\n${getMilestoneId(state)}\n\nDeployment:\nPassed / Failed / Not applicable\n\nPassed:\n- [checks passed]\n\nFailed:\n- [checks failed or None]\n\nIssues / Blockers:\n- [none or list]\n\nRecommendation:\nPass to Planning / Return to Implementation`;
 }
 
 function buildPlanningLockCard(state: AgentConsoleWorkflowState) {
-  return `# PLANNING CLOSE CARD\n\nMilestone:\n${getMilestoneLabel(state)}\n\nStatus:\nFULLY CLOSED / PASSED / LOCKED\n\nDocumentation Tracker:\nPending Chat 4 update\n\nResult:\n${state.milestoneId.trim() || '[MILESTONE ID]'} is officially complete once Chat 4 updates the running tracker.\n\nImplementation Commit:\n${state.commitSha.trim() || '[COMMIT SHA]'}\n\nTesting Result:\n${state.testingResult.trim() || '[PASTE TEST RESULT SUMMARY HERE]'}\n\nLocked:\n- Approved milestone scope completed\n- V2 remains closed\n- No unapproved backend/API/OpenAI/GitHub automation added\n- No unrelated feature expansion accepted\n\nNotes:\n${state.notes.trim() || '[NOTES]'}\n\nNext Approved Milestone:\n[ENTER NEXT MILESTONE]\n\nNext Action:\nSend finalized tracker update to Chat 4.`;
+  return `# PLANNING CLOSE CARD\n\nMilestone:\n${getMilestoneLabel(state)}\n\nStatus:\nFULLY CLOSED / PASSED / LOCKED\n\nDocumentation Tracker:\nPending Chat 4 update\n\nResult:\n${getMilestoneId(state)} is complete after Chat 4 updates the running tracker.\n\nCommit:\n${getCommitSha(state)}\n\nTesting:\n${state.testingResult.trim() || '[PASTE TEST RESULT SUMMARY HERE]'}\n\nLocked:\n- Approved milestone scope completed.\n- V2 remains closed.\n- No unapproved backend/API/OpenAI/GitHub automation added.\n- No unrelated feature expansion accepted.\n\nNotes:\n${getNotes(state)}\n\nNext Approved Milestone:\n[ENTER NEXT MILESTONE]\n\nNext Action:\nSend tracker update to Chat 4.`;
 }
 
 function buildDocumentationTrackerUpdate(state: AgentConsoleWorkflowState) {
-  return `# V3 RUNNING TRACKER UPDATE\n\nMilestone:\n${getMilestoneLabel(state)}\n\nStatus:\nLOCKED / PASSED\n\nCommit:\n${state.commitSha.trim() || '[COMMIT SHA]'}\n\nDeployment:\nNot applicable unless noted\n\nSummary:\n${state.notes.trim() || '[SHORT SUMMARY OF WHAT THIS MILESTONE COMPLETED]'}\n\nFiles / Areas Affected:\n- [ADD FILES / AREAS FROM IMPLEMENTATION RESULT]\n\nTesting Completed:\n${state.testingResult.trim() || '[PASTE TEST RESULT SUMMARY HERE]'}\n\nIssues / Resolutions:\nNone reported unless listed in testing.\n\nDecisions Locked:\n- ${state.milestoneId.trim() || '[MILESTONE ID]'} is closed.\n- V2 remains closed.\n- Future work must continue through approved Planning handoffs.\n\nNext Step:\n[ENTER NEXT APPROVED MILESTONE OR ACTION]`;
+  return `# V3 RUNNING TRACKER UPDATE\n\nMilestone:\n${getMilestoneLabel(state)}\n\nStatus:\nLOCKED / PASSED\n\nCommit:\n${getCommitSha(state)}\n\nDeployment:\nNot applicable unless noted\n\nSummary:\n${getNotes(state)}\n\nChanged:\n- [files / areas changed]\n\nTesting:\n${state.testingResult.trim() || '[PASTE TEST RESULT SUMMARY HERE]'}\n\nIssues / Resolutions:\nNone reported unless listed in testing.\n\nDecisions Locked:\n- ${getMilestoneId(state)} is closed.\n- V2 remains closed.\n- Continue through approved Planning handoffs only.\n\nNext Step:\n[ENTER NEXT APPROVED MILESTONE OR ACTION]`;
 }
 
 export function AgentConsoleShell() {
