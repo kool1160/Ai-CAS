@@ -3,6 +3,10 @@
     padding-bottom: calc(var(--nav-clearance) + env(safe-area-inset-bottom));
   }
 
+  .app-frame {
+    width: 100%;
+  }
+
   .screen-title {
     margin-bottom: 20px;
   }
@@ -17,6 +21,12 @@
   .card {
     padding: 20px;
   }
+
+  .card,
+  .placeholder-item,
+  .preview-box {
+    min-width: 0;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -24,11 +34,16 @@
     --nav-clearance: 124px;
   }
 
+  .app-shell {
+    padding-bottom: calc(var(--nav-clearance) + env(safe-area-inset-bottom));
+  }
+
   .app-frame {
     max-width: min(100%, 1180px);
   }
 
   .stack {
+    align-content: start;
     gap: 20px;
   }
 
@@ -52,9 +67,19 @@
     row-gap: 18px;
   }
 
+  .home-screen {
+    grid-template-columns: minmax(330px, 0.92fr) minmax(380px, 1fr);
+  }
+
+  .home-screen .hero,
+  .workflow-preview {
+    align-self: start;
+  }
+
   .review-panel-screen,
   .record-review-screen {
     grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
+    align-items: start;
   }
 
   .record-list-panel,
@@ -118,8 +143,16 @@
     min-width: min(100%, 210px);
   }
 
-  .more-admin-screen .action-row {
+  .more-admin-screen .action-row,
+  .review-panel-screen .action-row,
+  .record-review-screen .action-row {
     align-items: center;
+  }
+
+  .review-panel-screen .button,
+  .record-review-screen .button,
+  .more-admin-screen .button {
+    flex: 0 1 auto;
   }
 
   .nav-dock {
