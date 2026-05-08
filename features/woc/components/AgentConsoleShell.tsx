@@ -105,6 +105,7 @@ export function AgentConsoleShell() {
   const [storageFeedback, setStorageFeedback] = useState<string | null>(null);
   const [nextMilestoneId, setNextMilestoneId] = useState('');
   const [nextMilestoneName, setNextMilestoneName] = useState('');
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
 
   useEffect(() => {
     setWorkflowState(loadWorkflowState());
@@ -194,16 +195,16 @@ export function AgentConsoleShell() {
             <h2>Quick Start</h2>
             <p>Start the next milestone and reset the cockpit to Planning.</p>
           </div>
-          <span className="field-status confirmed">Autofill</span>
+          <span className="field-status confirmed">Essential Mode</span>
         </div>
         <div className="form-grid agent-console-fields">
           <label>
             Next Milestone ID
-            <input type="text" value={nextMilestoneId} onChange={(event) => setNextMilestoneId(event.target.value)} placeholder="Example: V3-M12" aria-label="Next Milestone ID" />
+            <input type="text" value={nextMilestoneId} onChange={(event) => setNextMilestoneId(event.target.value)} placeholder="Example: V3-M13" aria-label="Next Milestone ID" />
           </label>
           <label>
             Next Milestone Name
-            <input type="text" value={nextMilestoneName} onChange={(event) => setNextMilestoneName(event.target.value)} placeholder="Agent Console Workflow Condensation / Operator UX Pass" aria-label="Next Milestone Name" />
+            <input type="text" value={nextMilestoneName} onChange={(event) => setNextMilestoneName(event.target.value)} placeholder="Essential Mode / Field Complexity Reduction" aria-label="Next Milestone Name" />
           </label>
         </div>
         <div className="action-row">
@@ -248,40 +249,16 @@ export function AgentConsoleShell() {
         <div className="action-row">
           <button className="button success" type="button" onClick={saveWorkflow}>Save Workflow</button>
           <button className="button danger" type="button" onClick={clearWorkflow}>Clear Workflow</button>
+          <button className="button secondary" type="button" onClick={() => setShowAdvancedDetails((current) => !current)}>
+            {showAdvancedDetails ? 'Hide Advanced Details' : 'Show Advanced Details'}
+          </button>
         </div>
         {storageFeedback && <p className="field-help">Agent Console: {storageFeedback}</p>}
       </section>
 
-      <section className="card agent-details-panel">
-        <div className="card-header">
-          <div>
-            <h2>Milestone Details</h2>
-            <p>Secondary fields for manual corrections, commits, and notes.</p>
-          </div>
-        </div>
-        <div className="form-grid agent-console-fields">
-          <label>
-            Milestone ID
-            <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M12" aria-label="Milestone ID" />
-          </label>
-          <label>
-            Milestone Name
-            <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Agent Console Workflow Condensation / Operator UX Pass" aria-label="Milestone Name" />
-          </label>
-          <label>
-            Commit SHA
-            <input type="text" value={workflowState.commitSha} onChange={(event) => updateField('commitSha', event.target.value)} placeholder="Pending" aria-label="Commit SHA" />
-          </label>
-          <label className="agent-console-notes">
-            Notes
-            <textarea value={workflowState.notes} onChange={(event) => updateField('notes', event.target.value)} placeholder="Short milestone notes, blockers, or next action." aria-label="Notes" />
-          </label>
-        </div>
-      </section>
-
       <section className="card agent-actions-panel">
         <h2>Generate Handoffs</h2>
-        <p>Local template buttons only. No API, backend, OpenAI, GitHub, or automation calls are wired in V3-M12.</p>
+        <p>Essential Mode keeps the main workflow simple. Generated cards and manual editing remain available in Advanced Details.</p>
         <div className="action-row agent-action-grid">
           <button className="button secondary" type="button" onClick={() => generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation handoff')}>Implementation Handoff</button>
           <button className="button secondary" type="button" onClick={() => generateCard('testingResult', buildTestingHandoff(workflowState), 'Testing handoff')}>Testing Handoff</button>
@@ -290,20 +267,52 @@ export function AgentConsoleShell() {
         </div>
       </section>
 
-      <section className="agent-workflow-grid" aria-label="Agent Console workflow cards">
-        {workflowCards.map((card) => (
-          <article className="card agent-workflow-card" key={card.key}>
+      {showAdvancedDetails && (
+        <>
+          <section className="card agent-details-panel">
             <div className="card-header">
               <div>
-                <h3>{card.title}</h3>
-                <p>{card.placeholder}</p>
+                <h2>Advanced Details</h2>
+                <p>Manual corrections, commits, notes, and full card text are hidden by default to reduce operator field load.</p>
               </div>
+              <span className="field-status pending">Advanced</span>
             </div>
-            <textarea value={workflowState[card.key]} onChange={(event) => updateField(card.key, event.target.value)} placeholder={card.placeholder} aria-label={card.title} />
-            <button className="button secondary full-width" type="button" onClick={() => copyCard(card.key, card.title)}>Copy Card</button>
-          </article>
-        ))}
-      </section>
+            <div className="form-grid agent-console-fields">
+              <label>
+                Milestone ID
+                <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M13" aria-label="Milestone ID" />
+              </label>
+              <label>
+                Milestone Name
+                <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Essential Mode / Field Complexity Reduction" aria-label="Milestone Name" />
+              </label>
+              <label>
+                Commit SHA
+                <input type="text" value={workflowState.commitSha} onChange={(event) => updateField('commitSha', event.target.value)} placeholder="Pending" aria-label="Commit SHA" />
+              </label>
+              <label className="agent-console-notes">
+                Notes
+                <textarea value={workflowState.notes} onChange={(event) => updateField('notes', event.target.value)} placeholder="Short milestone notes, blockers, or next action." aria-label="Notes" />
+              </label>
+            </div>
+          </section>
+
+          <section className="agent-workflow-grid" aria-label="Agent Console workflow cards">
+            {workflowCards.map((card) => (
+              <article className="card agent-workflow-card" key={card.key}>
+                <div className="card-header">
+                  <div>
+                    <h3>{card.title}</h3>
+                    <p>{card.placeholder}</p>
+                  </div>
+                </div>
+                <textarea value={workflowState[card.key]} onChange={(event) => updateField(card.key, event.target.value)} placeholder={card.placeholder} aria-label={card.title} />
+                <button className="button secondary full-width" type="button" onClick={() => copyCard(card.key, card.title)}>Copy Card</button>
+              </article>
+            ))}
+          </section>
+        </>
+      )}
     </article>
   );
 }
