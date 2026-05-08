@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 const agentConsoleStorageKey = 'refab-connect-v3-agent-console-workflow';
 
 type WorkflowCardKey = 'planningHandoff' | 'implementationResult' | 'testingResult' | 'planningLock' | 'documentationUpdate';
+type WorkflowStepName = 'Planning' | 'Implementation' | 'Testing' | 'Locked' | 'Documented';
 
 type AgentConsoleWorkflowState = {
   milestoneId: string;
@@ -23,8 +24,8 @@ type AgentConsoleWorkflowState = {
 const defaultWorkflowState: AgentConsoleWorkflowState = {
   milestoneId: '',
   milestoneName: '',
-  status: '',
-  currentStep: '',
+  status: 'Planning',
+  currentStep: 'Planning',
   commitSha: '',
   notes: '',
   planningHandoff: '',
@@ -62,7 +63,12 @@ const workflowCards: Array<{ key: WorkflowCardKey; title: string; placeholder: s
   },
 ];
 
-const statusSteps = ['Planning', 'Implementation', 'Testing', 'Locked', 'Documented'];
+const statusSteps: WorkflowStepName[] = ['Planning', 'Implementation', 'Testing', 'Locked', 'Documented'];
+
+function persistWorkflowState(state: AgentConsoleWorkflowState) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(agentConsoleStorageKey, JSON.stringify(state));
+}
 
 function loadWorkflowState() {
   if (typeof window === 'undefined') return defaultWorkflowState;
@@ -117,7 +123,7 @@ export function AgentConsoleShell() {
   };
 
   const saveWorkflow = () => {
-    window.localStorage.setItem(agentConsoleStorageKey, JSON.stringify(workflowState));
+    persistWorkflowState(workflowState);
     setStorageFeedback('Workflow saved locally on this device/browser.');
   };
 
@@ -125,6 +131,18 @@ export function AgentConsoleShell() {
     window.localStorage.removeItem(agentConsoleStorageKey);
     setWorkflowState(defaultWorkflowState);
     setStorageFeedback('Workflow cleared from local storage.');
+  };
+
+  const advanceWorkflow = (step: WorkflowStepName) => {
+    const nextState = {
+      ...workflowState,
+      status: step,
+      currentStep: step,
+    };
+
+    setWorkflowState(nextState);
+    persistWorkflowState(nextState);
+    setStorageFeedback(`Workflow moved to ${step} and saved locally.`);
   };
 
   const copyCard = async (key: WorkflowCardKey, title: string) => {
@@ -143,7 +161,8 @@ export function AgentConsoleShell() {
   };
 
   const generateCard = (key: WorkflowCardKey, value: string, label: string) => {
-    setWorkflowState((current) => ({ ...current, [key]: value }));
+    const nextState = { ...workflowState, [key]: value };
+    setWorkflowState(nextState);
     setStorageFeedback(`${label} generated. Review, save, then copy when ready.`);
   };
 
@@ -159,12 +178,15 @@ export function AgentConsoleShell() {
       </div>
 
       <section className="agent-console-status" aria-label="Agent Console status steps">
-        {statusSteps.map((step, index) => (
-          <div className="agent-status-step" key={step}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <strong>{step}</strong>
-          </div>
-        ))}
+        {statusSteps.map((step, index) => {
+          const activeStep = workflowState.currentStep || workflowState.status || 'Planning';
+          return (
+            <div className={activeStep === step ? 'agent-status-step active' : 'agent-status-step'} key={step}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <strong>{step}</strong>
+            </div>
+          );
+        })}
       </section>
 
       <section className="card agent-current-milestone">
@@ -173,17 +195,17 @@ export function AgentConsoleShell() {
             <h2>Current Milestone</h2>
             <p>Manual local workflow storage only. Future automation will build from this structure.</p>
           </div>
-          <span className="field-status confirmed">Local</span>
+          <span className="field-status confirmed">{workflowState.currentStep || workflowState.status || 'Planning'}</span>
         </div>
 
         <div className="form-grid agent-console-fields">
           <label>
             Milestone ID
-            <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M6" aria-label="Milestone ID" />
+            <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M7" aria-label="Milestone ID" />
           </label>
           <label>
             Milestone Name
-            <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Agent Console Handoff Generator Buttons" aria-label="Milestone Name" />
+            <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Agent Console Guided Step Flow / Status Advancement" aria-label="Milestone Name" />
           </label>
           <label>
             Status
@@ -201,6 +223,14 @@ export function AgentConsoleShell() {
             Notes
             <textarea value={workflowState.notes} onChange={(event) => updateField('notes', event.target.value)} placeholder="Short milestone notes, blockers, or next action." aria-label="Notes" />
           </label>
+        </div>
+
+        <div className="action-row">
+          <button className="button secondary" type="button" onClick={() => advanceWorkflow('Implementation')}>Move to Implementation</button>
+          <button className="button secondary" type="button" onClick={() => advanceWorkflow('Testing')}>Move to Testing</button>
+          <button className="button secondary" type="button" onClick={() => advanceWorkflow('Locked')}>Move to Locked</button>
+          <button className="button secondary" type="button" onClick={() => advanceWorkflow('Documented')}>Move to Documented</button>
+          <button className="button primary" type="button" onClick={() => advanceWorkflow('Planning')}>Reset to Planning</button>
         </div>
 
         <div className="action-row">
@@ -228,7 +258,7 @@ export function AgentConsoleShell() {
       <section className="card agent-actions-panel">
         <h2>Workflow Actions</h2>
         <p>
-          Generator buttons populate local workflow cards only. No API, backend, OpenAI, GitHub, or automation calls are wired in V3-M6.
+          Generator buttons populate local workflow cards only. No API, backend, OpenAI, GitHub, or automation calls are wired in V3-M7.
         </p>
         <div className="action-row agent-action-grid">
           <button className="button secondary" type="button" onClick={() => generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation handoff')}>Generate Implementation Handoff</button>
