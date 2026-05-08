@@ -3,140 +3,287 @@
 
 Project: Refab Connect V3  
 Repo: kool1160/refab-connect-core-reskin  
-Status: Started  
+Source File: docs/v3/REFAB_CONNECT_V3_STARTUP_PACKET.md  
 Baseline: Refab Connect V2 closed cleanly at V2-M15  
-Runtime Scope: Not started  
-Primary Rule: Route by failure point and owner  
+V3 Status: Started  
+Runtime Implementation: Not started  
+Core Principle: Route by failure point and owner  
 Shop-Floor Culture Line: "I’ll drop a Connect."
 
 ---
 
-## 1. Purpose
+## 1. V3 Core Direction
 
-Refab Connect V3 expands the prior work-order correction layer into a shop-floor exception routing and visibility system.
+Refab Connect V3 expands from a work-order correction app into a shop-floor exception routing and visibility system.
 
-The purpose of V3 is to help shop-floor users quickly capture exceptions, route problems to the right owner, preserve supporting evidence, reduce wasted walking and communication loops, and make recurring problems visible for continuous improvement.
+V3 is built to help shop-floor users capture issues quickly, attach context and evidence, route the issue to the correct owner, show the next action, and make recurring problems visible.
 
-V3 is not a restart of V2. V2 remains closed. V3 begins from the stable V2 foundation and adds structured routing architecture before any runtime implementation begins.
-
----
-
-## 2. V2 Baseline
-
-Refab Connect V2 is closed cleanly at V2-M15.
-
-V2 established the iPad-first operating layer, stable navigation, layout polish, risk-based testing direction, documentation recovery, and closeout package.
-
-V3 must not reopen V2, modify V2 closure docs, or change V2 scope unless explicitly instructed by Planning.
+V3 builds from the stable V2 foundation without reopening V2. V2 is closed cleanly at V2-M15 and must remain closed unless explicitly reopened by Planning.
 
 ---
 
-## 3. V3 Core Purpose
+## 2. Core Purpose
 
 Refab Connect V3 exists to:
 
-- Route problems to the correct owner.
-- Reduce wasted motion and communication delays.
-- Preserve photo/document evidence.
-- Support shop-floor exception capture.
-- Create clearer visibility into recurring issues.
-- Help the next run go smoother.
+- Route problems to the right owner.
+- Reduce wasted motion.
+- Preserve evidence.
+- Make recurring shop-floor issues visible.
+- Support continuous improvement participation across departments.
+- Make the next production run smoother.
 
-The operating mindset is simple:
+The operating idea is simple:
 
 > Capture the exception. Route it by failure point. Preserve the evidence. Make the pattern visible.
 
 ---
 
-## 4. Core Routing Principle
+## 3. Core Principle
 
-The core V3 routing principle is:
+The V3 routing rule is:
 
 > Route by failure point and owner.
 
-A problem should not automatically go to Engineering just because it is documented. The system must identify where the failure occurred and who owns the next action.
+A problem should route to the person, department, or function that owns the next action based on the actual failure point.
 
-Examples:
-
-- Raw material missing, short, wrong grade, or lead-time constrained → Purchasing / Material Control.
-- Missing laser-cut component caused by not being cut, nested, counted, or found → Laser / Production / Supervisor.
-- Router, BOM, print, callout, quantity, or operation is wrong or missing → Engineering.
-- Failed inspection, finish defect, rejection, or escaped issue → Quality plus owning department.
-- Outside operation issue such as plating/vendor processing → Purchasing / Vendor Coordination, with Quality if finish or rejection related.
-- Unsigned first-piece, last-piece, or prior operation → Quality / Supervisor / owning department.
+The default owner is not always Engineering.
 
 ---
 
-## 5. Shop-Floor Culture Line
+## 4. Shop-Floor Culture Line
 
-The phrase for V3 behavior is:
+The V3 culture line is:
 
 > "I’ll drop a Connect."
 
-This means a shop-floor employee can quickly capture the issue, attach context/evidence, route it to the correct owner, and make the next action visible without chasing people, walking around the building, or relying on memory/verbal reminders.
+Meaning:
+
+Anyone on the floor can capture an issue, attach context/evidence, route it to the right owner, and make the next action visible without walking around, chasing people, interrupting departments, or relying on memory and verbal reminders.
 
 ---
 
-## 6. V3 Work Areas
+## 5. V3 Direction Areas
 
-V3 may expand into these areas only through approved Planning handoffs:
+V3 direction includes:
 
-- Router/BOM/component awareness.
-- Owner-based exception routing.
-- Material and purchased component shortages.
-- Laser-cut component routing.
-- PEM/self-clinching hardware issues.
-- Weld nut, weld stud, and hardware routing.
-- QC unsigned operation and process-control reporting.
-- Photo evidence and document evidence support.
-- Future ranked issue analytics and bar-graph dashboards.
+- Router / BOM / component awareness.
+- Owner-based routing by failure point.
+- Purchasing / material shortage routing.
+- Laser-cut component exception routing.
+- PEM / weld nut / weld stud / hardware routing.
+- QC unsigned operation / first-piece / last-piece reporting.
+- Photo evidence support.
+- "I’ll drop a Connect" shop-floor culture.
+- Ranked issue analytics direction.
+- Continuous improvement participation across departments.
 
-These are direction areas, not automatic implementation permission.
-
----
-
-## 7. Runtime Guardrail
-
-Do not start runtime implementation until V3 routing architecture is locked by Planning.
-
-Do not add:
-
-- New UI routes.
-- Dashboard features.
-- Backend/database work.
-- Authentication changes.
-- Analytics/bar graphs.
-- Production routing features.
-- Router parsing implementation.
-
-Runtime changes require a specific approved Planning handoff.
+These are direction areas only. They do not authorize runtime implementation until Planning issues a specific milestone handoff.
 
 ---
 
-## 8. Chat Role Separation
+## 6. V3 Non-Goals At Start
 
-V3 uses separate chat roles to reduce drift:
+V3 must not begin by overbuilding.
 
-- Planning / Source of Truth decides scope, order, acceptance checks, and handoffs.
-- Implementation / Task Runner executes one approved handoff at a time.
-- Testing / Bug Report observes app behavior and reports pass/fail evidence.
-- Documentation / Binder creates milestone records and polished documentation packages.
+At the start of V3, do not:
 
-Implementation does not decide scope. Testing does not implement. Documentation does not change runtime.
+- Code immediately.
+- Reopen V2.
+- Modify V2 closure docs.
+- Build a dashboard before the routing model is defined.
+- Add database/auth/backend before the workflow model is locked.
+- Overcomplicate the floor input flow.
+- Add new runtime routes without an approved Planning handoff.
+- Implement production features before architecture and routing rules are accepted.
 
 ---
 
-## 9. Current First Milestone
+## 7. Router Stack Model
 
-Current milestone:
+V3 routing should understand a router/document stack as separate but related layers:
 
-V3-M1 — Router-Aware Exception Routing Architecture
+- Work order header.
+- Router M lines.
+- Router L operation lines.
+- Print BOM components.
+- Purchased material.
+- Purchased components.
+- Laser-cut component outputs.
+- Hardware / PEM / weld nut / weld stud items.
+- Outside processing.
+- Inspection/signoff status.
+- Evidence photos.
 
-Expected documentation files:
+This stack helps determine both what failed and who owns the next action.
 
-- docs/v3/REFAB_CONNECT_V3_STARTUP_PACKET.md
-- docs/v3/V3-M1_ROUTER_AWARE_EXCEPTION_ROUTING_ARCHITECTURE.md
+---
 
-Scope:
+## 8. M Line vs L Line Logic
 
-Documentation and architecture only.
+Routing distinction:
+
+- M line = purchased material / component / hardware ownership.
+- L line = labor / operation / department ownership.
+- Print BOM = component/output expectation.
+
+Example:
+
+A single M line may represent raw sheet material. A related L laser operation may produce several laser-cut components from that material. The individual components may be shown on the print BOM rather than as separate M material lines.
+
+Missing raw material is usually a Purchasing / Material Control issue.
+
+Missing cut output may be a Laser / Production issue when the raw material exists but the component was not cut, nested, counted, or found.
+
+---
+
+## 9. Failure-Point Routing Rules
+
+Initial V3 routing rules:
+
+- Missing raw material → Purchasing / Material Control.
+- Missing purchased component → Purchasing / Material Control.
+- Missing laser-cut component → Laser / Production based on cause.
+- Wrong router/BOM/print/spec → Engineering.
+- Missed operation → department owner / Supervisor.
+- Defect/rejection → Quality plus owner.
+- Plating/outside process → Purchasing / Vendor Coordination.
+- Powder coat PT10 → internal Powder Coat / Paint.
+- Unsigned first/last piece → Quality / Supervisor / owning department.
+
+---
+
+## 10. Owner Routing Map
+
+Supported owner lanes for V3 planning:
+
+- Engineering.
+- Purchasing / Material Control.
+- Laser / Cutting.
+- Welding.
+- Forming.
+- Machining.
+- PEMing / Hardware Insertion.
+- Powder Coat / Paint.
+- Plating / Outside Processing.
+- Quality / QC.
+- Supervisor / Production.
+- Leadership / Management.
+
+---
+
+## 11. Photo Evidence Rules
+
+V3 should support photo evidence because customer documentation, routers, BOMs, and shop-floor issue types are inconsistent.
+
+Evidence types:
+
+- Router/header photo.
+- Print/BOM photo.
+- Missing component photo.
+- Physical issue photo.
+- Failed/defective part photo.
+- Unsigned operation/signoff photo.
+- Material/component label photo.
+
+Evidence should support routing and review. Evidence does not need to be perfectly structured to be useful.
+
+---
+
+## 12. Drop a Connect Workflow
+
+Basic V3 workflow:
+
+1. Capture issue.
+2. Select/request type.
+3. Identify work order/part/context.
+4. Attach evidence.
+5. Route to owner.
+6. Show next action.
+7. Track status.
+8. Feed analytics.
+
+The goal is to reduce walking, waiting, interruptions, lost context, and verbal reminder loops.
+
+---
+
+## 13. Analytics Direction
+
+V3 analytics direction should use simple ranked bar graphs to show where issues point.
+
+Dashboard goal:
+
+> Make the dominant problem obvious fast.
+
+Example:
+
+> 70% of current issues point toward Purchasing / Material Shortages.
+
+Future dashboard views may include:
+
+- Top current signal.
+- Issues by department.
+- Issues by owner.
+- Issues by type.
+- Repeat parts.
+- Repeat work orders.
+- Open items by owner.
+- Aging unresolved items.
+- Production impact / urgency.
+
+Analytics are future direction only at V3 start. Do not implement dashboards until Planning approves dashboard scope.
+
+---
+
+## 14. Suggested V3 Milestone Path
+
+Suggested path:
+
+- V3-M1 — Router-Aware Exception Routing Architecture.
+- V3-M2 — Request Type / Routing Destination Model.
+- V3-M3 — Evidence Capture / Photo Support Planning.
+- V3-M4 — Purchasing / Material Shortage Routing Planning.
+- V3-M5 — Laser / BOM Component Routing Planning.
+- V3-M6 — QC Unsigned Operation / Process Control Planning.
+- V3-M7 — Router Line Selection UI Planning.
+- V3-M8 — Runtime Implementation Ticket Breakdown.
+- V3-M9 — First Controlled Routing UI Implementation.
+- V3-M10 — Ranked Issue Analytics Dashboard Planning.
+
+Planning may adjust milestone order, but implementation must follow approved Planning handoffs only.
+
+---
+
+## 15. V3 Documentation Gate Rule
+
+Every V3 milestone must produce:
+
+1. Chat 2 implementation/result card.
+2. Chat 3 test/result card.
+3. Chat 1 planning lock.
+4. Chat 4 running documentation tracker update.
+
+A milestone is not fully closed until Chat 4 has updated the running tracker.
+
+---
+
+## 16. Runtime Guardrail
+
+Do not implement:
+
+- Runtime UI.
+- Dashboard.
+- Backend/database.
+- Auth.
+- New app routes.
+- Production features.
+
+Runtime implementation must wait until the routing model is reviewed and accepted.
+
+---
+
+## 17. Final Lock Statement
+
+V3-M1 locks the routing architecture direction only.
+
+Runtime implementation must wait until the routing model is reviewed and accepted by Planning.
