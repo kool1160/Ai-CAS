@@ -1,4 +1,5 @@
 import { EngineeringAnalyticsPreview } from './EngineeringAnalyticsPreview';
+import { AgentConsoleShell } from './AgentConsoleShell';
 import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
@@ -78,10 +79,12 @@ export function MoreScreen({
             </div>
             <div className="placeholder-item">
               <strong>Build Status</strong>
-              <span>Milestone 19: Local Engineering Analytics preview.</span>
+              <span>V3 Agent Console shell enabled.</span>
             </div>
           </div>
         </article>
+
+        <AgentConsoleShell />
 
         <article className="card more-records-panel">
           <h2>Local Records</h2>
