@@ -21,6 +21,11 @@ type AgentConsoleWorkflowState = {
   documentationUpdate: string;
 };
 
+type ActionFeedback = {
+  completed: string;
+  next: string;
+};
+
 const defaultWorkflowState: AgentConsoleWorkflowState = {
   milestoneId: '',
   milestoneName: '',
@@ -82,6 +87,14 @@ function getNotes(state: AgentConsoleWorkflowState) {
 
 function getFieldSummary(state: AgentConsoleWorkflowState) {
   return `Milestone: ${getMilestoneLabel(state)}\nStatus: ${state.status.trim() || '[STATUS]'}\nCurrent Step: ${state.currentStep.trim() || '[CURRENT STEP]'}\nCommit: ${getCommitSha(state)}\nNotes: ${getNotes(state)}`;
+}
+
+function getStepRecommendation(step: string) {
+  if (step === 'Implementation') return 'Paste Chat 2 task result card, then save workflow.';
+  if (step === 'Testing') return 'Generate testing handoff, then paste Chat 3 test result card.';
+  if (step === 'Locked') return 'Generate the planning lock card, then copy it back to Chat 1.';
+  if (step === 'Documented') return 'Generate the documentation tracker update for Chat 4.';
+  return 'Generate the implementation handoff, then copy/paste it into Chat 2.';
 }
 
 function buildImplementationHandoff(state: AgentConsoleWorkflowState) {
@@ -146,13 +159,29 @@ function getStageCard(step: string): { key: WorkflowCardKey; title: string; help
 
 export function AgentConsoleShell() {
   const [workflowState, setWorkflowState] = useState<AgentConsoleWorkflowState>(defaultWorkflowState);
-  const [storageFeedback, setStorageFeedback] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback>({
+    completed: 'Agent Console ready.',
+    next: 'Start a milestone or continue the saved workflow.',
+  });
   const [nextMilestoneId, setNextMilestoneId] = useState('');
   const [nextMilestoneName, setNextMilestoneName] = useState('');
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
 
+  const activeStep = workflowState.currentStep || workflowState.status || 'Planning';
+  const activeStageCard = getStageCard(activeStep);
+  const nextStepLabel = statusSteps[statusSteps.indexOf(activeStep as WorkflowStepName) + 1];
+
+  const setFeedback = (completed: string, next = getStepRecommendation(activeStep)) => {
+    setActionFeedback({ completed, next });
+  };
+
   useEffect(() => {
-    setWorkflowState(loadWorkflowState());
+    const savedState = loadWorkflowState();
+    setWorkflowState(savedState);
+    setActionFeedback({
+      completed: savedState.milestoneId ? `Restored workflow: ${savedState.milestoneId}` : 'Agent Console ready.',
+      next: getStepRecommendation(savedState.currentStep || savedState.status || 'Planning'),
+    });
   }, []);
 
   const updateWorkflowState = (nextState: AgentConsoleWorkflowState, shouldPersist = false) => {
@@ -162,24 +191,23 @@ export function AgentConsoleShell() {
 
   const updateField = (key: keyof AgentConsoleWorkflowState, value: string) => {
     setWorkflowState((current) => ({ ...current, [key]: value }));
-    setStorageFeedback(null);
   };
 
   const saveWorkflow = () => {
     persistWorkflowState(workflowState);
-    setStorageFeedback('Workflow saved locally on this device/browser.');
+    setFeedback('Workflow saved locally.', getStepRecommendation(activeStep));
   };
 
   const clearWorkflow = () => {
     window.localStorage.removeItem(agentConsoleStorageKey);
     setWorkflowState(defaultWorkflowState);
-    setStorageFeedback('Workflow cleared from local storage.');
+    setFeedback('Workflow cleared.', 'Start a new milestone from Quick Start.');
   };
 
   const advanceWorkflow = (step: WorkflowStepName) => {
     const nextState = { ...workflowState, status: step, currentStep: step };
     updateWorkflowState(nextState, true);
-    setStorageFeedback(`Workflow moved to ${step} and saved locally.`);
+    setFeedback(`Moved to ${step}.`, getStepRecommendation(step));
   };
 
   const moveToNextStep = () => {
@@ -187,7 +215,7 @@ export function AgentConsoleShell() {
     const nextStep = statusSteps[currentIndex + 1];
 
     if (!nextStep) {
-      setStorageFeedback('Workflow is already at Documented.');
+      setFeedback('Workflow is already at Documented.', 'Generate the documentation tracker update if it is not complete yet.');
       return;
     }
 
@@ -197,13 +225,14 @@ export function AgentConsoleShell() {
   const useSuggestedMilestone = () => {
     setNextMilestoneId('V3-M11');
     setNextMilestoneName('Agent Console Quick Start / Milestone Autofill');
-    setStorageFeedback('Suggested V3-M11 loaded into Quick Start.');
+    setFeedback('Suggested milestone loaded: V3-M11.', 'Review the milestone fields, then tap Start New Milestone.');
   };
 
   const startNewMilestone = () => {
+    const milestoneId = nextMilestoneId.trim() || 'V3-M11';
     const nextState: AgentConsoleWorkflowState = {
       ...defaultWorkflowState,
-      milestoneId: nextMilestoneId.trim() || 'V3-M11',
+      milestoneId,
       milestoneName: nextMilestoneName.trim() || 'Agent Console Quick Start / Milestone Autofill',
       status: 'Planning',
       currentStep: 'Planning',
@@ -212,50 +241,66 @@ export function AgentConsoleShell() {
     };
 
     updateWorkflowState(nextState, true);
-    setStorageFeedback('New milestone started and saved locally.');
+    setFeedback(`Milestone started: ${milestoneId}.`, 'Generate the implementation handoff, then copy/paste it into Chat 2.');
   };
 
   const copyCard = async (key: WorkflowCardKey, title: string) => {
     const value = workflowState[key].trim();
     if (!value) {
-      setStorageFeedback(`${title} is empty. Nothing copied.`);
+      setFeedback(`${title} is empty. Nothing copied.`, 'Generate or paste the card before copying.');
       return;
     }
 
     try {
       await navigator.clipboard.writeText(value);
-      setStorageFeedback(`${title} copied to clipboard.`);
+      setFeedback('Copied to clipboard.', `Paste ${title} into the correct chat, then return here for the next step.`);
     } catch {
-      setStorageFeedback(`${title} could not be copied. Use manual selection as fallback.`);
+      setFeedback(`${title} could not be copied.`, 'Use manual selection as the fallback copy method.');
     }
   };
 
-  const generateCard = (key: WorkflowCardKey, value: string, label: string) => {
+  const generateCard = (key: WorkflowCardKey, value: string, label: string, next: string) => {
     updateWorkflowState({ ...workflowState, [key]: value });
-    setStorageFeedback(`${label} generated. Review, save, then copy when ready.`);
+    setFeedback(`${label} generated.`, next);
   };
 
   const generateStageCard = (key: WorkflowCardKey) => {
     if (key === 'planningHandoff') {
-      generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation handoff');
+      generateCard(
+        'planningHandoff',
+        buildImplementationHandoff(workflowState),
+        'Implementation Handoff',
+        'Ready to copy/paste into Chat 2.'
+      );
     }
 
     if (key === 'testingResult') {
-      generateCard('testingResult', buildTestingHandoff(workflowState), 'Testing handoff');
+      generateCard(
+        'testingResult',
+        buildTestingHandoff(workflowState),
+        'Testing Handoff',
+        'Ready to copy/paste into Chat 3, then paste Chat 3 test result card here.'
+      );
     }
 
     if (key === 'planningLock') {
-      generateCard('planningLock', buildPlanningLockCard(workflowState), 'Planning lock card');
+      generateCard(
+        'planningLock',
+        buildPlanningLockCard(workflowState),
+        'Planning Lock Card',
+        'Ready to copy back to Chat 1 for milestone lock.'
+      );
     }
 
     if (key === 'documentationUpdate') {
-      generateCard('documentationUpdate', buildDocumentationTrackerUpdate(workflowState), 'Documentation tracker update');
+      generateCard(
+        'documentationUpdate',
+        buildDocumentationTrackerUpdate(workflowState),
+        'Documentation Tracker Update',
+        'Ready to copy/paste into Chat 4.'
+      );
     }
   };
-
-  const activeStep = workflowState.currentStep || workflowState.status || 'Planning';
-  const activeStageCard = getStageCard(activeStep);
-  const nextStepLabel = statusSteps[statusSteps.indexOf(activeStep as WorkflowStepName) + 1];
 
   return (
     <article className="card agent-console-shell">
@@ -264,6 +309,26 @@ export function AgentConsoleShell() {
         <h1>Agent Console</h1>
         <p>Operator-style cockpit for moving V3 milestones through planning, implementation, testing, lock, and documentation.</p>
       </div>
+
+      <section className="card agent-current-milestone" aria-live="polite">
+        <div className="card-header">
+          <div>
+            <h2>Action Status</h2>
+            <p>{actionFeedback.completed}</p>
+          </div>
+          <span className="field-status confirmed">Done</span>
+        </div>
+        <div className="placeholder-list">
+          <div className="placeholder-item">
+            <strong>Last Action</strong>
+            <span>{actionFeedback.completed}</span>
+          </div>
+          <div className="placeholder-item">
+            <strong>Next Recommended Action</strong>
+            <span>{actionFeedback.next}</span>
+          </div>
+        </div>
+      </section>
 
       <section className="card agent-quick-start">
         <div className="card-header">
@@ -276,11 +341,11 @@ export function AgentConsoleShell() {
         <div className="form-grid agent-console-fields">
           <label>
             Next Milestone ID
-            <input type="text" value={nextMilestoneId} onChange={(event) => setNextMilestoneId(event.target.value)} placeholder="Example: V3-M14" aria-label="Next Milestone ID" />
+            <input type="text" value={nextMilestoneId} onChange={(event) => setNextMilestoneId(event.target.value)} placeholder="Example: V3-M15" aria-label="Next Milestone ID" />
           </label>
           <label>
             Next Milestone Name
-            <input type="text" value={nextMilestoneName} onChange={(event) => setNextMilestoneName(event.target.value)} placeholder="Agent Console Runtime UX Polish / Stage-Based Cards" aria-label="Next Milestone Name" />
+            <input type="text" value={nextMilestoneName} onChange={(event) => setNextMilestoneName(event.target.value)} placeholder="Agent Console Action Feedback / Completion Status Strip" aria-label="Next Milestone Name" />
           </label>
         </div>
         <div className="action-row">
@@ -338,7 +403,6 @@ export function AgentConsoleShell() {
             {showAdvancedDetails ? 'Hide Advanced Details' : 'Show Advanced Details'}
           </button>
         </div>
-        {storageFeedback && <p className="field-help">Agent Console: {storageFeedback}</p>}
       </section>
 
       <section className="card agent-actions-panel">
@@ -376,11 +440,11 @@ export function AgentConsoleShell() {
             <div className="form-grid agent-console-fields">
               <label>
                 Milestone ID
-                <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M14" aria-label="Milestone ID" />
+                <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M15" aria-label="Milestone ID" />
               </label>
               <label>
                 Milestone Name
-                <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Agent Console Runtime UX Polish / Stage-Based Cards" aria-label="Milestone Name" />
+                <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Agent Console Action Feedback / Completion Status Strip" aria-label="Milestone Name" />
               </label>
               <label>
                 Commit SHA
@@ -397,10 +461,10 @@ export function AgentConsoleShell() {
             <h2>All Generators</h2>
             <p>Advanced/manual access to every generator. No API, backend, OpenAI, GitHub, or automation calls are wired.</p>
             <div className="action-row agent-action-grid">
-              <button className="button secondary" type="button" onClick={() => generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation handoff')}>Implementation Handoff</button>
-              <button className="button secondary" type="button" onClick={() => generateCard('testingResult', buildTestingHandoff(workflowState), 'Testing handoff')}>Testing Handoff</button>
-              <button className="button secondary" type="button" onClick={() => generateCard('planningLock', buildPlanningLockCard(workflowState), 'Planning lock card')}>Planning Lock</button>
-              <button className="button secondary" type="button" onClick={() => generateCard('documentationUpdate', buildDocumentationTrackerUpdate(workflowState), 'Documentation tracker update')}>Tracker Update</button>
+              <button className="button secondary" type="button" onClick={() => generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation Handoff', 'Ready to copy/paste into Chat 2.')}>Implementation Handoff</button>
+              <button className="button secondary" type="button" onClick={() => generateCard('testingResult', buildTestingHandoff(workflowState), 'Testing Handoff', 'Ready to copy/paste into Chat 3, then paste Chat 3 test result card here.')}>Testing Handoff</button>
+              <button className="button secondary" type="button" onClick={() => generateCard('planningLock', buildPlanningLockCard(workflowState), 'Planning Lock Card', 'Ready to copy back to Chat 1 for milestone lock.')}>Planning Lock</button>
+              <button className="button secondary" type="button" onClick={() => generateCard('documentationUpdate', buildDocumentationTrackerUpdate(workflowState), 'Documentation Tracker Update', 'Ready to copy/paste into Chat 4.')}>Tracker Update</button>
             </div>
           </section>
 
