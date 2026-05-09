@@ -100,6 +100,50 @@ function buildDocumentationTrackerUpdate(state: AgentConsoleWorkflowState) {
   return `# V3 RUNNING TRACKER UPDATE\n\nMilestone:\n${getMilestoneLabel(state)}\n\nStatus:\nLOCKED / PASSED\n\nCommit:\n${getCommitSha(state)}\n\nDeployment:\nNot applicable unless noted\n\nSummary:\n${getNotes(state)}\n\nChanged:\n- [files / areas changed]\n\nTesting:\n${state.testingResult.trim() || '[PASTE TEST RESULT SUMMARY HERE]'}\n\nIssues / Resolutions:\nNone reported unless listed in testing.\n\nDecisions Locked:\n- ${getMilestoneId(state)} is closed.\n- V2 remains closed.\n- Continue through approved Planning handoffs only.\n\nNext Step:\n[ENTER NEXT APPROVED MILESTONE OR ACTION]`;
 }
 
+function getStageCard(step: string): { key: WorkflowCardKey; title: string; helper: string; actionLabel?: string } {
+  if (step === 'Implementation') {
+    return {
+      key: 'implementationResult',
+      title: 'Implementation Result',
+      helper: 'Paste Chat 2 task result card here.',
+    };
+  }
+
+  if (step === 'Testing') {
+    return {
+      key: 'testingResult',
+      title: 'Testing Handoff / Testing Result',
+      helper: 'Generate testing handoff, then paste Chat 3 test result card here.',
+      actionLabel: 'Generate Testing Handoff',
+    };
+  }
+
+  if (step === 'Locked') {
+    return {
+      key: 'planningLock',
+      title: 'Planning Lock Card',
+      helper: 'Generate or paste the Planning lock card here.',
+      actionLabel: 'Generate Planning Lock',
+    };
+  }
+
+  if (step === 'Documented') {
+    return {
+      key: 'documentationUpdate',
+      title: 'Documentation Tracker Update',
+      helper: 'Generate or paste the Chat 4 tracker update here.',
+      actionLabel: 'Generate Tracker Update',
+    };
+  }
+
+  return {
+    key: 'planningHandoff',
+    title: 'Implementation Handoff',
+    helper: 'Generate the Chat 2 implementation handoff, then copy it into Chat 2.',
+    actionLabel: 'Generate Implementation Handoff',
+  };
+}
+
 export function AgentConsoleShell() {
   const [workflowState, setWorkflowState] = useState<AgentConsoleWorkflowState>(defaultWorkflowState);
   const [storageFeedback, setStorageFeedback] = useState<string | null>(null);
@@ -136,6 +180,18 @@ export function AgentConsoleShell() {
     const nextState = { ...workflowState, status: step, currentStep: step };
     updateWorkflowState(nextState, true);
     setStorageFeedback(`Workflow moved to ${step} and saved locally.`);
+  };
+
+  const moveToNextStep = () => {
+    const currentIndex = statusSteps.indexOf(activeStep as WorkflowStepName);
+    const nextStep = statusSteps[currentIndex + 1];
+
+    if (!nextStep) {
+      setStorageFeedback('Workflow is already at Documented.');
+      return;
+    }
+
+    advanceWorkflow(nextStep);
   };
 
   const useSuggestedMilestone = () => {
@@ -179,7 +235,27 @@ export function AgentConsoleShell() {
     setStorageFeedback(`${label} generated. Review, save, then copy when ready.`);
   };
 
+  const generateStageCard = (key: WorkflowCardKey) => {
+    if (key === 'planningHandoff') {
+      generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation handoff');
+    }
+
+    if (key === 'testingResult') {
+      generateCard('testingResult', buildTestingHandoff(workflowState), 'Testing handoff');
+    }
+
+    if (key === 'planningLock') {
+      generateCard('planningLock', buildPlanningLockCard(workflowState), 'Planning lock card');
+    }
+
+    if (key === 'documentationUpdate') {
+      generateCard('documentationUpdate', buildDocumentationTrackerUpdate(workflowState), 'Documentation tracker update');
+    }
+  };
+
   const activeStep = workflowState.currentStep || workflowState.status || 'Planning';
+  const activeStageCard = getStageCard(activeStep);
+  const nextStepLabel = statusSteps[statusSteps.indexOf(activeStep as WorkflowStepName) + 1];
 
   return (
     <article className="card agent-console-shell">
@@ -200,11 +276,11 @@ export function AgentConsoleShell() {
         <div className="form-grid agent-console-fields">
           <label>
             Next Milestone ID
-            <input type="text" value={nextMilestoneId} onChange={(event) => setNextMilestoneId(event.target.value)} placeholder="Example: V3-M13" aria-label="Next Milestone ID" />
+            <input type="text" value={nextMilestoneId} onChange={(event) => setNextMilestoneId(event.target.value)} placeholder="Example: V3-M14" aria-label="Next Milestone ID" />
           </label>
           <label>
             Next Milestone Name
-            <input type="text" value={nextMilestoneName} onChange={(event) => setNextMilestoneName(event.target.value)} placeholder="Essential Mode / Field Complexity Reduction" aria-label="Next Milestone Name" />
+            <input type="text" value={nextMilestoneName} onChange={(event) => setNextMilestoneName(event.target.value)} placeholder="Agent Console Runtime UX Polish / Stage-Based Cards" aria-label="Next Milestone Name" />
           </label>
         </div>
         <div className="action-row">
@@ -222,11 +298,19 @@ export function AgentConsoleShell() {
           <span className="field-status confirmed">{activeStep}</span>
         </div>
 
+        <p className="field-help">Tap any workflow stage below to jump there, or use Next Step to move forward one stage.</p>
         <section className="agent-console-status" aria-label="Agent Console workflow timeline">
           {statusSteps.map((step, index) => (
-            <button className={activeStep === step ? 'agent-status-step active' : 'agent-status-step'} type="button" onClick={() => advanceWorkflow(step)} key={step}>
+            <button
+              className={activeStep === step ? 'agent-status-step active' : 'agent-status-step'}
+              type="button"
+              onClick={() => advanceWorkflow(step)}
+              key={step}
+              title={`Tap to move workflow to ${step}`}
+            >
               <span>{String(index + 1).padStart(2, '0')}</span>
               <strong>{step}</strong>
+              <small>Tap</small>
             </button>
           ))}
         </section>
@@ -249,6 +333,7 @@ export function AgentConsoleShell() {
         <div className="action-row">
           <button className="button success" type="button" onClick={saveWorkflow}>Save Workflow</button>
           <button className="button danger" type="button" onClick={clearWorkflow}>Clear Workflow</button>
+          {nextStepLabel && <button className="button success" type="button" onClick={moveToNextStep}>Next Step: {nextStepLabel}</button>}
           <button className="button secondary" type="button" onClick={() => setShowAdvancedDetails((current) => !current)}>
             {showAdvancedDetails ? 'Hide Advanced Details' : 'Show Advanced Details'}
           </button>
@@ -257,13 +342,24 @@ export function AgentConsoleShell() {
       </section>
 
       <section className="card agent-actions-panel">
-        <h2>Generate Handoffs</h2>
-        <p>Essential Mode keeps the main workflow simple. Generated cards and manual editing remain available in Advanced Details.</p>
-        <div className="action-row agent-action-grid">
-          <button className="button secondary" type="button" onClick={() => generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation handoff')}>Implementation Handoff</button>
-          <button className="button secondary" type="button" onClick={() => generateCard('testingResult', buildTestingHandoff(workflowState), 'Testing handoff')}>Testing Handoff</button>
-          <button className="button secondary" type="button" onClick={() => generateCard('planningLock', buildPlanningLockCard(workflowState), 'Planning lock card')}>Planning Lock</button>
-          <button className="button secondary" type="button" onClick={() => generateCard('documentationUpdate', buildDocumentationTrackerUpdate(workflowState), 'Documentation tracker update')}>Tracker Update</button>
+        <div className="card-header">
+          <div>
+            <h2>{activeStageCard.title}</h2>
+            <p>{activeStageCard.helper}</p>
+          </div>
+          <span className="field-status confirmed">{activeStep}</span>
+        </div>
+        <textarea
+          value={workflowState[activeStageCard.key]}
+          onChange={(event) => updateField(activeStageCard.key, event.target.value)}
+          placeholder={activeStageCard.helper}
+          aria-label={activeStageCard.title}
+        />
+        <div className="action-row">
+          {activeStageCard.actionLabel && (
+            <button className="button secondary" type="button" onClick={() => generateStageCard(activeStageCard.key)}>{activeStageCard.actionLabel}</button>
+          )}
+          <button className="button secondary" type="button" onClick={() => copyCard(activeStageCard.key, activeStageCard.title)}>Copy Card</button>
         </div>
       </section>
 
@@ -273,18 +369,18 @@ export function AgentConsoleShell() {
             <div className="card-header">
               <div>
                 <h2>Advanced Details</h2>
-                <p>Manual corrections, commits, notes, and full card text are hidden by default to reduce operator field load.</p>
+                <p>Manual corrections, commits, notes, and all card text remain available here.</p>
               </div>
               <span className="field-status pending">Advanced</span>
             </div>
             <div className="form-grid agent-console-fields">
               <label>
                 Milestone ID
-                <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M13" aria-label="Milestone ID" />
+                <input type="text" value={workflowState.milestoneId} onChange={(event) => updateField('milestoneId', event.target.value)} placeholder="Example: V3-M14" aria-label="Milestone ID" />
               </label>
               <label>
                 Milestone Name
-                <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Essential Mode / Field Complexity Reduction" aria-label="Milestone Name" />
+                <input type="text" value={workflowState.milestoneName} onChange={(event) => updateField('milestoneName', event.target.value)} placeholder="Agent Console Runtime UX Polish / Stage-Based Cards" aria-label="Milestone Name" />
               </label>
               <label>
                 Commit SHA
@@ -294,6 +390,17 @@ export function AgentConsoleShell() {
                 Notes
                 <textarea value={workflowState.notes} onChange={(event) => updateField('notes', event.target.value)} placeholder="Short milestone notes, blockers, or next action." aria-label="Notes" />
               </label>
+            </div>
+          </section>
+
+          <section className="card agent-actions-panel">
+            <h2>All Generators</h2>
+            <p>Advanced/manual access to every generator. No API, backend, OpenAI, GitHub, or automation calls are wired.</p>
+            <div className="action-row agent-action-grid">
+              <button className="button secondary" type="button" onClick={() => generateCard('planningHandoff', buildImplementationHandoff(workflowState), 'Implementation handoff')}>Implementation Handoff</button>
+              <button className="button secondary" type="button" onClick={() => generateCard('testingResult', buildTestingHandoff(workflowState), 'Testing handoff')}>Testing Handoff</button>
+              <button className="button secondary" type="button" onClick={() => generateCard('planningLock', buildPlanningLockCard(workflowState), 'Planning lock card')}>Planning Lock</button>
+              <button className="button secondary" type="button" onClick={() => generateCard('documentationUpdate', buildDocumentationTrackerUpdate(workflowState), 'Documentation tracker update')}>Tracker Update</button>
             </div>
           </section>
 
