@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import type { ActionFeedback, UploadedFileInfo } from '../types/wocSessionTypes';
+import { CorrectiveActionBuilderShell } from './CorrectiveActionBuilderShell';
 
 const PHOTO_EVIDENCE_STORAGE_KEY = 'refab-connect-photo-evidence';
 
@@ -273,6 +274,8 @@ export function CaptureScreen({
           <button className="button primary full-width" type="button" onClick={onCaptureRouter}>Continue to Confirm</button>
         </div>
       </article>
+
+      <CorrectiveActionBuilderShell />
     </section>
   );
 }
