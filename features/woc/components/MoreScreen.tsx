@@ -1,5 +1,6 @@
 import { EngineeringAnalyticsPreview } from './EngineeringAnalyticsPreview';
 import { AgentConsoleShell } from './AgentConsoleShell';
+import { CorrectiveActionBuilderShell } from './CorrectiveActionBuilderShell';
 import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
@@ -85,6 +86,8 @@ export function MoreScreen({
         </article>
 
         <AgentConsoleShell />
+
+        <CorrectiveActionBuilderShell />
 
         <article className="card more-records-panel">
           <h2>Local Records</h2>
