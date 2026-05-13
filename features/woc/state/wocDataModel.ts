@@ -168,8 +168,12 @@ export function getEffectiveAffectedArea(data: WocCorrectionData) {
   return data.foundAtDepartment.trim() || data.affectedArea.trim();
 }
 
+function manualBlank(label: string, value: string) {
+  return isFilled(value) ? value.trim() : `[Manual entry needed: ${label}]`;
+}
+
 function optionalLine(label: string, value: string) {
-  return isFilled(value) ? `${label}: ${value.trim()}\n` : '';
+  return `${label}: ${manualBlank(label, value)}\n`;
 }
 
 function v4IssueSummary(data: WocCorrectionData) {
@@ -189,50 +193,64 @@ export function getPhotoEvidenceStatusLine() {
 }
 
 export function buildEmailSubject(data: WocCorrectionData) {
-  return `[${data.correctionType.trim()}] Corrective Action Needed — WO ${data.workOrderNumber.trim()} / Part ${data.partNumber.trim()}`;
+  return `[${manualBlank('Correction Type', data.correctionType)}] Corrective Action Draft — WO ${manualBlank('Work Order', data.workOrderNumber)} / Part ${manualBlank('Part Number', data.partNumber)}`;
 }
 
 export function buildEngineeringReport(data: WocCorrectionData, submittedBy = 'Shop-floor correction request submitted through REFAB Connect / AI-WOC.') {
   const affectedArea = getEffectiveAffectedArea(data);
   const photoEvidenceStatus = getPhotoEvidenceStatusLine();
 
-  return `CORRECTIVE ACTION REPORT
+  return `CORRECTIVE ACTION DRAFT
+Status: Draft / Editable / Unconfirmed
+Release Gate: Human confirmation required before release/PDF.
 
 1. Job / Router Data
-Work Order: ${data.workOrderNumber.trim()}
-Part Number: ${data.partNumber.trim()}
+Work Order: ${manualBlank('Work Order', data.workOrderNumber)}
+Part Number: ${manualBlank('Part Number', data.partNumber)}
 ${optionalLine('Part Description', data.partDescription)}${optionalLine('Customer / Job Name', data.customerOrJob)}${optionalLine('Operation Number', data.operationNumber)}${optionalLine('Router Step / Operation', data.routerStepOperation)}${optionalLine('Quantity Affected', data.quantityAffected || data.quantity)}${optionalLine('Due Date / Ship Date', data.dueDateShipDate)}
-2. Issue Description
-Short Issue Description: ${v4IssueSummary(data)}
-Detailed Issue Notes: ${v4IssueDetails(data)}
-Defect / Problem Type: ${data.defectProblemType.trim()}
-Production Impact: ${data.productionImpact.trim()}
+2. Problem Summary
+Short Issue Description: ${manualBlank('Short Issue Description', v4IssueSummary(data))}
+Detailed Issue Notes: ${manualBlank('Detailed Issue Notes', v4IssueDetails(data))}
+Defect / Problem Type: ${manualBlank('Defect / Problem Type', data.defectProblemType)}
+Production Impact: ${manualBlank('Production Impact', data.productionImpact)}
 
 3. Department / Flow Control
-Found At Department: ${affectedArea}
-Corrective Action Owner Department: ${data.correctiveActionOwnerDepartment.trim()}
-Suspected Failure Point: ${data.suspectedFailurePoint.trim()}
-Escaped Through Departments: ${data.escapedThroughDepartments.trim()}
+Found At Department: ${manualBlank('Found At Department', affectedArea)}
+Corrective Action Owner Department: ${manualBlank('Corrective Action Owner Department', data.correctiveActionOwnerDepartment)}
+Suspected Failure Point: ${manualBlank('Suspected Failure Point', data.suspectedFailurePoint)}
+Escaped Through Departments: ${manualBlank('Escaped Through Departments', data.escapedThroughDepartments)}
 
-4. Corrective Action Requirements
-Immediate Containment: ${data.immediateContainment.trim()}
-Required Correction: ${v4RequiredCorrection(data)}
-Prevention / Standard Work Update: ${data.preventionStandardWorkUpdate.trim()}
-Inspection / Verification Requirement: ${data.inspectionVerificationRequirement.trim()}
-Release Approval Requirement: ${data.releaseApprovalRequirement.trim()}
+4. Corrective Action Draft
+Problem Summary:
+${manualBlank('Problem Summary', v4IssueSummary(data))}
+
+Immediate Containment:
+${manualBlank('Immediate Containment', data.immediateContainment)}
+
+Required Correction:
+${manualBlank('Required Correction', v4RequiredCorrection(data))}
+
+Prevention / Standard Work Update:
+${manualBlank('Prevention / Standard Work Update', data.preventionStandardWorkUpdate)}
+
+Inspection / Verification Requirement:
+${manualBlank('Inspection / Verification Requirement', data.inspectionVerificationRequirement)}
+
+Release Approval Requirement:
+${manualBlank('Release Approval Requirement', data.releaseApprovalRequirement)}
 
 5. Evidence / Confirmation
-Router / Work Order Photo: ${data.routerWorkOrderPhotoPlaceholder.trim()}
-Part / Defect Photo: ${data.partDefectPhotoPlaceholder.trim()}
+Router / Work Order Photo: ${manualBlank('Router / Work Order Photo Placeholder', data.routerWorkOrderPhotoPlaceholder)}
+Part / Defect Photo: ${manualBlank('Part / Defect Photo Placeholder', data.partDefectPhotoPlaceholder)}
 Photo Evidence Status: ${photoEvidenceStatus}
-AI Extracted Data Confirmation: ${data.aiExtractedDataConfirmation.trim()}
-Human Release Confirmation: ${data.humanReleaseConfirmation.trim()}
+AI Extracted Data Confirmation: ${manualBlank('AI Extracted Data Confirmation', data.aiExtractedDataConfirmation)}
+Human Release Confirmation: ${manualBlank('Human Release Confirmation', data.humanReleaseConfirmation)}
 
 6. Submitted By / Source
 ${submittedBy}
 
-7. Status
-Draft / Pending Human Confirmation Before Release`;
+7. Gate Status
+Draft is editable and unconfirmed. Human confirmation is required before release/PDF.`;
 }
 
 export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'REFAB Connect / AI-WOC') {
@@ -244,31 +262,40 @@ export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'REFAB Co
 
 Engineering Team,
 
-Please review the corrective action request below.
+Please review the corrective action draft below. This draft is editable and remains unconfirmed until human release confirmation is completed.
 
 Work Order:
-${data.workOrderNumber.trim()}
+${manualBlank('Work Order', data.workOrderNumber)}
 
 Part Number:
-${data.partNumber.trim()}
+${manualBlank('Part Number', data.partNumber)}
 
-Issue:
-${v4IssueSummary(data)}
+Problem Summary:
+${manualBlank('Problem Summary', v4IssueSummary(data))}
 
 Found At Department:
-${affectedArea}
+${manualBlank('Found At Department', affectedArea)}
 
 Corrective Action Owner Department:
-${data.correctiveActionOwnerDepartment.trim()}
+${manualBlank('Corrective Action Owner Department', data.correctiveActionOwnerDepartment)}
 
 Suspected Failure Point:
-${data.suspectedFailurePoint.trim()}
+${manualBlank('Suspected Failure Point', data.suspectedFailurePoint)}
+
+Immediate Containment:
+${manualBlank('Immediate Containment', data.immediateContainment)}
 
 Required Correction:
-${v4RequiredCorrection(data)}
+${manualBlank('Required Correction', v4RequiredCorrection(data))}
+
+Prevention / Standard Work Update:
+${manualBlank('Prevention / Standard Work Update', data.preventionStandardWorkUpdate)}
 
 Inspection / Verification Requirement:
-${data.inspectionVerificationRequirement.trim()}
+${manualBlank('Inspection / Verification Requirement', data.inspectionVerificationRequirement)}
+
+Release Approval Requirement:
+${manualBlank('Release Approval Requirement', data.releaseApprovalRequirement)}
 
 Photo Evidence:
 ${photoEvidenceStatus}
