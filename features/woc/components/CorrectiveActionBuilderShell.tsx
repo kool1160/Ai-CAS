@@ -37,6 +37,22 @@ type RequirementRow = {
   acceptanceCondition: string;
 };
 
+type ChecklistRow = {
+  checkNumber: string;
+  requirementText: string;
+  verificationInitials: string;
+  complete: boolean;
+};
+
+type ReleaseApproval = {
+  laserOperator: string;
+  laserOperatorDate: string;
+  supervisor: string;
+  supervisorDate: string;
+  quality: string;
+  qualityDate: string;
+};
+
 type RequirementRows = Record<RequirementKey, RequirementRow>;
 type EvidenceNotes = Record<EvidenceSlotKey, string>;
 
@@ -78,6 +94,25 @@ const defaultRequirements: RequirementRows = {
   },
 };
 
+const defaultChecklistRows: ChecklistRow[] = [
+  { checkNumber: '01', requirementText: 'Bottom side cleaned — no heavy dross/slag', verificationInitials: '', complete: false },
+  { checkNumber: '02', requirementText: 'Outside profile, tabs, slot, and corners deburred', verificationInitials: '', complete: false },
+  { checkNumber: '03', requirementText: 'Hole area cleaned and burr-free', verificationInitials: '', complete: false },
+  { checkNumber: '04', requirementText: 'Ø .672 hole checked with approved no-go pin/gauge', verificationInitials: '', complete: false },
+  { checkNumber: '05', requirementText: 'Part square/print checks completed as required', verificationInitials: '', complete: false },
+  { checkNumber: '06', requirementText: 'Parts stacked neatly in sets of 8 on skid', verificationInitials: '', complete: false },
+  { checkNumber: '07', requirementText: 'Questionable parts held and Supervisor/Quality notified', verificationInitials: '', complete: false },
+];
+
+const defaultReleaseApproval: ReleaseApproval = {
+  laserOperator: '',
+  laserOperatorDate: '',
+  supervisor: '',
+  supervisorDate: '',
+  quality: '',
+  qualityDate: '',
+};
+
 const evidenceSlots: Array<{ key: EvidenceSlotKey; title: string; helper: string }> = [
   { key: 'workOrderRouterControl', title: 'Work Order / Router Control', helper: 'Shows the work order, router, operation sequence, WO number, part number, revision, quantity, and routing context.' },
   { key: 'drawingPrintRequirements', title: 'Drawing / Print Requirements', helper: 'Shows the drawing, print note, hole requirement, square check, gauge requirement, or inspection callout.' },
@@ -95,6 +130,8 @@ const defaultEvidenceNotes = evidenceSlots.reduce((notes, slot) => {
 export function CorrectiveActionBuilderShell() {
   const [correctiveActionData, setCorrectiveActionData] = useState<CorrectiveActionData>(defaultCorrectiveActionData);
   const [requirements, setRequirements] = useState<RequirementRows>(defaultRequirements);
+  const [checklistRows, setChecklistRows] = useState<ChecklistRow[]>(defaultChecklistRows);
+  const [releaseApproval, setReleaseApproval] = useState<ReleaseApproval>(defaultReleaseApproval);
   const [evidenceNotes, setEvidenceNotes] = useState<EvidenceNotes>(defaultEvidenceNotes);
 
   const updateField = (key: keyof CorrectiveActionData, value: string) => {
@@ -102,13 +139,15 @@ export function CorrectiveActionBuilderShell() {
   };
 
   const updateRequirement = (key: RequirementKey, field: keyof RequirementRow, value: string) => {
-    setRequirements((current) => ({
-      ...current,
-      [key]: {
-        ...current[key],
-        [field]: value,
-      },
-    }));
+    setRequirements((current) => ({ ...current, [key]: { ...current[key], [field]: value } }));
+  };
+
+  const updateChecklistRow = (index: number, field: keyof ChecklistRow, value: string | boolean) => {
+    setChecklistRows((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: value } : row)));
+  };
+
+  const updateReleaseApproval = (key: keyof ReleaseApproval, value: string) => {
+    setReleaseApproval((current) => ({ ...current, [key]: value }));
   };
 
   const updateEvidenceNotes = (key: EvidenceSlotKey, value: string) => {
@@ -126,9 +165,7 @@ export function CorrectiveActionBuilderShell() {
         <span className="field-status confirmed">Fields</span>
       </div>
 
-      <p className="field-help">
-        Frontend data-entry only. PDF generation, backend storage, AI extraction, GitHub automation, and runtime agent execution are not enabled in V3-M22.
-      </p>
+      <p className="field-help">Frontend data-entry only. PDF generation, backend storage, AI extraction, GitHub automation, and runtime agent execution are not enabled in V3-M23.</p>
 
       <section className="agent-workflow-grid" aria-label="Corrective Action Builder data fields" style={{ marginTop: 16 }}>
         <article className="card agent-workflow-card">
@@ -169,14 +206,7 @@ export function CorrectiveActionBuilderShell() {
       </section>
 
       <section className="card" aria-label="Corrective Action requirements" style={{ marginTop: 16 }}>
-        <div className="card-header">
-          <div>
-            <span className="step-pill">05</span>
-            <h3>Corrective Action Requirements</h3>
-            <p>Editable requirements for cleaning, no-go gauge verification, and controlled stacking.</p>
-          </div>
-          <span className="field-status confirmed">3 Checks</span>
-        </div>
+        <div className="card-header"><div><span className="step-pill">05</span><h3>Corrective Action Requirements</h3><p>Editable requirements for cleaning, no-go gauge verification, and controlled stacking.</p></div><span className="field-status confirmed">3 Checks</span></div>
         <section className="agent-workflow-grid" aria-label="Corrective Action requirement rows" style={{ marginTop: 16 }}>
           {(Object.entries(requirements) as Array<[RequirementKey, RequirementRow]>).map(([key, requirement], index) => (
             <article className="card agent-workflow-card" key={key}>
@@ -192,30 +222,41 @@ export function CorrectiveActionBuilderShell() {
       </section>
 
       <section className="agent-workflow-grid" aria-label="Corrective Action containment and pass fail" style={{ marginTop: 16 }}>
-        <article className="card agent-workflow-card">
-          <div className="card-header"><div><span className="step-pill">06</span><h3>Containment Action</h3><p>Editable containment steps before release to the next operation.</p></div></div>
-          <label>Containment Actions<textarea value={correctiveActionData.containmentActions} onChange={(event) => updateField('containmentActions', event.target.value)} /></label>
-        </article>
+        <article className="card agent-workflow-card"><div className="card-header"><div><span className="step-pill">06</span><h3>Containment Action</h3><p>Editable containment steps before release to the next operation.</p></div></div><label>Containment Actions<textarea value={correctiveActionData.containmentActions} onChange={(event) => updateField('containmentActions', event.target.value)} /></label></article>
+        <article className="card agent-workflow-card"><div className="card-header"><div><span className="step-pill">07</span><h3>Pass / Fail Condition</h3><p>Editable release criteria for accepted and rejected conditions.</p></div></div><div className="form-grid"><label>PASS Condition<textarea value={correctiveActionData.passCondition} onChange={(event) => updateField('passCondition', event.target.value)} /></label><label>FAIL Condition<textarea value={correctiveActionData.failCondition} onChange={(event) => updateField('failCondition', event.target.value)} /></label></div></article>
+      </section>
 
-        <article className="card agent-workflow-card">
-          <div className="card-header"><div><span className="step-pill">07</span><h3>Pass / Fail Condition</h3><p>Editable release criteria for accepted and rejected conditions.</p></div></div>
-          <div className="form-grid">
-            <label>PASS Condition<textarea value={correctiveActionData.passCondition} onChange={(event) => updateField('passCondition', event.target.value)} /></label>
-            <label>FAIL Condition<textarea value={correctiveActionData.failCondition} onChange={(event) => updateField('failCondition', event.target.value)} /></label>
-          </div>
-        </article>
+      <section className="card" aria-label="Corrective Action operator checklist" style={{ marginTop: 16 }}>
+        <div className="card-header"><div><span className="step-pill">08</span><h3>Operator Checklist</h3><p>Editable checklist for operator verification before release.</p></div><span className="field-status confirmed">7 Rows</span></div>
+        <section className="agent-workflow-grid" aria-label="Operator checklist rows" style={{ marginTop: 16 }}>
+          {checklistRows.map((row, index) => (
+            <article className="card agent-workflow-card" key={`check-${row.checkNumber}`}>
+              <div className="card-header"><div><span className="step-pill">{row.checkNumber}</span><h3>Checklist Item {row.checkNumber}</h3><p>Editable verification item with initials and completion control.</p></div></div>
+              <div className="form-grid">
+                <label>Check Number<input type="text" value={row.checkNumber} onChange={(event) => updateChecklistRow(index, 'checkNumber', event.target.value)} /></label>
+                <label>Requirement Text<textarea value={row.requirementText} onChange={(event) => updateChecklistRow(index, 'requirementText', event.target.value)} /></label>
+                <label>Initial / Verification<input type="text" value={row.verificationInitials} onChange={(event) => updateChecklistRow(index, 'verificationInitials', event.target.value)} placeholder="Initials / verifier" /></label>
+                <label><input type="checkbox" checked={row.complete} onChange={(event) => updateChecklistRow(index, 'complete', event.target.checked)} /> Complete</label>
+              </div>
+            </article>
+          ))}
+        </section>
+      </section>
+
+      <section className="card" aria-label="Corrective Action release approval" style={{ marginTop: 16 }}>
+        <div className="card-header"><div><span className="step-pill">09</span><h3>Release Approval</h3><p>Editable approval fields for operator, supervisor, and quality release.</p></div><span className="field-status confirmed">Approval</span></div>
+        <div className="form-grid" style={{ marginTop: 16 }}>
+          <label>Laser Operator<input type="text" value={releaseApproval.laserOperator} onChange={(event) => updateReleaseApproval('laserOperator', event.target.value)} placeholder="Laser Operator" /></label>
+          <label>Laser Operator Date<input type="date" value={releaseApproval.laserOperatorDate} onChange={(event) => updateReleaseApproval('laserOperatorDate', event.target.value)} /></label>
+          <label>Supervisor<input type="text" value={releaseApproval.supervisor} onChange={(event) => updateReleaseApproval('supervisor', event.target.value)} placeholder="Supervisor" /></label>
+          <label>Supervisor Date<input type="date" value={releaseApproval.supervisorDate} onChange={(event) => updateReleaseApproval('supervisorDate', event.target.value)} /></label>
+          <label>Quality<input type="text" value={releaseApproval.quality} onChange={(event) => updateReleaseApproval('quality', event.target.value)} placeholder="Quality" /></label>
+          <label>Quality Date<input type="date" value={releaseApproval.qualityDate} onChange={(event) => updateReleaseApproval('qualityDate', event.target.value)} /></label>
+        </div>
       </section>
 
       <section className="card" aria-label="Corrective Action Builder photo evidence" style={{ marginTop: 16 }}>
-        <div className="card-header">
-          <div>
-            <span className="step-pill">08</span>
-            <h3>Photo Evidence</h3>
-            <p>Structured WO 008604 evidence slots for router, print, staging, cleaned condition, gauge check, and incorrect condition proof.</p>
-          </div>
-          <span className="field-status confirmed">6 Slots</span>
-        </div>
-
+        <div className="card-header"><div><span className="step-pill">10</span><h3>Photo Evidence</h3><p>Structured WO 008604 evidence slots for router, print, staging, cleaned condition, gauge check, and incorrect condition proof.</p></div><span className="field-status confirmed">6 Slots</span></div>
         <section className="agent-workflow-grid" aria-label="Corrective Action Builder photo evidence slots" style={{ marginTop: 16 }}>
           {evidenceSlots.map((slot, index) => (
             <article className="card agent-workflow-card" key={slot.key}>
@@ -228,8 +269,8 @@ export function CorrectiveActionBuilderShell() {
       </section>
 
       <section className="card agent-workflow-card" style={{ marginTop: 16 }}>
-        <div className="card-header"><div><span className="step-pill">09</span><h3>Future Sections</h3><p>Operator checklist, release approval, PDF layout, preview, and local history remain planned for future milestones.</p></div></div>
-        <div className="placeholder-list"><div className="placeholder-item"><strong>Next Build Areas</strong><span>Operator checklist, release approval, PDF layout, preview, and local history.</span></div></div>
+        <div className="card-header"><div><span className="step-pill">11</span><h3>Future Sections</h3><p>PDF layout, preview, and local history remain planned for future milestones.</p></div></div>
+        <div className="placeholder-list"><div className="placeholder-item"><strong>Next Build Areas</strong><span>PDF layout, preview, and local history.</span></div></div>
       </section>
     </article>
   );
