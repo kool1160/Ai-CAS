@@ -1,7 +1,12 @@
+import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
 type MoreScreenProps = {
   currentUser: CurrentUser;
+  draftCount?: number;
+  historyCount?: number;
+  analyticsSummary?: LocalEngineeringAnalyticsSummary;
+  localRecordsFeedback?: ActionFeedback;
   setupConfig: SetupConfig;
   setupCodeInput: string;
   setupUnlocked: boolean;
@@ -11,6 +16,7 @@ type MoreScreenProps = {
   onLockSetup: () => void;
   onUpdateSetupConfig: (key: keyof SetupConfig, value: string) => void;
   onSaveSetupConfig: () => void;
+  onClearLocalRecords?: () => void;
   onLogout: () => void;
   onResetUser?: () => void;
 };
