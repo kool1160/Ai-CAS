@@ -184,7 +184,7 @@ export function CorrectiveActionBuilderShell() {
         <span className="field-status confirmed">Fields</span>
       </div>
 
-      <p className="field-help">Frontend data-entry only. PDF generation, backend storage, AI extraction, GitHub automation, and runtime agent execution are not enabled in V3-M25.</p>
+      <p className="field-help">Frontend data-entry only. PDF generation, backend storage, AI extraction, GitHub automation, and runtime agent execution are not enabled in V3-M26.</p>
 
       <section className="agent-workflow-grid" aria-label="Corrective Action Builder data fields" style={{ marginTop: 16 }}>
         <article className="card agent-workflow-card">
@@ -248,7 +248,33 @@ export function CorrectiveActionBuilderShell() {
         <button className="button secondary full-width" type="button" disabled style={{ marginTop: 16 }}>Export PDF Coming Soon</button>
       </section>
 
-      <section className="card agent-workflow-card" style={{ marginTop: 16 }}><div className="card-header"><div><span className="step-pill">12</span><h3>Future Sections</h3><p>Draft preview and local history remain planned for future milestones.</p></div></div><div className="placeholder-list"><div className="placeholder-item"><strong>Next Build Areas</strong><span>Draft preview and local history.</span></div></div></section>
+      <section className="card" aria-label="Corrective Action draft preview" style={{ marginTop: 16 }}>
+        <div className="card-header"><div><span className="step-pill">12</span><h3>Draft Preview</h3><p>Preview-only review of the current corrective action sheet before future PDF export.</p></div><span className="field-status pending">Preview</span></div>
+        <p className="field-help">This is a live draft preview only. PDF export is not active yet.</p>
+
+        <section className="agent-workflow-grid" aria-label="Corrective Action draft preview sections" style={{ marginTop: 16 }}>
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Corrective Action Sheet</h3><p>WO {correctiveActionData.workOrder || '—'} / PN {correctiveActionData.partNumber || '—'} / {correctiveActionData.customer || 'Customer pending'}</p></div></div><div className="placeholder-list"><div className="placeholder-item"><strong>Work Order</strong><span>{correctiveActionData.workOrder || 'Not entered'}</span></div><div className="placeholder-item"><strong>Part Number</strong><span>{correctiveActionData.partNumber || 'Not entered'}</span></div><div className="placeholder-item"><strong>Customer</strong><span>{correctiveActionData.customer || 'Not entered'}</span></div></div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Job / Part Summary</h3><p>Revision, quantity, description, and material.</p></div></div><div className="placeholder-list"><div className="placeholder-item"><strong>Revision</strong><span>{correctiveActionData.revision || 'Not entered'}</span></div><div className="placeholder-item"><strong>Quantity</strong><span>{correctiveActionData.quantity || 'Not entered'}</span></div><div className="placeholder-item"><strong>Part Description</strong><span>{correctiveActionData.partDescription || 'Not entered'}</span></div><div className="placeholder-item"><strong>Material</strong><span>{correctiveActionData.material || 'Not entered'}</span></div></div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Routing Summary</h3><p>Affected, next, inspection, and key feature context.</p></div></div><div className="placeholder-list"><div className="placeholder-item"><strong>Affected Operation</strong><span>{correctiveActionData.affectedOperation || 'Not entered'}</span></div><div className="placeholder-item"><strong>Next Operation</strong><span>{correctiveActionData.nextOperation || 'Not entered'}</span></div><div className="placeholder-item"><strong>Inspection Operation</strong><span>{correctiveActionData.inspectionOperation || 'Not entered'}</span></div><div className="placeholder-item"><strong>Key Feature</strong><span>{correctiveActionData.keyFeature || 'Not entered'}</span></div></div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Issue Summary Preview</h3><p>{correctiveActionData.issueSummary || 'No issue summary entered yet.'}</p></div></div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Corrective Action Requirements Preview</h3><p>Clean, gauge, and stack requirements.</p></div></div><div className="placeholder-list">{Object.values(requirements).map((requirement) => (<div className="placeholder-item" key={requirement.name}><strong>{requirement.name}</strong><span>{requirement.requiredStandard} Acceptance: {requirement.acceptanceCondition}</span></div>))}</div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Containment + Pass/Fail Preview</h3><p>Release criteria and containment summary.</p></div></div><div className="placeholder-list"><div className="placeholder-item"><strong>Containment</strong><span>{correctiveActionData.containmentActions || 'Not entered'}</span></div><div className="placeholder-item"><strong>PASS</strong><span>{correctiveActionData.passCondition || 'Not entered'}</span></div><div className="placeholder-item"><strong>FAIL</strong><span>{correctiveActionData.failCondition || 'Not entered'}</span></div></div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Photo Evidence Summary</h3><p>Evidence slot titles and note status.</p></div></div><div className="placeholder-list">{evidenceSlots.map((slot) => (<div className="placeholder-item" key={slot.key}><strong>{slot.title}</strong><span>{evidenceNotes[slot.key] ? evidenceNotes[slot.key] : 'No notes added yet.'}</span></div>))}</div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Operator Checklist Summary</h3><p>Completion and initials status.</p></div></div><div className="placeholder-list">{checklistRows.map((row) => (<div className="placeholder-item" key={`preview-${row.checkNumber}`}><strong>{row.checkNumber}. {row.requirementText}</strong><span>{row.complete ? 'Complete' : 'Open'} / Initials: {row.verificationInitials || 'Pending'}</span></div>))}</div></article>
+
+          <article className="card agent-workflow-card"><div className="card-header"><div><h3>Release Approval Summary</h3><p>Laser Operator, Supervisor, and Quality approval status.</p></div></div><div className="placeholder-list"><div className="placeholder-item"><strong>Laser Operator</strong><span>{releaseApproval.laserOperator || 'Pending'} / {releaseApproval.laserOperatorDate || 'Date pending'}</span></div><div className="placeholder-item"><strong>Supervisor</strong><span>{releaseApproval.supervisor || 'Pending'} / {releaseApproval.supervisorDate || 'Date pending'}</span></div><div className="placeholder-item"><strong>Quality</strong><span>{releaseApproval.quality || 'Pending'} / {releaseApproval.qualityDate || 'Date pending'}</span></div></div></article>
+        </section>
+        <button className="button secondary full-width" type="button" disabled style={{ marginTop: 16 }}>Export PDF Coming Soon</button>
+      </section>
+
+      <section className="card agent-workflow-card" style={{ marginTop: 16 }}><div className="card-header"><div><span className="step-pill">13</span><h3>Future Sections</h3><p>Local history remains planned for a future milestone.</p></div></div><div className="placeholder-list"><div className="placeholder-item"><strong>Next Build Area</strong><span>Local history.</span></div></div></section>
     </article>
   );
 }
