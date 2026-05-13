@@ -1,4 +1,3 @@
-import { printCorrectionReport } from '../logic/printCorrectionReport';
 import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/wocDataModel';
 import type { ActionFeedback } from '../types/wocSessionTypes';
 
@@ -37,32 +36,20 @@ export function ReviewSendScreen({
   onSendPinChange,
   onSendEmail,
 }: ReviewSendScreenProps) {
-  const handlePrintReport = () => {
-    if (!generatedPackage) return;
-
-    printCorrectionReport({
-      subjectLine: generatedPackage.subjectLine,
-      submittedBy,
-      status: 'Draft / Pending Engineering Review',
-      generatedTimestamp: generatedPackage.generatedAt,
-      reportText: generatedPackage.reportPreview,
-    });
-  };
-
   return (
     <section className="stack review-panel-screen">
       <div className="screen-title">
-        <h1>Review / Send</h1>
-        <p>Final check the Engineering report and email draft before sending the correction request.</p>
+        <h1>Review / Draft Control</h1>
+        <p>Review the editable corrective action draft. Final PDF/export release remains locked until future V4 controlled release flow is built.</p>
       </div>
 
       <article className="card review-report-panel">
         <div className="card-header">
           <div>
-            <h2>{generatedPackage ? 'Engineering Report Ready' : 'Draft Not Generated'}</h2>
-            <p>Review the correction package and confirm it before email send unlocks.</p>
+            <h2>{generatedPackage ? 'Corrective Action Draft Ready' : 'Draft Not Generated'}</h2>
+            <p>Review the correction package and confirm it before any future controlled release flow unlocks.</p>
           </div>
-          <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Ready to Send' : 'Review'}</span>
+          <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Confirmed' : 'Review Required'}</span>
         </div>
         <div className="preview-box">{generatedPackage?.reportPreview ?? 'Generate a correction package before final review.'}</div>
       </article>
@@ -70,21 +57,31 @@ export function ReviewSendScreen({
       <article className="card review-action-panel">
         <h2>Engineering Email Draft</h2>
         <div className="preview-box">{generatedPackage?.emailPreview ?? 'Generate a correction package before final review.'}</div>
+
         <div className="action-row">
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyReport}>Copy Report</button>
+          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyReport}>Copy Report Draft</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyEmailDraft}>Copy Email Draft</button>
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={handlePrintReport}>Export / Print Report</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
         </div>
+
+        <div className="action-row">
+          <button className="button secondary full-width" type="button" disabled>
+            Future Controlled PDF / Export Flow — Not Yet Enabled
+          </button>
+        </div>
+
         {copyFeedback && (
           <p className="field-help">{copyFeedback.tone === 'success' ? 'Copied: ' : 'Copy error: '}{copyFeedback.message}</p>
         )}
+
         {saveFeedback && (
           <p className="field-help">{saveFeedback.tone === 'success' ? 'Saved: ' : 'Save error: '}{saveFeedback.message}</p>
         )}
+
         {sendFeedback && (
-          <p className="field-help">{sendFeedback.tone === 'success' ? 'Email: ' : 'Email error: '}{sendFeedback.message}</p>
+          <p className="field-help">{sendFeedback.tone === 'success' ? 'Send placeholder: ' : 'Send placeholder error: '}{sendFeedback.message}</p>
         )}
+
         <label style={{ marginTop: 14 }}>
           <input
             checked={confirmations.finalReviewConfirmed}
@@ -92,29 +89,35 @@ export function ReviewSendScreen({
             onChange={(event) => onFinalReviewChange(event.target.checked)}
             type="checkbox"
           />
-          Final review confirmed
+          Human final review confirmed
         </label>
+
         <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
-            4-Digit Send PIN
+            4-Digit Release PIN Placeholder
             <input
               inputMode="numeric"
               maxLength={4}
               pattern="[0-9]*"
               type="password"
               value={sendPin}
-              disabled={!sendReady || isSending}
+              disabled
               onChange={(event) => onSendPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="Enter PIN"
+              placeholder="Disabled until controlled release flow"
             />
           </label>
-          <p className="field-help">PIN is required only for real email sending.</p>
+          <p className="field-help">Direct send/export remains intentionally disabled in V4-M3C.</p>
         </div>
+
         <div className="action-row">
-          <button className="button danger full-width" type="button" disabled={!sendReady || isSending || sendPin.length !== 4} onClick={onSendEmail}>
-            {isSending ? 'Sending...' : 'Confirm Send'}
+          <button className="button danger full-width" type="button" disabled onClick={onSendEmail}>
+            Future Controlled Release Flow — Disabled
           </button>
         </div>
+
+        <p className="field-help">
+          Submitted By: {submittedBy}
+        </p>
       </article>
     </section>
   );
