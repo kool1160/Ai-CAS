@@ -1,5 +1,4 @@
 import { EngineeringAnalyticsPreview } from './EngineeringAnalyticsPreview';
-import { AgentConsoleShell } from './AgentConsoleShell';
 import { CorrectiveActionBuilderShell } from './CorrectiveActionBuilderShell';
 import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
@@ -47,7 +46,7 @@ export function MoreScreen({
     <section className="stack more-admin-screen">
       <div className="screen-title">
         <h1>More</h1>
-        <p>Settings, help, setup, local records, and current user access.</p>
+        <p>Settings, help, setup, local records, corrective action tools, and current user access.</p>
       </div>
 
       <div className="more-left-column">
@@ -80,12 +79,10 @@ export function MoreScreen({
             </div>
             <div className="placeholder-item">
               <strong>Build Status</strong>
-              <span>V3 Agent Console shell enabled.</span>
+              <span>V3 Corrective Action Builder active. Agent Console removed.</span>
             </div>
           </div>
         </article>
-
-        <AgentConsoleShell />
 
         <CorrectiveActionBuilderShell />
 
