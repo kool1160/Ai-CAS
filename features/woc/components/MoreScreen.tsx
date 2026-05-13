@@ -1,14 +1,7 @@
-import { EngineeringAnalyticsPreview } from './EngineeringAnalyticsPreview';
-import { CorrectiveActionBuilderShell } from './CorrectiveActionBuilderShell';
-import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
 type MoreScreenProps = {
   currentUser: CurrentUser;
-  draftCount: number;
-  historyCount: number;
-  analyticsSummary: LocalEngineeringAnalyticsSummary;
-  localRecordsFeedback: ActionFeedback;
   setupConfig: SetupConfig;
   setupCodeInput: string;
   setupUnlocked: boolean;
@@ -18,17 +11,12 @@ type MoreScreenProps = {
   onLockSetup: () => void;
   onUpdateSetupConfig: (key: keyof SetupConfig, value: string) => void;
   onSaveSetupConfig: () => void;
-  onClearLocalRecords: () => void;
   onLogout: () => void;
   onResetUser?: () => void;
 };
 
 export function MoreScreen({
   currentUser,
-  draftCount,
-  historyCount,
-  analyticsSummary,
-  localRecordsFeedback,
   setupConfig,
   setupCodeInput,
   setupUnlocked,
@@ -38,7 +26,6 @@ export function MoreScreen({
   onLockSetup,
   onUpdateSetupConfig,
   onSaveSetupConfig,
-  onClearLocalRecords,
   onLogout,
   onResetUser,
 }: MoreScreenProps) {
@@ -46,7 +33,7 @@ export function MoreScreen({
     <section className="stack more-admin-screen">
       <div className="screen-title">
         <h1>More</h1>
-        <p>Settings, help, setup, local records, corrective action tools, and current user access.</p>
+        <p>Settings, help, setup/admin controls, and saved user access.</p>
       </div>
 
       <div className="more-left-column">
@@ -71,7 +58,7 @@ export function MoreScreen({
 
         <article className="card more-settings-panel">
           <h2>Settings / Help</h2>
-          <p>Core settings and help information without disrupting the correction workflow.</p>
+          <p>Core settings and help information without disrupting the corrective action workflow.</p>
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             <div className="placeholder-item">
               <strong>System Purpose</strong>
@@ -79,41 +66,13 @@ export function MoreScreen({
             </div>
             <div className="placeholder-item">
               <strong>Build Status</strong>
-              <span>V3 Corrective Action Builder active. Agent Console removed.</span>
+              <span>V4 corrective action workflow active.</span>
             </div>
           </div>
-        </article>
-
-        <CorrectiveActionBuilderShell />
-
-        <article className="card more-records-panel">
-          <h2>Local Records</h2>
-          <p>Drafts and History are saved locally on this device/browser only.</p>
-          <div className="placeholder-list" style={{ marginTop: 14 }}>
-            <div className="placeholder-item">
-              <strong>Saved Drafts</strong>
-              <span>{draftCount} local record{draftCount === 1 ? '' : 's'}</span>
-            </div>
-            <div className="placeholder-item">
-              <strong>Saved History</strong>
-              <span>{historyCount} local record{historyCount === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-          <p className="field-help">Warning: Clear Local Records removes saved Drafts and History from this browser. This cannot be undone.</p>
-          <div className="action-row">
-            <button className="button danger full-width" type="button" onClick={onClearLocalRecords}>Clear Local Records</button>
-          </div>
-          {localRecordsFeedback && (
-            <p className="field-help">{localRecordsFeedback.tone === 'success' ? 'Local records: ' : 'Local records error: '}{localRecordsFeedback.message}</p>
-          )}
         </article>
       </div>
 
       <div className="more-right-column">
-        <div className="more-analytics-panel">
-          <EngineeringAnalyticsPreview summary={analyticsSummary} />
-        </div>
-
         <article className="card more-setup-panel">
           <h2>Setup / Admin</h2>
           <p>Local demo setup. This remains separate from App Access PIN and still requires the master code.</p>
