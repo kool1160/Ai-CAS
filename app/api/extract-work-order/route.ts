@@ -4,8 +4,17 @@ type ExtractedWorkOrderData = {
   workOrderNumber?: string;
   partNumber?: string;
   revision?: string;
+  partDescription?: string;
   customerOrJob?: string;
+  operationNumber?: string;
+  routerStepOperation?: string;
   quantity?: string;
+  quantityAffected?: string;
+  dueDateShipDate?: string;
+  foundAtDepartment?: string;
+  suspectedFailurePoint?: string;
+  shortIssueDescription?: string;
+  detailedIssueNotes?: string;
   notes?: string;
 };
 
@@ -35,6 +44,10 @@ function extractOutputText(responseBody: unknown): string {
     .trim();
 }
 
+function safeString(value: unknown) {
+  return typeof value === 'string' ? value : '';
+}
+
 function parseExtractedJson(outputText: string): ExtractedWorkOrderData {
   const cleaned = outputText
     .replace(/^```json\s*/i, '')
@@ -45,12 +58,21 @@ function parseExtractedJson(outputText: string): ExtractedWorkOrderData {
   const parsed = JSON.parse(cleaned) as ExtractedWorkOrderData;
 
   return {
-    workOrderNumber: typeof parsed.workOrderNumber === 'string' ? parsed.workOrderNumber : '',
-    partNumber: typeof parsed.partNumber === 'string' ? parsed.partNumber : '',
-    revision: typeof parsed.revision === 'string' ? parsed.revision : '',
-    customerOrJob: typeof parsed.customerOrJob === 'string' ? parsed.customerOrJob : '',
-    quantity: typeof parsed.quantity === 'string' ? parsed.quantity : '',
-    notes: typeof parsed.notes === 'string' ? parsed.notes : '',
+    workOrderNumber: safeString(parsed.workOrderNumber),
+    partNumber: safeString(parsed.partNumber),
+    revision: safeString(parsed.revision),
+    partDescription: safeString(parsed.partDescription),
+    customerOrJob: safeString(parsed.customerOrJob),
+    operationNumber: safeString(parsed.operationNumber),
+    routerStepOperation: safeString(parsed.routerStepOperation),
+    quantity: safeString(parsed.quantity),
+    quantityAffected: safeString(parsed.quantityAffected),
+    dueDateShipDate: safeString(parsed.dueDateShipDate),
+    foundAtDepartment: safeString(parsed.foundAtDepartment),
+    suspectedFailurePoint: safeString(parsed.suspectedFailurePoint),
+    shortIssueDescription: safeString(parsed.shortIssueDescription),
+    detailedIssueNotes: safeString(parsed.detailedIssueNotes),
+    notes: safeString(parsed.notes),
   };
 }
 
@@ -103,7 +125,8 @@ export async function POST(request: Request) {
           content: [
             {
               type: 'input_text',
-              text: 'Extract work order/router/header data from this image. Return only valid JSON with these exact keys: workOrderNumber, partNumber, revision, customerOrJob, quantity, notes. Use empty strings for fields that are not found. Do not include markdown.',
+              text:
+                'Extract work order/router/header data from this image. Return only valid JSON with these exact keys: workOrderNumber, partNumber, revision, partDescription, customerOrJob, operationNumber, routerStepOperation, quantity, quantityAffected, dueDateShipDate, foundAtDepartment, suspectedFailurePoint, shortIssueDescription, detailedIssueNotes, notes. Use empty strings for fields that are not found. Treat all extracted values as draft/unconfirmed. Do not include markdown.',
             },
             {
               type: 'input_image',
