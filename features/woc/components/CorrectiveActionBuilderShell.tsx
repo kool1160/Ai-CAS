@@ -17,8 +17,12 @@ type CorrectiveActionData = {
   gaugeCheckMethod: string;
   acceptanceStandard: string;
   issueSummary: string;
+  containmentActions: string;
+  passCondition: string;
+  failCondition: string;
 };
 
+type RequirementKey = 'cleanAfterLaser' | 'noGoGaugeHoleCheck' | 'stackInSetsOfEight';
 type EvidenceSlotKey =
   | 'workOrderRouterControl'
   | 'drawingPrintRequirements'
@@ -27,6 +31,13 @@ type EvidenceSlotKey =
   | 'holeVerificationNoGoPin'
   | 'incorrectUncleanedCondition';
 
+type RequirementRow = {
+  name: string;
+  requiredStandard: string;
+  acceptanceCondition: string;
+};
+
+type RequirementRows = Record<RequirementKey, RequirementRow>;
 type EvidenceNotes = Record<EvidenceSlotKey, string>;
 
 const defaultCorrectiveActionData: CorrectiveActionData = {
@@ -44,6 +55,27 @@ const defaultCorrectiveActionData: CorrectiveActionData = {
   gaugeCheckMethod: 'Approved no-go pin/gauge',
   acceptanceStandard: 'No-go pin must not enter',
   issueSummary: '',
+  containmentActions: 'Separate clean/ready parts from parts requiring cleanup. Clean all dross, slag, burrs, and rough laser edges. Recheck Ø .672 hole with approved no-go gauge. Hold questionable parts. Restack acceptable parts in sets of 8. Notify Supervisor/Quality for repeat issues.',
+  passCondition: 'Parts are cleaned/ground after laser, hole checked with no-go gauge, and stacked neatly in sets of 8.',
+  failCondition: 'Parts contain visible dross, slag, rough laser edge, hole burrs, questionable hole size, missing cleaned/ground area, or uncontrolled stacking.',
+};
+
+const defaultRequirements: RequirementRows = {
+  cleanAfterLaser: {
+    name: 'Clean after laser',
+    requiredStandard: 'Remove dross, slag, burrs, and rough laser edge buildup.',
+    acceptanceCondition: 'Part edge and weld-prep area are clean, smooth, and ready for downstream welding.',
+  },
+  noGoGaugeHoleCheck: {
+    name: 'No-go gauge hole check',
+    requiredStandard: 'Use approved no-go pin/gauge for Ø .672 hole before release.',
+    acceptanceCondition: 'No-go pin must not enter the checked hole.',
+  },
+  stackInSetsOfEight: {
+    name: 'Stack in sets of 8',
+    requiredStandard: 'Stack cleaned/verified parts neatly in controlled sets of 8 on skid.',
+    acceptanceCondition: 'Batch is organized, countable, and staged consistently for the next operation.',
+  },
 };
 
 const evidenceSlots: Array<{ key: EvidenceSlotKey; title: string; helper: string }> = [
@@ -62,10 +94,21 @@ const defaultEvidenceNotes = evidenceSlots.reduce((notes, slot) => {
 
 export function CorrectiveActionBuilderShell() {
   const [correctiveActionData, setCorrectiveActionData] = useState<CorrectiveActionData>(defaultCorrectiveActionData);
+  const [requirements, setRequirements] = useState<RequirementRows>(defaultRequirements);
   const [evidenceNotes, setEvidenceNotes] = useState<EvidenceNotes>(defaultEvidenceNotes);
 
   const updateField = (key: keyof CorrectiveActionData, value: string) => {
     setCorrectiveActionData((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateRequirement = (key: RequirementKey, field: keyof RequirementRow, value: string) => {
+    setRequirements((current) => ({
+      ...current,
+      [key]: {
+        ...current[key],
+        [field]: value,
+      },
+    }));
   };
 
   const updateEvidenceNotes = (key: EvidenceSlotKey, value: string) => {
@@ -84,7 +127,7 @@ export function CorrectiveActionBuilderShell() {
       </div>
 
       <p className="field-help">
-        Frontend data-entry only. PDF generation, backend storage, AI extraction, GitHub automation, and runtime agent execution are not enabled in V3-M21.
+        Frontend data-entry only. PDF generation, backend storage, AI extraction, GitHub automation, and runtime agent execution are not enabled in V3-M22.
       </p>
 
       <section className="agent-workflow-grid" aria-label="Corrective Action Builder data fields" style={{ marginTop: 16 }}>
@@ -125,10 +168,48 @@ export function CorrectiveActionBuilderShell() {
         </article>
       </section>
 
-      <section className="card" aria-label="Corrective Action Builder photo evidence" style={{ marginTop: 16 }}>
+      <section className="card" aria-label="Corrective Action requirements" style={{ marginTop: 16 }}>
         <div className="card-header">
           <div>
             <span className="step-pill">05</span>
+            <h3>Corrective Action Requirements</h3>
+            <p>Editable requirements for cleaning, no-go gauge verification, and controlled stacking.</p>
+          </div>
+          <span className="field-status confirmed">3 Checks</span>
+        </div>
+        <section className="agent-workflow-grid" aria-label="Corrective Action requirement rows" style={{ marginTop: 16 }}>
+          {(Object.entries(requirements) as Array<[RequirementKey, RequirementRow]>).map(([key, requirement], index) => (
+            <article className="card agent-workflow-card" key={key}>
+              <div className="card-header"><div><span className="step-pill">{String(index + 1).padStart(2, '0')}</span><h3>{requirement.name}</h3><p>Editable requirement, standard, and acceptance condition.</p></div></div>
+              <div className="form-grid">
+                <label>Requirement Name<input type="text" value={requirement.name} onChange={(event) => updateRequirement(key, 'name', event.target.value)} /></label>
+                <label>Required Standard<textarea value={requirement.requiredStandard} onChange={(event) => updateRequirement(key, 'requiredStandard', event.target.value)} /></label>
+                <label>Acceptance Condition<textarea value={requirement.acceptanceCondition} onChange={(event) => updateRequirement(key, 'acceptanceCondition', event.target.value)} /></label>
+              </div>
+            </article>
+          ))}
+        </section>
+      </section>
+
+      <section className="agent-workflow-grid" aria-label="Corrective Action containment and pass fail" style={{ marginTop: 16 }}>
+        <article className="card agent-workflow-card">
+          <div className="card-header"><div><span className="step-pill">06</span><h3>Containment Action</h3><p>Editable containment steps before release to the next operation.</p></div></div>
+          <label>Containment Actions<textarea value={correctiveActionData.containmentActions} onChange={(event) => updateField('containmentActions', event.target.value)} /></label>
+        </article>
+
+        <article className="card agent-workflow-card">
+          <div className="card-header"><div><span className="step-pill">07</span><h3>Pass / Fail Condition</h3><p>Editable release criteria for accepted and rejected conditions.</p></div></div>
+          <div className="form-grid">
+            <label>PASS Condition<textarea value={correctiveActionData.passCondition} onChange={(event) => updateField('passCondition', event.target.value)} /></label>
+            <label>FAIL Condition<textarea value={correctiveActionData.failCondition} onChange={(event) => updateField('failCondition', event.target.value)} /></label>
+          </div>
+        </article>
+      </section>
+
+      <section className="card" aria-label="Corrective Action Builder photo evidence" style={{ marginTop: 16 }}>
+        <div className="card-header">
+          <div>
+            <span className="step-pill">08</span>
             <h3>Photo Evidence</h3>
             <p>Structured WO 008604 evidence slots for router, print, staging, cleaned condition, gauge check, and incorrect condition proof.</p>
           </div>
@@ -147,8 +228,8 @@ export function CorrectiveActionBuilderShell() {
       </section>
 
       <section className="card agent-workflow-card" style={{ marginTop: 16 }}>
-        <div className="card-header"><div><span className="step-pill">06</span><h3>Future Sections</h3><p>Corrective action requirements, operator checklist, release approval, PDF layout, preview, and local history remain planned for future milestones.</p></div></div>
-        <div className="placeholder-list"><div className="placeholder-item"><strong>Next Build Areas</strong><span>Requirements, pass/fail sections, operator checklist, PDF layout, preview, and local history.</span></div></div>
+        <div className="card-header"><div><span className="step-pill">09</span><h3>Future Sections</h3><p>Operator checklist, release approval, PDF layout, preview, and local history remain planned for future milestones.</p></div></div>
+        <div className="placeholder-list"><div className="placeholder-item"><strong>Next Build Areas</strong><span>Operator checklist, release approval, PDF layout, preview, and local history.</span></div></div>
       </section>
     </article>
   );
