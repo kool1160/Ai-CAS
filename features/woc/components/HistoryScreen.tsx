@@ -1,4 +1,3 @@
-import { printCorrectionReport } from '../logic/printCorrectionReport';
 import { loadDraftRecordsFromStorage, loadHistoryRecordsFromStorage } from '../logic/localRecordsStorage';
 import { buildLocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, HistoryRecord } from '../types/wocSessionTypes';
@@ -59,23 +58,6 @@ export function HistoryScreen({
   const { draftRecords, dashboardHistoryRecords } = getLocalRecordsForDashboard(historyRecords);
   const analyticsSummary = buildLocalEngineeringAnalyticsSummary(draftRecords, dashboardHistoryRecords.length ? dashboardHistoryRecords : historyRecords);
 
-  const handlePrintHistoryReport = () => {
-    if (!selectedHistory) return;
-
-    printCorrectionReport({
-      subjectLine: selectedHistory.subjectLine,
-      workOrderNumber: selectedHistory.workOrderNumber,
-      partNumber: selectedHistory.partNumber,
-      affectedArea: selectedHistory.affectedArea,
-      correctionType: selectedHistory.correctionType,
-      photoEvidenceStatus: getEvidenceStatus(selectedHistory),
-      submittedBy: selectedHistory.submittedBy,
-      status: selectedHistory.status,
-      generatedTimestamp: selectedHistory.completedTimestamp,
-      reportText: selectedHistory.reportText,
-    });
-  };
-
   return (
     <section className="stack record-review-screen history-review-screen">
       <div className="screen-title">
@@ -123,7 +105,7 @@ export function HistoryScreen({
           {historyRecords.length === 0 ? (
             <div className="placeholder-item">
               <strong>No completed records</strong>
-              <span>Sent correction packages will appear here after final review and send.</span>
+              <span>Completed correction history will appear here after future controlled release flow is implemented.</span>
             </div>
           ) : (
             historyRecords.map((record) => (
@@ -150,17 +132,22 @@ export function HistoryScreen({
               <h2>{selectedHistory.historyId}</h2>
               <p>{selectedHistory.status} · {selectedHistory.completedTimestamp}</p>
             </div>
-            <span className="field-status confirmed">Recorded</span>
+            <span className="field-status confirmed">History Record</span>
           </div>
           {selectedHistory.submittedBy && <p className="field-help">Submitted By: {selectedHistory.submittedBy}</p>}
           <p className="field-help">Photo Evidence: {getEvidenceStatus(selectedHistory)}</p>
-          <h3>Saved Engineering Report</h3>
+          <h3>Saved Engineering Report Draft</h3>
           <div className="preview-box">{selectedHistory.reportText}</div>
           <h3 style={{ marginTop: 14 }}>Saved Email Draft</h3>
           <div className="preview-box">{selectedHistory.emailDraftText}</div>
           <div className="action-row">
-            <button className="button secondary" type="button" onClick={handlePrintHistoryReport}>Export / Print Report</button>
+            <button className="button secondary full-width" type="button" disabled>
+              Future Controlled PDF / Export Flow — Disabled
+            </button>
           </div>
+          <p className="field-help">
+            History records remain viewable, but uncontrolled print/export/release behavior is intentionally disabled until future V4 controlled release implementation.
+          </p>
         </article>
       )}
     </section>
