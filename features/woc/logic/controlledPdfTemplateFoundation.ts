@@ -1,6 +1,33 @@
-import type { WocConfirmationState, WocCorrectionData } from '../state/wocDataModel';
+export type ControlledPdfTemplateStatus = 'foundation-only' | 'locked-until-controlled-release';
 
-export type ControlledPdfTemplateStatus = 'foundation-only' | 'locked-until-human-confirmation';
+export type ControlledPdfTemplateInput = {
+  workOrderNumber?: string;
+  partNumber?: string;
+  partDescription?: string;
+  customerOrJob?: string;
+  quantity?: string;
+  quantityAffected?: string;
+  correctionType?: string;
+  affectedArea?: string;
+  foundAtDepartment?: string;
+  suspectedFailurePoint?: string;
+  shortIssueDescription?: string;
+  issueDetails?: string;
+  immediateContainment?: string;
+  requiredCorrection?: string;
+  requestedEngineeringAction?: string;
+  preventionStandardWorkUpdate?: string;
+  inspectionVerificationRequirement?: string;
+  releaseApprovalRequirement?: string;
+  routerWorkOrderPhotoPlaceholder?: string;
+  partDefectPhotoPlaceholder?: string;
+  aiExtractedDataConfirmation?: string;
+  humanReleaseConfirmation?: string;
+};
+
+export type ControlledPdfTemplateConfirmationInput = {
+  finalReviewConfirmed?: boolean;
+};
 
 export type ControlledPdfTemplateField = {
   label: string;
@@ -25,25 +52,25 @@ export type ControlledCorrectiveActionPdfTemplate = {
   sections: ControlledPdfTemplateSection[];
 };
 
-const manualBlank = (label: string, value: string | undefined) => {
+const manualBlank = (label: string, value?: string) => {
   const normalized = value?.trim() ?? '';
   return normalized || `[Manual entry needed: ${label}]`;
 };
 
-const issueSummary = (data: WocCorrectionData) => data.shortIssueDescription || data.issueDetails;
-const requiredCorrection = (data: WocCorrectionData) => data.requiredCorrection || data.requestedEngineeringAction;
+const issueSummary = (data: ControlledPdfTemplateInput) => data.shortIssueDescription || data.issueDetails;
+const requiredCorrection = (data: ControlledPdfTemplateInput) => data.requiredCorrection || data.requestedEngineeringAction;
 
 export function buildControlledCorrectiveActionPdfTemplate(
-  data: WocCorrectionData,
-  confirmations: WocConfirmationState,
+  data: ControlledPdfTemplateInput,
+  confirmations: ControlledPdfTemplateConfirmationInput = {},
 ): ControlledCorrectiveActionPdfTemplate {
-  const humanConfirmed = confirmations.finalReviewConfirmed;
+  const humanConfirmed = Boolean(confirmations.finalReviewConfirmed);
 
   return {
     templateName: 'REFAB Connect V4 Controlled Corrective Action PDF',
     templateVersion: 'V4-M4-foundation',
     modelSource: 'WO 008604 corrective action style model',
-    status: humanConfirmed ? 'locked-until-human-confirmation' : 'foundation-only',
+    status: humanConfirmed ? 'locked-until-controlled-release' : 'foundation-only',
     releaseGate: 'PDF/export is disabled until future controlled release milestone. Human confirmation remains required.',
     layoutNotes: [
       'Use a clean shop-floor corrective action sheet structure modeled after WO 008604.',
@@ -113,7 +140,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
         fields: [
           { label: 'AI Extracted Data Confirmation', value: manualBlank('AI Extracted Data Confirmation', data.aiExtractedDataConfirmation), required: true },
           { label: 'Human Release Confirmation', value: manualBlank('Human Release Confirmation', data.humanReleaseConfirmation), required: true },
-          { label: 'Final Review Gate', value: humanConfirmed ? 'Confirmed in app state' : 'Not confirmed — release/export locked', required: true },
+          { label: 'Final Review Gate', value: humanConfirmed ? 'Confirmed in app state — export still disabled' : 'Not confirmed — release/export locked', required: true },
         ],
       },
     ],
