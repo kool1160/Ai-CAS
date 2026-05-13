@@ -39,8 +39,17 @@ export type ExtractedWorkOrderData = {
   workOrderNumber?: string;
   partNumber?: string;
   revision?: string;
+  partDescription?: string;
   customerOrJob?: string;
+  operationNumber?: string;
+  routerStepOperation?: string;
   quantity?: string;
+  quantityAffected?: string;
+  dueDateShipDate?: string;
+  foundAtDepartment?: string;
+  suspectedFailurePoint?: string;
+  shortIssueDescription?: string;
+  detailedIssueNotes?: string;
   notes?: string;
 };
 
