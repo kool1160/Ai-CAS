@@ -9,11 +9,33 @@ export type WocCorrectionData = {
   workOrderNumber: string;
   partNumber: string;
   revision: string;
+  partDescription: string;
   customerOrJob: string;
+  operationNumber: string;
+  routerStepOperation: string;
   quantity: string;
+  quantityAffected: string;
+  dueDateShipDate: string;
   correctionType: string;
   affectedArea: string;
   customAffectedArea: string;
+  shortIssueDescription: string;
+  detailedIssueNotes: string;
+  defectProblemType: string;
+  productionImpact: string;
+  foundAtDepartment: string;
+  correctiveActionOwnerDepartment: string;
+  suspectedFailurePoint: string;
+  escapedThroughDepartments: string;
+  immediateContainment: string;
+  requiredCorrection: string;
+  preventionStandardWorkUpdate: string;
+  inspectionVerificationRequirement: string;
+  releaseApprovalRequirement: string;
+  routerWorkOrderPhotoPlaceholder: string;
+  partDefectPhotoPlaceholder: string;
+  aiExtractedDataConfirmation: string;
+  humanReleaseConfirmation: string;
   issueDetails: string;
   requestedEngineeringAction: string;
 };
@@ -43,7 +65,7 @@ export type WocDataField = {
   confirmable?: boolean;
 };
 
-export const otherAffectedAreaOption = 'Other / Manual Entry';
+export const otherAffectedAreaOption = 'Other / Needs Review';
 export const photoEvidenceStorageKey = PHOTO_EVIDENCE_STORAGE_KEY;
 
 export type PhotoEvidenceMetadata = EvidenceAttachmentMetadata & {
@@ -59,35 +81,57 @@ export const correctionTypeOptions = [
   'Missing Weld Operation',
   'Missing Fixture / Work Instruction',
   'Wrong / Missing Router Step',
+  'Hole Size / No-Go Gauge Issue',
+  'Cleaning / Staging Issue',
   'Other',
 ];
 
-export const affectedAreaOptions = [
-  'Welding',
-  'Robotic / Cobot Welding',
-  'Grinding / Finishing',
-  'Quality Control / Inspection',
-  'Machining',
-  'Laser Cutting',
+export const departmentOptions = [
+  'Laser',
   'Forming',
-  'Fixture / Setup',
-  'Engineering / Routing',
-  'Material / Inventory',
-  'Paint / Powder Coat',
+  'Welding',
+  'Machining',
   'Assembly',
-  'Shipping / Receiving',
+  'PEM Cert',
+  'Audit',
+  'Shipping',
+  'Powder Coat',
   otherAffectedAreaOption,
 ];
+
+export const affectedAreaOptions = departmentOptions;
 
 export const defaultWocCorrectionData: WocCorrectionData = {
   workOrderNumber: '042631-001',
   partNumber: 'CYM-1750-LH-BU',
   revision: 'B',
+  partDescription: '',
   customerOrJob: 'ENWORK',
+  operationNumber: '',
+  routerStepOperation: '',
   quantity: '35 EA',
+  quantityAffected: '35 EA',
+  dueDateShipDate: '',
   correctionType: 'Incorrect Time / Rate',
   affectedArea: 'Welding',
   customAffectedArea: '',
+  shortIssueDescription: 'Router time does not match the sustainable shop-floor baseline.',
+  detailedIssueNotes: 'Router time does not match the sustainable shop-floor baseline.',
+  defectProblemType: 'Work Order / Router Correction',
+  productionImpact: 'Potential delay, rework, or repeat issue if not corrected before the next run.',
+  foundAtDepartment: 'Welding',
+  correctiveActionOwnerDepartment: 'Welding',
+  suspectedFailurePoint: 'Welding',
+  escapedThroughDepartments: 'Other / Needs Review',
+  immediateContainment: 'Hold affected parts and verify the current work order/router before continuing production.',
+  requiredCorrection: 'Review and update the router time/rate to the correct Engineering-approved baseline.',
+  preventionStandardWorkUpdate: 'Update the controlled router/work instruction so future runs use the corrected requirement.',
+  inspectionVerificationRequirement: 'Verify corrected router data and affected parts before release.',
+  releaseApprovalRequirement: 'Human release confirmation required before PDF/release.',
+  routerWorkOrderPhotoPlaceholder: 'Router / work order photo evidence placeholder.',
+  partDefectPhotoPlaceholder: 'Part / defect photo evidence placeholder.',
+  aiExtractedDataConfirmation: 'AI extracted data must be reviewed and confirmed by the user.',
+  humanReleaseConfirmation: 'Human confirmation required before release/PDF.',
   issueDetails: 'Router time does not match the sustainable shop-floor baseline.',
   requestedEngineeringAction: 'Review and update the router time/rate to the correct Engineering-approved baseline.',
 };
@@ -104,9 +148,12 @@ export const defaultWocConfirmations: WocConfirmationState = {
 export const confirmDataFields: WocDataField[] = [
   { key: 'workOrderNumber', label: 'Work Order', required: true, confirmable: true },
   { key: 'partNumber', label: 'Part Number', required: true, confirmable: true },
-  { key: 'revision', label: 'Revision', required: false },
-  { key: 'customerOrJob', label: 'Customer / Job', required: false },
-  { key: 'quantity', label: 'Quantity', required: false },
+  { key: 'partDescription', label: 'Part Description', required: false },
+  { key: 'customerOrJob', label: 'Customer / Job Name', required: false },
+  { key: 'operationNumber', label: 'Operation Number', required: false },
+  { key: 'routerStepOperation', label: 'Router Step / Operation', required: false },
+  { key: 'quantityAffected', label: 'Quantity Affected', required: false },
+  { key: 'dueDateShipDate', label: 'Due Date / Ship Date', required: false },
 ];
 
 export function isFilled(value: string) {
@@ -114,15 +161,27 @@ export function isFilled(value: string) {
 }
 
 export function getEffectiveAffectedArea(data: WocCorrectionData) {
-  if (data.affectedArea === otherAffectedAreaOption) {
+  if (data.foundAtDepartment === otherAffectedAreaOption && data.customAffectedArea.trim()) {
     return data.customAffectedArea.trim();
   }
 
-  return data.affectedArea.trim();
+  return data.foundAtDepartment.trim() || data.affectedArea.trim();
 }
 
 function optionalLine(label: string, value: string) {
   return isFilled(value) ? `${label}: ${value.trim()}\n` : '';
+}
+
+function v4IssueSummary(data: WocCorrectionData) {
+  return data.shortIssueDescription.trim() || data.issueDetails.trim();
+}
+
+function v4IssueDetails(data: WocCorrectionData) {
+  return data.detailedIssueNotes.trim() || data.issueDetails.trim();
+}
+
+function v4RequiredCorrection(data: WocCorrectionData) {
+  return data.requiredCorrection.trim() || data.requestedEngineeringAction.trim();
 }
 
 export function getPhotoEvidenceStatusLine() {
@@ -130,44 +189,50 @@ export function getPhotoEvidenceStatusLine() {
 }
 
 export function buildEmailSubject(data: WocCorrectionData) {
-  return `[${data.correctionType.trim()}] Work Order Correction Needed — WO ${data.workOrderNumber.trim()} / Part ${data.partNumber.trim()}`;
+  return `[${data.correctionType.trim()}] Corrective Action Needed — WO ${data.workOrderNumber.trim()} / Part ${data.partNumber.trim()}`;
 }
 
 export function buildEngineeringReport(data: WocCorrectionData, submittedBy = 'Shop-floor correction request submitted through REFAB Connect / AI-WOC.') {
   const affectedArea = getEffectiveAffectedArea(data);
   const photoEvidenceStatus = getPhotoEvidenceStatusLine();
 
-  return `ENGINEERING CORRECTION REPORT
+  return `CORRECTIVE ACTION REPORT
 
-1. Title / Correction Category
-${data.correctionType.trim()} — Work Order Correction Request
+1. Job / Router Data
+Work Order: ${data.workOrderNumber.trim()}
+Part Number: ${data.partNumber.trim()}
+${optionalLine('Part Description', data.partDescription)}${optionalLine('Customer / Job Name', data.customerOrJob)}${optionalLine('Operation Number', data.operationNumber)}${optionalLine('Router Step / Operation', data.routerStepOperation)}${optionalLine('Quantity Affected', data.quantityAffected || data.quantity)}${optionalLine('Due Date / Ship Date', data.dueDateShipDate)}
+2. Issue Description
+Short Issue Description: ${v4IssueSummary(data)}
+Detailed Issue Notes: ${v4IssueDetails(data)}
+Defect / Problem Type: ${data.defectProblemType.trim()}
+Production Impact: ${data.productionImpact.trim()}
 
-2. Work Order Number
-${data.workOrderNumber.trim()}
+3. Department / Flow Control
+Found At Department: ${affectedArea}
+Corrective Action Owner Department: ${data.correctiveActionOwnerDepartment.trim()}
+Suspected Failure Point: ${data.suspectedFailurePoint.trim()}
+Escaped Through Departments: ${data.escapedThroughDepartments.trim()}
 
-3. Part Number
-${data.partNumber.trim()}
+4. Corrective Action Requirements
+Immediate Containment: ${data.immediateContainment.trim()}
+Required Correction: ${v4RequiredCorrection(data)}
+Prevention / Standard Work Update: ${data.preventionStandardWorkUpdate.trim()}
+Inspection / Verification Requirement: ${data.inspectionVerificationRequirement.trim()}
+Release Approval Requirement: ${data.releaseApprovalRequirement.trim()}
 
-${optionalLine('4. Revision', data.revision)}${optionalLine('5. Customer / Job', data.customerOrJob)}${optionalLine('6. Quantity', data.quantity)}7. Correction Type
-${data.correctionType.trim()}
+5. Evidence / Confirmation
+Router / Work Order Photo: ${data.routerWorkOrderPhotoPlaceholder.trim()}
+Part / Defect Photo: ${data.partDefectPhotoPlaceholder.trim()}
+Photo Evidence Status: ${photoEvidenceStatus}
+AI Extracted Data Confirmation: ${data.aiExtractedDataConfirmation.trim()}
+Human Release Confirmation: ${data.humanReleaseConfirmation.trim()}
 
-8. Affected Area
-${affectedArea}
-
-9. Issue Summary
-${data.issueDetails.trim()}
-
-10. Requested Engineering Action
-${data.requestedEngineeringAction.trim()}
-
-11. Photo Evidence
-${photoEvidenceStatus}
-
-12. Submitted By / Source
+6. Submitted By / Source
 ${submittedBy}
 
-13. Status
-Draft / Pending Engineering Review`;
+7. Status
+Draft / Pending Human Confirmation Before Release`;
 }
 
 export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'REFAB Connect / AI-WOC') {
@@ -179,28 +244,37 @@ export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'REFAB Co
 
 Engineering Team,
 
-Please review the work order correction request below.
+Please review the corrective action request below.
 
-Work Order Number:
+Work Order:
 ${data.workOrderNumber.trim()}
 
 Part Number:
 ${data.partNumber.trim()}
 
-Correction Type:
-${data.correctionType.trim()}
+Issue:
+${v4IssueSummary(data)}
 
-Affected Area:
+Found At Department:
 ${affectedArea}
 
-Issue Summary:
-${data.issueDetails.trim()}
+Corrective Action Owner Department:
+${data.correctiveActionOwnerDepartment.trim()}
 
-Requested Engineering Action:
-${data.requestedEngineeringAction.trim()}
+Suspected Failure Point:
+${data.suspectedFailurePoint.trim()}
+
+Required Correction:
+${v4RequiredCorrection(data)}
+
+Inspection / Verification Requirement:
+${data.inspectionVerificationRequirement.trim()}
 
 Photo Evidence:
 ${photoEvidenceStatus}
+
+Release Note:
+Human confirmation is required before final release/PDF.
 
 Submitted By:
 ${submittedBy}
@@ -229,8 +303,8 @@ export function getGateStatus(
 
   const correctionTypeReady = isFilled(data.correctionType) && confirmations.correctionTypeSelected;
   const affectedAreaReady = isFilled(getEffectiveAffectedArea(data));
-  const issueDetailsReady = isFilled(data.issueDetails) && confirmations.issueDetailsEntered;
-  const requestedActionReady = isFilled(data.requestedEngineeringAction) && confirmations.requestedActionEntered;
+  const issueDetailsReady = isFilled(v4IssueSummary(data)) && confirmations.issueDetailsEntered;
+  const requestedActionReady = isFilled(v4RequiredCorrection(data)) && confirmations.requestedActionEntered;
   const generateReady = confirmReady && correctionTypeReady && affectedAreaReady && issueDetailsReady && requestedActionReady;
 
   const reviewReady = Boolean(generatedPackage) && confirmations.finalReviewConfirmed;
@@ -269,11 +343,11 @@ export function resetDependentConfirmations(
     next.correctionTypeSelected = isFilled(value);
   }
 
-  if (key === 'issueDetails') {
+  if (key === 'issueDetails' || key === 'shortIssueDescription' || key === 'detailedIssueNotes') {
     next.issueDetailsEntered = isFilled(value);
   }
 
-  if (key === 'requestedEngineeringAction') {
+  if (key === 'requestedEngineeringAction' || key === 'requiredCorrection') {
     next.requestedActionEntered = isFilled(value);
   }
 
