@@ -1,5 +1,7 @@
+import { buildControlledCorrectiveActionPdfTemplate } from '../logic/controlledPdfTemplateFoundation';
 import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/wocDataModel';
 import type { ActionFeedback } from '../types/wocSessionTypes';
+import { ControlledPdfPreviewRenderer } from './ControlledPdfPreviewRenderer';
 
 type ReviewSendScreenProps = {
   generatedPackage: GeneratedCorrectionPackage;
@@ -36,12 +38,44 @@ export function ReviewSendScreen({
   onSendPinChange,
   onSendEmail,
 }: ReviewSendScreenProps) {
+  const controlledPdfPreview = generatedPackage
+    ? buildControlledCorrectiveActionPdfTemplate(
+        {
+          correctionType: generatedPackage.subjectLine,
+          workOrderNumber: generatedPackage.workOrderNumber,
+          partNumber: generatedPackage.partNumber,
+          partDescription: generatedPackage.partDescription,
+          customerOrJob: generatedPackage.customerOrJob,
+          quantityAffected: generatedPackage.quantityAffected,
+          foundAtDepartment: generatedPackage.foundAtDepartment,
+          suspectedFailurePoint: generatedPackage.suspectedFailurePoint,
+          shortIssueDescription: generatedPackage.shortIssueDescription,
+          immediateContainment: generatedPackage.immediateContainment,
+          requiredCorrection: generatedPackage.requiredCorrection,
+          preventionStandardWorkUpdate: generatedPackage.preventionStandardWorkUpdate,
+          inspectionVerificationRequirement: generatedPackage.inspectionVerificationRequirement,
+          releaseApprovalRequirement: generatedPackage.releaseApprovalRequirement,
+          aiExtractedDataConfirmation: 'Pending human confirmation review',
+          humanReleaseConfirmation: confirmations.finalReviewConfirmed
+            ? 'Human final review confirmed'
+            : 'Human final review not confirmed',
+          routerWorkOrderPhotoPlaceholder: 'Router/work-order evidence placeholder',
+          partDefectPhotoPlaceholder: 'Part/defect evidence placeholder',
+        },
+        {
+          finalReviewConfirmed: confirmations.finalReviewConfirmed,
+        },
+      )
+    : null;
+
   return (
     <section className="stack review-panel-screen">
       <div className="screen-title">
         <h1>Review / Draft Control</h1>
         <p>Review the editable corrective action draft. Final PDF/export release remains locked until future V4 controlled release flow is built.</p>
       </div>
+
+      {controlledPdfPreview && <ControlledPdfPreviewRenderer template={controlledPdfPreview} />}
 
       <article className="card review-report-panel">
         <div className="card-header">
