@@ -9,14 +9,14 @@ export function HomeScreen({ workflow, onStartCapture }: HomeScreenProps) {
   return (
     <section className="stack home-screen">
       <div className="hero">
-        <span className="status-pill"><span className="status-dot" />SYSTEM ACTIVE</span>
+        <span className="status-pill"><span className="status-dot" />AI-CAS Active</span>
         <div className="brand-mark">
-          <h1 className="brand-title">Correction System Active</h1>
-          <p className="brand-subtitle">Work Order Correction System</p>
+          <h1 className="brand-title">AI-CAS Active</h1>
+          <p className="brand-subtitle">Corrective Action System</p>
           <p className="brand-subtitle">Powered by Applied Intelligence Framework</p>
         </div>
         <p className="helper-text">Clear. Guided. Fast.</p>
-        <button className="button primary full-width" type="button" onClick={onStartCapture}>Start Capture</button>
+        <button className="button primary full-width" type="button" onClick={onStartCapture}>Start Correction</button>
       </div>
 
       <div className="card-grid workflow-preview">
