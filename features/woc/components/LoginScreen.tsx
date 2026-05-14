@@ -59,8 +59,9 @@ export function LoginScreen({
           <div className="hero">
             <span className="status-pill"><span className="status-dot" />APP LOCKED</span>
             <div className="brand-mark">
-              <h1 className="brand-title">Refab Connect</h1>
-              <p className="brand-subtitle">Work Order Correction System</p>
+              <h1 className="brand-title">AI-CAS</h1>
+              <p className="brand-subtitle">Corrective Action System</p>
+              <p className="brand-subtitle">Powered by Applied Intelligence Framework</p>
               <p className="brand-subtitle">App Access PIN</p>
             </div>
             <p className="helper-text">
@@ -73,14 +74,14 @@ export function LoginScreen({
           <article className="card">
             <div className="card-header">
               <div>
-                <h2>{isReturningUser ? 'Unlock to Connect' : 'First-Time Setup'}</h2>
+                <h2>{isReturningUser ? 'Unlock AI-CAS' : 'First-Time Setup'}</h2>
                 <p>
                   {isReturningUser
                     ? `Submitted By: ${savedUser?.displayName} (${savedUser?.emailOrEmployeeId})`
                     : 'This saved identity appears on reports as Submitted By.'}
                 </p>
               </div>
-              <span className="field-status">M16</span>
+              <span className="field-status">AI-CAS</span>
             </div>
 
             {!isReturningUser && (
@@ -127,7 +128,7 @@ export function LoginScreen({
 
             <div className="action-row">
               <button className="button primary full-width" type="button" disabled={appUnlockPin.length !== 4} onClick={handleAccessAction}>
-                {isReturningUser ? 'Unlock to Connect' : 'Save User + Unlock'}
+                {isReturningUser ? 'Unlock AI-CAS' : 'Save User + Unlock'}
               </button>
             </div>
 
@@ -137,7 +138,7 @@ export function LoginScreen({
               </div>
             )}
 
-            <p className="field-help">This is a lightweight childproof / accidental-use lock. Send Email still requires the separate 4-digit Send PIN. Setup/Admin still requires the master code.</p>
+            <p className="field-help">This is a lightweight childproof / accidental-use lock. Controlled release actions remain gated separately.</p>
           </article>
         </section>
       </div>
