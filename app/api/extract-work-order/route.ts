@@ -19,6 +19,16 @@ type ExtractedWorkOrderData = {
 };
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const EXPECTED_EXTRACTION_KEYS: Array<keyof ExtractedWorkOrderData> = [
+  'workOrderNumber',
+  'partNumber',
+  'customerOrJob',
+  'partDescription',
+  'quantityAffected',
+  'operationNumber',
+  'routerStepOperation',
+  'dueDateShipDate',
+];
 
 function extractOutputText(responseBody: unknown): string {
   if (typeof responseBody !== 'object' || responseBody === null) return '';
@@ -46,6 +56,10 @@ function extractOutputText(responseBody: unknown): string {
 
 function safeString(value: unknown) {
   return typeof value === 'string' ? value : '';
+}
+
+function getMissingExpectedFields(extracted: ExtractedWorkOrderData) {
+  return EXPECTED_EXTRACTION_KEYS.filter((key) => !safeString(extracted[key]).trim());
 }
 
 function parseExtractedJson(outputText: string): ExtractedWorkOrderData {
@@ -81,7 +95,7 @@ export async function POST(request: Request) {
 
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'OPENAI_API_KEY is not configured. Manual entry is still available.' },
+      { error: 'OPENAI_API_KEY is not configured. OpenAI Vision extraction is unavailable. Manual entry is still available.' },
       { status: 503 },
     );
   }
@@ -90,22 +104,28 @@ export async function POST(request: Request) {
   const file = formData.get('file');
 
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'No upload file was provided.' }, { status: 400 });
+    return NextResponse.json({ error: 'No upload file was provided for OpenAI Vision extraction.' }, { status: 400 });
   }
 
   if (!file.type.startsWith('image/')) {
     return NextResponse.json(
-      { error: 'M9 extraction currently supports uploaded image files only. Manual entry is still available.' },
+      { error: 'OpenAI Vision extraction currently supports uploaded image files only. Manual entry is still available.' },
       { status: 400 },
     );
   }
 
   if (file.size > MAX_UPLOAD_BYTES) {
     return NextResponse.json(
-      { error: 'Uploaded image is too large for extraction. Please use a smaller image or manual entry.' },
+      { error: 'Uploaded image is too large for OpenAI Vision extraction. Please use a smaller image or manual entry.' },
       { status: 413 },
     );
   }
+
+  console.info('[V4-M7C] OpenAI Vision extraction request started', {
+    fileType: file.type,
+    fileSize: file.size,
+    model: process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini',
+  });
 
   const arrayBuffer = await file.arrayBuffer();
   const base64Image = Buffer.from(arrayBuffer).toString('base64');
@@ -126,7 +146,7 @@ export async function POST(request: Request) {
             {
               type: 'input_text',
               text:
-                'Extract work order/router/header data from this image. Return only valid JSON with these exact keys: workOrderNumber, partNumber, revision, partDescription, customerOrJob, operationNumber, routerStepOperation, quantity, quantityAffected, dueDateShipDate, foundAtDepartment, suspectedFailurePoint, shortIssueDescription, detailedIssueNotes, notes. Use empty strings for fields that are not found. Treat all extracted values as draft/unconfirmed. Do not include markdown.',
+                'You are reading a manufacturing work order/router image. Extract only fields visible in the image. Return only valid JSON with these exact keys: workOrderNumber, partNumber, revision, partDescription, customerOrJob, operationNumber, routerStepOperation, quantity, quantityAffected, dueDateShipDate, foundAtDepartment, suspectedFailurePoint, shortIssueDescription, detailedIssueNotes, notes. Prioritize work order number, part number, customer/job name, part description, quantity affected, operation number, router step/operation, and due date/ship date. Look for labels such as WO, Work Order, PN, Part Number, Description, Customer, Qty, Quantity, Operation, Op No, Router Step, Ship Date, Due Date, and Release/Need Date. Use empty strings for fields that are not visible. Do not guess, do not use mock values, and do not include markdown. Treat all extracted values as draft/unconfirmed.',
             },
             {
               type: 'input_image',
@@ -140,12 +160,13 @@ export async function POST(request: Request) {
   });
 
   const responseBody = await openAiResponse.json();
+  console.info('[V4-M7C] OpenAI Vision backend response received', { ok: openAiResponse.ok, status: openAiResponse.status });
 
   if (!openAiResponse.ok) {
     const errorMessage =
       typeof responseBody?.error?.message === 'string'
         ? responseBody.error.message
-        : 'AI Vision extraction failed. Manual entry is still available.';
+        : 'OpenAI Vision extraction failed. Manual entry is still available.';
 
     return NextResponse.json({ error: errorMessage }, { status: openAiResponse.status });
   }
@@ -154,16 +175,29 @@ export async function POST(request: Request) {
 
   if (!outputText) {
     return NextResponse.json(
-      { error: 'AI Vision returned no readable extraction output. Manual entry is still available.' },
+      { error: 'OpenAI Vision returned no readable extraction output. Manual entry is still available.' },
       { status: 502 },
     );
   }
 
   try {
-    return NextResponse.json({ extracted: parseExtractedJson(outputText) });
+    const extracted = parseExtractedJson(outputText);
+    const extractedKeys = Object.entries(extracted)
+      .filter(([, value]) => value.trim())
+      .map(([key]) => key);
+    const missingExpectedFields = getMissingExpectedFields(extracted);
+
+    console.info('[V4-M7C] OpenAI Vision extracted keys returned', { extractedKeys, missingExpectedFields });
+
+    return NextResponse.json({
+      extracted,
+      extractionSource: 'openai-vision',
+      extractedKeys,
+      missingExpectedFields,
+    });
   } catch {
     return NextResponse.json(
-      { error: 'AI Vision extraction returned unreadable data. Manual entry is still available.' },
+      { error: 'OpenAI Vision extraction returned unreadable data. Manual entry is still available.' },
       { status: 502 },
     );
   }
