@@ -266,7 +266,13 @@ export function CaptureScreen({
             Evidence Label
             <select value={evidenceLabel} onChange={(event) => updateCaptureContext({ evidenceLabel: event.target.value })}>
               <option value="">Select evidence context</option>
-              {evidenceLabelOptions.map((option) => <option key={option}>{option}</option>)}
+              {evidenceLabelOptions.map((option) => {
+                return (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                );
+              })}
             </select>
           </label>
         </div>
