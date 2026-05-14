@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { buildControlledCorrectiveActionPdfTemplate } from '../logic/controlledPdfTemplateFoundation';
 import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/wocDataModel';
 import type { ActionFeedback } from '../types/wocSessionTypes';
@@ -21,12 +22,35 @@ type ReviewSendScreenProps = {
   onSendEmail: () => void;
 };
 
+type AiCorrectiveActionDraftResult = {
+  status: 'draft-only-unconfirmed';
+  issueSummary: string;
+  correctiveActionRequired: string;
+  standardWorkRequirement: string;
+  responsibilityByOperation: string;
+  containmentAction: string;
+  inspectionVerificationRequirement: string;
+  photoEvidenceReference: string;
+  closeoutRequirement: string;
+};
+
 function formatSectionLabel(section: string) {
   return section
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, (firstLetter) => firstLetter.toUpperCase())
     .trim();
 }
+
+const aiDraftDisplaySections: Array<{ key: keyof AiCorrectiveActionDraftResult; label: string }> = [
+  { key: 'issueSummary', label: 'Issue Summary' },
+  { key: 'correctiveActionRequired', label: 'Corrective Action Required' },
+  { key: 'standardWorkRequirement', label: 'Standard Work Requirement' },
+  { key: 'responsibilityByOperation', label: 'Responsibility by Operation' },
+  { key: 'containmentAction', label: 'Containment Action' },
+  { key: 'inspectionVerificationRequirement', label: 'Inspection / Verification Requirement' },
+  { key: 'photoEvidenceReference', label: 'Photo Evidence Reference' },
+  { key: 'closeoutRequirement', label: 'Closeout Requirement' },
+];
 
 export function ReviewSendScreen({
   generatedPackage,
@@ -45,6 +69,9 @@ export function ReviewSendScreen({
   onSendPinChange,
   onSendEmail,
 }: ReviewSendScreenProps) {
+  const [isGeneratingAiDraft, setIsGeneratingAiDraft] = useState(false);
+  const [aiDraftFeedback, setAiDraftFeedback] = useState<ActionFeedback>(null);
+  const [aiCorrectiveActionDraft, setAiCorrectiveActionDraft] = useState<AiCorrectiveActionDraftResult | null>(null);
   const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
   const controlledPdfPreview = generatedPackage
     ? buildControlledCorrectiveActionPdfTemplate(
@@ -65,6 +92,39 @@ export function ReviewSendScreen({
       )
     : null;
 
+  const generateAiCorrectiveActionDraft = async () => {
+    if (!aiDraftFoundation) {
+      setAiDraftFeedback({ tone: 'error', message: 'Generate a correction package before requesting an AI draft.' });
+      return;
+    }
+
+    setIsGeneratingAiDraft(true);
+    setAiDraftFeedback({ tone: 'success', message: 'Requesting AI corrective-action draft...' });
+    setAiCorrectiveActionDraft(null);
+
+    try {
+      const response = await fetch('/api/draft-corrective-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiDraftFoundation }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message = typeof payload?.error === 'string' ? payload.error : 'AI draft failed. Manual drafting remains available.';
+        setAiDraftFeedback({ tone: 'error', message });
+        return;
+      }
+
+      setAiCorrectiveActionDraft(payload.draft as AiCorrectiveActionDraftResult);
+      setAiDraftFeedback({ tone: 'success', message: 'AI corrective-action draft generated. Review and edit before any future release/PDF.' });
+    } catch {
+      setAiDraftFeedback({ tone: 'error', message: 'AI draft request could not be completed. Manual drafting remains available.' });
+    } finally {
+      setIsGeneratingAiDraft(false);
+    }
+  };
+
   return (
     <section className="stack review-panel-screen">
       <div className="screen-title">
@@ -78,9 +138,9 @@ export function ReviewSendScreen({
         <article className="card review-ai-draft-foundation-panel">
           <div className="card-header">
             <div>
-              <span className="step-pill">AI DRAFT FOUNDATION · NOT LIVE AI GENERATED</span>
+              <span className="step-pill">AI DRAFT FOUNDATION · CONTROLLED MANUAL REQUEST</span>
               <h2>AI Corrective Action Drafting Input Preview</h2>
-              <p>Review the structured facts that will feed future AI-generated corrective-action language. This is draft-only, editable, and unconfirmed.</p>
+              <p>Review the structured facts that will feed AI-generated corrective-action language. Output remains draft-only, editable, and unconfirmed.</p>
             </div>
             <span className="field-status">Human Review Required</span>
           </div>
@@ -111,14 +171,48 @@ export function ReviewSendScreen({
               .map((section) => (
                 <div className="placeholder-item" key={section}>
                   <strong>{formatSectionLabel(section)}</strong>
-                  <span>Draft foundation only — future AI-generated language not enabled yet.</span>
+                  <span>Draft foundation ready — AI language generates only when manually requested.</span>
                 </div>
               ))}
           </div>
 
+          <div className="action-row" style={{ marginTop: 14 }}>
+            <button className="button primary full-width" type="button" disabled={isGeneratingAiDraft || !generatedPackage} onClick={generateAiCorrectiveActionDraft}>
+              {isGeneratingAiDraft ? 'Generating AI Corrective Action Draft...' : 'Generate AI Corrective Action Draft'}
+            </button>
+          </div>
+
+          {aiDraftFeedback && (
+            <p className="field-help">{aiDraftFeedback.tone === 'success' ? 'AI Draft: ' : 'AI Draft error: '}{aiDraftFeedback.message}</p>
+          )}
+
           <p className="field-help">
-            This preview verifies the AI drafting input path only. It does not generate final AI language, export a PDF, send email, or bypass human confirmation.
+            This controlled action does not export a PDF, send email, or bypass human confirmation. AI draft text must be reviewed and edited before future release.
           </p>
+        </article>
+      )}
+
+      {aiCorrectiveActionDraft && (
+        <article className="card review-ai-draft-result-panel">
+          <div className="card-header">
+            <div>
+              <span className="step-pill">AI GENERATED · DRAFT ONLY</span>
+              <h2>AI Corrective Action Draft</h2>
+              <p>Draft-only engineered language. Human review, editing, and confirmation remain required.</p>
+            </div>
+            <span className="field-status">Unconfirmed</span>
+          </div>
+
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            {aiDraftDisplaySections.map((section) => (
+              <div className="placeholder-item" key={section.key}>
+                <strong>{section.label}</strong>
+                <span>{aiCorrectiveActionDraft[section.key] || `[Manual review needed: ${section.label}]`}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="field-help">Status: {aiCorrectiveActionDraft.status}. This draft is not released and does not change the controlled PDF/export gate.</p>
         </article>
       )}
 
