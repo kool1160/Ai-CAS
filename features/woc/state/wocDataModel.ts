@@ -1,4 +1,9 @@
 import {
+  buildAiCorrectiveActionDraftFoundation,
+  type AiCorrectiveActionDraftFoundation,
+} from '../logic/aiCorrectiveActionDraftFoundation';
+import { buildAiCorrectiveActionDraftInputFromWocData } from '../logic/aiCorrectiveActionDraftInputWiring';
+import {
   buildPhotoEvidenceStatusLine,
   loadPhotoEvidenceMetadataFromSession,
   PHOTO_EVIDENCE_STORAGE_KEY,
@@ -54,6 +59,7 @@ export type GeneratedCorrectionPackage = {
   reportPreview: string;
   emailPreview: string;
   generatedAt: string;
+  aiDraftFoundation: AiCorrectiveActionDraftFoundation;
 } | null;
 
 export type ConfirmableFieldKey = 'workOrderNumber' | 'partNumber';
@@ -311,11 +317,15 @@ REFAB Connect / AI-WOC`;
 }
 
 export function createGeneratedPackage(data: WocCorrectionData, submittedBy?: string): GeneratedCorrectionPackage {
+  const aiDraftInput = buildAiCorrectiveActionDraftInputFromWocData(data);
+  const aiDraftFoundation = buildAiCorrectiveActionDraftFoundation(aiDraftInput);
+
   return {
     subjectLine: buildEmailSubject(data),
     reportPreview: buildEngineeringReport(data, submittedBy),
     emailPreview: buildEmailDraft(data, submittedBy),
     generatedAt: new Date().toLocaleString(),
+    aiDraftFoundation,
   };
 }
 
