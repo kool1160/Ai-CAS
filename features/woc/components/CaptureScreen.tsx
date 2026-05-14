@@ -44,6 +44,24 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getOpenAiVisionStatus(isExtracting: boolean, extractionFeedback: ActionFeedback) {
+  if (isExtracting) {
+    return 'Sending image to OpenAI Vision...';
+  }
+
+  if (!extractionFeedback) return '';
+
+  if (extractionFeedback.tone === 'error') {
+    return `OpenAI Vision extraction failed — manual entry available. ${extractionFeedback.message}`;
+  }
+
+  if (extractionFeedback.message.toLowerCase().includes('completed')) {
+    return 'OpenAI Vision extraction complete. Some fields may not be found and can be entered manually.';
+  }
+
+  return extractionFeedback.message;
+}
+
 function savePhotoEvidenceMetadata(evidence: PhotoEvidenceInfo | null, evidenceLabel = '') {
   if (typeof window === 'undefined') return;
 
@@ -125,6 +143,7 @@ export function CaptureScreen({
   const [photoEvidenceFeedback, setPhotoEvidenceFeedback] = useState<string | null>(null);
   const [shortIssueDescription, setShortIssueDescription] = useState('');
   const [evidenceLabel, setEvidenceLabel] = useState('');
+  const openAiVisionStatus = getOpenAiVisionStatus(isExtracting, extractionFeedback);
 
   useEffect(() => {
     const captureContext = loadCaptureContext();
@@ -219,8 +238,8 @@ export function CaptureScreen({
       <article className="card">
         <div className="card-header">
           <div>
-            <h2>Capture + Extract</h2>
-            <p>Snap a router photo or select a file from your device, then extract the key fields for review.</p>
+            <h2>Capture + OpenAI Vision Extract</h2>
+            <p>Snap a router photo or select a file from your device, then send the image to OpenAI Vision for draft field extraction.</p>
           </div>
           <span className="step-pill">01</span>
         </div>
@@ -230,16 +249,16 @@ export function CaptureScreen({
           <label className="button secondary" htmlFor="router-upload-input">Upload File / Photo</label>
           <input accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx" id="router-upload-input" onChange={handleFileChange} type="file" />
           <button className="button secondary" type="button" disabled={!uploadedFile || isExtracting} onClick={onClearUpload}>Clear Upload</button>
-          <button className="button primary" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>{isExtracting ? 'Extracting...' : 'Extract Text / Data'}</button>
+          <button className="button primary" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>{isExtracting ? 'Sending to OpenAI Vision...' : 'Extract with OpenAI Vision'}</button>
         </div>
         {uploadFeedback && <p className="field-help">{uploadFeedback}</p>}
-        {extractionFeedback && <p className="field-help">{extractionFeedback.tone === 'success' ? 'Extraction: ' : 'Extraction error: '}{extractionFeedback.message}</p>}
+        {openAiVisionStatus && <p className="field-help">{openAiVisionStatus}</p>}
         {uploadedFile && (
           <div className="field-row" style={{ marginTop: 14 }}>
             <strong>Selected File<span className="field-status confirmed">Ready</span></strong>
             <span className="field-value">{uploadedFile.name}</span>
             <span className="field-help">{uploadedFile.type || 'Unknown file type'} · {formatFileSize(uploadedFile.size)}</span>
-            {!uploadedFile.isImage && <span className="field-help">Extraction is optimized for uploaded images. Manual entry remains available for other file types.</span>}
+            {!uploadedFile.isImage && <span className="field-help">OpenAI Vision extraction is optimized for uploaded images. Manual entry remains available for other file types.</span>}
             {uploadedFile.isImage && uploadedFile.previewUrl && <img alt="Uploaded router preview" className="upload-preview" src={uploadedFile.previewUrl} />}
           </div>
         )}
@@ -309,7 +328,7 @@ export function CaptureScreen({
 
       <article className="card">
         <h2>Manual Entry</h2>
-        <p>Use this path when the uploaded image is unclear or the router details need to be entered directly.</p>
+        <p>Use this path when the uploaded image is unclear, OpenAI Vision cannot read a value, or router details need to be entered directly.</p>
         <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Router/Header Notes
