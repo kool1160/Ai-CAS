@@ -21,6 +21,13 @@ type ReviewSendScreenProps = {
   onSendEmail: () => void;
 };
 
+function formatSectionLabel(section: string) {
+  return section
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (firstLetter) => firstLetter.toUpperCase())
+    .trim();
+}
+
 export function ReviewSendScreen({
   generatedPackage,
   submittedBy,
@@ -38,6 +45,7 @@ export function ReviewSendScreen({
   onSendPinChange,
   onSendEmail,
 }: ReviewSendScreenProps) {
+  const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
   const controlledPdfPreview = generatedPackage
     ? buildControlledCorrectiveActionPdfTemplate(
         {
@@ -65,6 +73,54 @@ export function ReviewSendScreen({
       </div>
 
       {controlledPdfPreview && <ControlledPdfPreviewRenderer template={controlledPdfPreview} />}
+
+      {aiDraftFoundation && (
+        <article className="card review-ai-draft-foundation-panel">
+          <div className="card-header">
+            <div>
+              <span className="step-pill">AI DRAFT FOUNDATION · NOT LIVE AI GENERATED</span>
+              <h2>AI Corrective Action Drafting Input Preview</h2>
+              <p>Review the structured facts that will feed future AI-generated corrective-action language. This is draft-only, editable, and unconfirmed.</p>
+            </div>
+            <span className="field-status">Human Review Required</span>
+          </div>
+
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            <div className="placeholder-item">
+              <strong>Short Issue Description</strong>
+              <span>{aiDraftFoundation.input.shortIssueDescription || '[Manual entry needed: Short Issue Description]'}</span>
+            </div>
+            <div className="placeholder-item">
+              <strong>Evidence Label</strong>
+              <span>{aiDraftFoundation.input.evidenceLabel || '[Manual entry needed: Evidence Label]'}</span>
+            </div>
+            <div className="placeholder-item">
+              <strong>Photo Evidence Attached</strong>
+              <span>{aiDraftFoundation.input.photoEvidenceAttached ? 'Yes' : 'No'}</span>
+            </div>
+            <div className="placeholder-item">
+              <strong>Photo Evidence File Name</strong>
+              <span>{aiDraftFoundation.input.photoEvidenceFileName || '[No photo evidence file name available]'}</span>
+            </div>
+          </div>
+
+          <h3 style={{ marginTop: 16 }}>Future AI Draft Sections</h3>
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            {aiDraftFoundation.requiredOutputSections
+              .filter((section) => section !== 'status')
+              .map((section) => (
+                <div className="placeholder-item" key={section}>
+                  <strong>{formatSectionLabel(section)}</strong>
+                  <span>Draft foundation only — future AI-generated language not enabled yet.</span>
+                </div>
+              ))}
+          </div>
+
+          <p className="field-help">
+            This preview verifies the AI drafting input path only. It does not generate final AI language, export a PDF, send email, or bypass human confirmation.
+          </p>
+        </article>
+      )}
 
       <article className="card review-report-panel">
         <div className="card-header">
