@@ -42,19 +42,8 @@ export function ReviewSendScreen({
     ? buildControlledCorrectiveActionPdfTemplate(
         {
           correctionType: generatedPackage.subjectLine,
-          workOrderNumber: generatedPackage.workOrderNumber,
-          partNumber: generatedPackage.partNumber,
-          partDescription: generatedPackage.partDescription,
-          customerOrJob: generatedPackage.customerOrJob,
-          quantityAffected: generatedPackage.quantityAffected,
-          foundAtDepartment: generatedPackage.foundAtDepartment,
-          suspectedFailurePoint: generatedPackage.suspectedFailurePoint,
-          shortIssueDescription: generatedPackage.shortIssueDescription,
-          immediateContainment: generatedPackage.immediateContainment,
-          requiredCorrection: generatedPackage.requiredCorrection,
-          preventionStandardWorkUpdate: generatedPackage.preventionStandardWorkUpdate,
-          inspectionVerificationRequirement: generatedPackage.inspectionVerificationRequirement,
-          releaseApprovalRequirement: generatedPackage.releaseApprovalRequirement,
+          shortIssueDescription: generatedPackage.reportPreview,
+          requiredCorrection: generatedPackage.emailPreview,
           aiExtractedDataConfirmation: 'Pending human confirmation review',
           humanReleaseConfirmation: confirmations.finalReviewConfirmed
             ? 'Human final review confirmed'
