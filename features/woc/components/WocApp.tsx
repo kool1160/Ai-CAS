@@ -58,26 +58,26 @@ import { ReviewSendScreen } from './ReviewSendScreen';
 
 const bottomNav: NavItem[] = [
   { label: 'Home', screen: 'home' },
-  { label: 'Capture', screen: 'capture' },
+  { label: 'Capture Issue', screen: 'capture' },
   { label: 'Drafts', screen: 'drafts' },
   { label: 'History', screen: 'history' },
   { label: 'More', screen: 'more' },
 ];
 
 const workflow: WorkflowStep[] = [
-  ['01', 'Capture Router', 'Take a photo, upload a file, or use manual entry.'],
+  ['01', 'Capture Issue', 'Take a photo, upload a file, or use manual entry.'],
   ['02', 'Extract + Confirm', 'Review work order data before it moves forward.'],
   ['03', 'Build Correction', 'Select the correction type and describe the issue.'],
-  ['04', 'Generate Draft', 'Create the Engineering report and email draft.'],
-  ['05', 'Confirm + Send', 'Review everything before copy/send controls unlock.'],
+  ['04', 'Generate Draft', 'Create the corrective-action report and draft language.'],
+  ['05', 'Confirm + Save', 'Review everything before save or future controlled release actions unlock.'],
 ];
 
 const stepLabels: Record<Screen, string> = {
-  home: 'System Active',
-  capture: 'Capture Work Order Data',
-  confirm: 'Confirm Extracted Information',
-  generate: 'Generate Correction Package',
-  review: 'Review and Send',
+  home: 'Home',
+  capture: 'Capture Issue',
+  confirm: 'Extract + Confirm',
+  generate: 'Build Correction',
+  review: 'Confirm + Save',
   drafts: 'Drafts',
   history: 'History',
   more: 'More',
@@ -710,7 +710,7 @@ export function WocApp() {
     <main className="app-shell">
       <div className="app-frame">
         <div className="screen-title">
-          <span className="step-pill">REFAB CONNECT · {stepLabels[activeScreen]}</span>
+          <span className="step-pill">AI-CAS · {stepLabels[activeScreen]}</span>
         </div>
 
         {activeScreen === 'home' && <HomeScreen workflow={workflow} onStartCapture={() => setActiveScreen('capture')} />}
