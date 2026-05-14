@@ -11,11 +11,15 @@ type ExtractedWorkOrderData = {
   quantity?: string;
   quantityAffected?: string;
   dueDateShipDate?: string;
+  nextOperation?: string;
+  inspectionOperation?: string;
+  material?: string;
   foundAtDepartment?: string;
   suspectedFailurePoint?: string;
   shortIssueDescription?: string;
   detailedIssueNotes?: string;
   notes?: string;
+  fieldSourceNotes?: Record<string, string>;
 };
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -28,6 +32,9 @@ const EXPECTED_EXTRACTION_KEYS: Array<keyof ExtractedWorkOrderData> = [
   'operationNumber',
   'routerStepOperation',
   'dueDateShipDate',
+  'nextOperation',
+  'inspectionOperation',
+  'material',
 ];
 
 function extractOutputText(responseBody: unknown): string {
@@ -58,6 +65,15 @@ function safeString(value: unknown) {
   return typeof value === 'string' ? value : '';
 }
 
+function safeSourceNotes(value: unknown): Record<string, string> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+
+  return Object.entries(value).reduce<Record<string, string>>((notes, [key, note]) => {
+    if (typeof note === 'string') notes[key] = note;
+    return notes;
+  }, {});
+}
+
 function getMissingExpectedFields(extracted: ExtractedWorkOrderData) {
   return EXPECTED_EXTRACTION_KEYS.filter((key) => !safeString(extracted[key]).trim());
 }
@@ -82,11 +98,15 @@ function parseExtractedJson(outputText: string): ExtractedWorkOrderData {
     quantity: safeString(parsed.quantity),
     quantityAffected: safeString(parsed.quantityAffected),
     dueDateShipDate: safeString(parsed.dueDateShipDate),
+    nextOperation: safeString(parsed.nextOperation),
+    inspectionOperation: safeString(parsed.inspectionOperation),
+    material: safeString(parsed.material),
     foundAtDepartment: safeString(parsed.foundAtDepartment),
     suspectedFailurePoint: safeString(parsed.suspectedFailurePoint),
     shortIssueDescription: safeString(parsed.shortIssueDescription),
     detailedIssueNotes: safeString(parsed.detailedIssueNotes),
     notes: safeString(parsed.notes),
+    fieldSourceNotes: safeSourceNotes(parsed.fieldSourceNotes),
   };
 }
 
@@ -121,7 +141,7 @@ export async function POST(request: Request) {
     );
   }
 
-  console.info('[V4-M7C] OpenAI Vision extraction request started', {
+  console.info('[V4-M12C] OpenAI Vision extraction request started', {
     fileType: file.type,
     fileSize: file.size,
     model: process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini',
@@ -146,7 +166,7 @@ export async function POST(request: Request) {
             {
               type: 'input_text',
               text:
-                'You are reading a manufacturing work order/router image. Extract only fields visible in the image. Return only valid JSON with these exact keys: workOrderNumber, partNumber, revision, partDescription, customerOrJob, operationNumber, routerStepOperation, quantity, quantityAffected, dueDateShipDate, foundAtDepartment, suspectedFailurePoint, shortIssueDescription, detailedIssueNotes, notes. Prioritize work order number, part number, customer/job name, part description, quantity affected, operation number, router step/operation, and due date/ship date. Look for labels such as WO, Work Order, PN, Part Number, Description, Customer, Qty, Quantity, Operation, Op No, Router Step, Ship Date, Due Date, and Release/Need Date. Use empty strings for fields that are not visible. Do not guess, do not use mock values, and do not include markdown. Treat all extracted values as draft/unconfirmed.',
+                'You are reading a full manufacturing work order/router image, not just the header. Scan the entire uploaded image from top to bottom, including header blocks, material lines, operation tables, routing rows, dates, quantities, and inspection/signoff areas. Extract only fields visibly present in the image. Return only valid JSON with these exact keys: workOrderNumber, partNumber, revision, partDescription, customerOrJob, operationNumber, routerStepOperation, quantity, quantityAffected, dueDateShipDate, nextOperation, inspectionOperation, material, foundAtDepartment, suspectedFailurePoint, shortIssueDescription, detailedIssueNotes, notes, fieldSourceNotes. Prioritize: workOrderNumber, partNumber, customerOrJob, partDescription, quantityAffected, operationNumber, routerStepOperation, dueDateShipDate, nextOperation, inspectionOperation, material. Look for labels and table headings such as WO, Work Order, Job, Sales Order, PN, Part Number, Item, Description, Customer, Qty, Quantity, Qty Ordered, Qty Required, Operation, Oper, Op, Op No, Sequence, Seq, Work Center, WC, Router Step, Department, Laser, Forming, Welding, Machining, Assembly, Inspect, Inspection, QC, Ship Date, Due Date, Required Date, Need Date, Release Date, Material, M line, Raw Material, Gauge, CRS, HRS, Aluminum, Stainless. For operationNumber, use the visible operation/sequence number from the router row if present. For routerStepOperation, use the operation description or work center text from the same row. For nextOperation, capture the next visible operation after the current/primary row if obvious. For inspectionOperation, capture visible QC/inspection/first-piece/last-piece operation text if present. For fieldSourceNotes, return an object where each filled or intentionally blank important field has a short note such as header block, router row, material line, inspection row, date field, or not visible. Use empty strings for fields that are not visible. Do not guess, do not infer from part number, do not use mock values, and do not include markdown. Treat all extracted values as draft/unconfirmed.',
             },
             {
               type: 'input_image',
@@ -160,7 +180,7 @@ export async function POST(request: Request) {
   });
 
   const responseBody = await openAiResponse.json();
-  console.info('[V4-M7C] OpenAI Vision backend response received', { ok: openAiResponse.ok, status: openAiResponse.status });
+  console.info('[V4-M12C] OpenAI Vision backend response received', { ok: openAiResponse.ok, status: openAiResponse.status });
 
   if (!openAiResponse.ok) {
     const errorMessage =
@@ -183,17 +203,26 @@ export async function POST(request: Request) {
   try {
     const extracted = parseExtractedJson(outputText);
     const extractedKeys = Object.entries(extracted)
-      .filter(([, value]) => value.trim())
+      .filter(([, value]) => {
+        if (typeof value === 'string') return value.trim();
+        if (typeof value === 'object' && value !== null) return Object.keys(value).length > 0;
+        return false;
+      })
       .map(([key]) => key);
     const missingExpectedFields = getMissingExpectedFields(extracted);
 
-    console.info('[V4-M7C] OpenAI Vision extracted keys returned', { extractedKeys, missingExpectedFields });
+    console.info('[V4-M12C] OpenAI Vision extracted keys returned', {
+      extractedKeys,
+      missingExpectedFields,
+      fieldSourceNotes: extracted.fieldSourceNotes,
+    });
 
     return NextResponse.json({
       extracted,
       extractionSource: 'openai-vision',
       extractedKeys,
       missingExpectedFields,
+      fieldSourceNotes: extracted.fieldSourceNotes ?? {},
     });
   } catch {
     return NextResponse.json(
