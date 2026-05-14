@@ -2,6 +2,15 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import type { ActionFeedback, UploadedFileInfo } from '../types/wocSessionTypes';
 
 const PHOTO_EVIDENCE_STORAGE_KEY = 'refab-connect-photo-evidence';
+const CAPTURE_CONTEXT_STORAGE_KEY = 'refab-connect-v4-capture-context';
+
+const evidenceLabelOptions = [
+  'Correct condition',
+  'Incorrect condition',
+  'Gauge / check evidence',
+  'Staging evidence',
+  'Other supporting evidence',
+];
 
 type PhotoEvidenceInfo = {
   evidenceAttached: boolean;
@@ -9,6 +18,11 @@ type PhotoEvidenceInfo = {
   evidenceFileType: string;
   evidenceFileSize: number;
   previewUrl: string | null;
+};
+
+type CaptureContext = {
+  shortIssueDescription: string;
+  evidenceLabel: string;
 };
 
 type CaptureScreenProps = {
@@ -30,7 +44,7 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function savePhotoEvidenceMetadata(evidence: PhotoEvidenceInfo | null) {
+function savePhotoEvidenceMetadata(evidence: PhotoEvidenceInfo | null, evidenceLabel = '') {
   if (typeof window === 'undefined') return;
 
   if (!evidence) {
@@ -45,6 +59,7 @@ function savePhotoEvidenceMetadata(evidence: PhotoEvidenceInfo | null) {
       evidenceFileName: evidence.evidenceFileName,
       evidenceFileType: evidence.evidenceFileType,
       evidenceFileSize: evidence.evidenceFileSize,
+      evidenceLabel,
     }),
   );
 }
@@ -72,6 +87,28 @@ function loadPhotoEvidenceMetadata(): PhotoEvidenceInfo | null {
   }
 }
 
+function loadCaptureContext(): CaptureContext {
+  if (typeof window === 'undefined') return { shortIssueDescription: '', evidenceLabel: '' };
+
+  try {
+    const raw = window.sessionStorage.getItem(CAPTURE_CONTEXT_STORAGE_KEY);
+    if (!raw) return { shortIssueDescription: '', evidenceLabel: '' };
+    const parsed = JSON.parse(raw) as Partial<CaptureContext>;
+    return {
+      shortIssueDescription: typeof parsed.shortIssueDescription === 'string' ? parsed.shortIssueDescription : '',
+      evidenceLabel: typeof parsed.evidenceLabel === 'string' ? parsed.evidenceLabel : '',
+    };
+  } catch {
+    window.sessionStorage.removeItem(CAPTURE_CONTEXT_STORAGE_KEY);
+    return { shortIssueDescription: '', evidenceLabel: '' };
+  }
+}
+
+function saveCaptureContext(context: CaptureContext) {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.setItem(CAPTURE_CONTEXT_STORAGE_KEY, JSON.stringify(context));
+}
+
 export function CaptureScreen({
   manualEntry,
   uploadedFile,
@@ -86,9 +123,14 @@ export function CaptureScreen({
 }: CaptureScreenProps) {
   const [photoEvidence, setPhotoEvidence] = useState<PhotoEvidenceInfo | null>(null);
   const [photoEvidenceFeedback, setPhotoEvidenceFeedback] = useState<string | null>(null);
+  const [shortIssueDescription, setShortIssueDescription] = useState('');
+  const [evidenceLabel, setEvidenceLabel] = useState('');
 
   useEffect(() => {
+    const captureContext = loadCaptureContext();
     setPhotoEvidence(loadPhotoEvidenceMetadata());
+    setShortIssueDescription(captureContext.shortIssueDescription);
+    setEvidenceLabel(captureContext.evidenceLabel);
 
     return () => {
       setPhotoEvidence((current) => {
@@ -97,6 +139,27 @@ export function CaptureScreen({
       });
     };
   }, []);
+
+  const updateCaptureContext = (nextContext: Partial<CaptureContext>) => {
+    const mergedContext = {
+      shortIssueDescription,
+      evidenceLabel,
+      ...nextContext,
+    };
+
+    setShortIssueDescription(mergedContext.shortIssueDescription);
+    setEvidenceLabel(mergedContext.evidenceLabel);
+    saveCaptureContext(mergedContext);
+
+    const contextLines = [
+      mergedContext.shortIssueDescription ? `Issue: ${mergedContext.shortIssueDescription}` : '',
+      mergedContext.evidenceLabel ? `Evidence label: ${mergedContext.evidenceLabel}` : '',
+    ].filter(Boolean);
+
+    if (contextLines.length) {
+      onManualEntryChange(contextLines.join('\n'));
+    }
+  };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     onUploadFile(event.target.files?.[0] ?? null);
@@ -131,7 +194,7 @@ export function CaptureScreen({
         previewUrl: URL.createObjectURL(file),
       };
 
-      savePhotoEvidenceMetadata(nextEvidence);
+      savePhotoEvidenceMetadata(nextEvidence, evidenceLabel);
       setPhotoEvidenceFeedback(`${file.name} added as optional photo evidence. This image stays local/session-only for now.`);
       return nextEvidence;
     });
@@ -150,7 +213,7 @@ export function CaptureScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Capture Router</h1>
-        <p>Take a photo or upload a router/work order image, extract the header data, or enter details manually when needed.</p>
+        <p>Take a photo or upload a router/work order image, extract the header data, or enter issue context manually when needed.</p>
       </div>
 
       <article className="card">
@@ -185,6 +248,34 @@ export function CaptureScreen({
       <article className="card">
         <div className="card-header">
           <div>
+            <h2>Issue Description + Evidence Context</h2>
+            <p>Add plain shop-floor issue notes and label the evidence context for future AI corrective-action drafting.</p>
+          </div>
+          <span className="field-status">Foundation</span>
+        </div>
+        <div className="form-grid" style={{ marginTop: 14 }}>
+          <label>
+            Short Issue Description
+            <textarea
+              value={shortIssueDescription}
+              onChange={(event) => updateCaptureContext({ shortIssueDescription: event.target.value })}
+              placeholder="Example: Hole size failed no-go check after laser; parts also need cleanup before welding."
+            />
+          </label>
+          <label>
+            Evidence Label
+            <select value={evidenceLabel} onChange={(event) => updateCaptureContext({ evidenceLabel: event.target.value })}>
+              <option value="">Select evidence context</option>
+              {evidenceLabelOptions.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </label>
+        </div>
+        <p className="field-help">Foundation only: issue description and evidence label are stored as local/session context and copied into router/header notes for future AI drafting.</p>
+      </article>
+
+      <article className="card">
+        <div className="card-header">
+          <div>
             <h2>Photo Evidence</h2>
             <p>Add one optional supporting image for Engineering context. This is separate from the router image used for extraction.</p>
           </div>
@@ -203,6 +294,7 @@ export function CaptureScreen({
             <strong>Evidence Image<span className="field-status confirmed">Ready</span></strong>
             <span className="field-value">{photoEvidence.evidenceFileName}</span>
             <span className="field-help">{photoEvidence.evidenceFileType || 'Unknown image type'} · {formatFileSize(photoEvidence.evidenceFileSize)}</span>
+            <span className="field-help">Evidence label: {evidenceLabel || 'Not selected yet'}</span>
             <span className="field-help">Evidence image is local/session-only for now.</span>
             {photoEvidence.previewUrl && <img alt="Photo evidence preview" className="upload-preview" src={photoEvidence.previewUrl} />}
           </div>
