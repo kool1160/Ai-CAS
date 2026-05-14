@@ -1,6 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import type { ActionFeedback, UploadedFileInfo } from '../types/wocSessionTypes';
-import { CorrectiveActionBuilderShell } from './CorrectiveActionBuilderShell';
 
 const PHOTO_EVIDENCE_STORAGE_KEY = 'refab-connect-photo-evidence';
 
@@ -163,47 +162,22 @@ export function CaptureScreen({
           <span className="step-pill">01</span>
         </div>
         <div className="action-row">
-          <label className="button primary" htmlFor="router-camera-input">
-            Take Photo
-          </label>
-          <input
-            accept="image/*"
-            capture="environment"
-            hidden
-            id="router-camera-input"
-            onChange={handleFileChange}
-            type="file"
-          />
-          <label className="button secondary" htmlFor="router-upload-input">
-            Upload File / Photo
-          </label>
-          <input
-            accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
-            id="router-upload-input"
-            onChange={handleFileChange}
-            type="file"
-          />
+          <label className="button primary" htmlFor="router-camera-input">Take Photo</label>
+          <input accept="image/*" capture="environment" hidden id="router-camera-input" onChange={handleFileChange} type="file" />
+          <label className="button secondary" htmlFor="router-upload-input">Upload File / Photo</label>
+          <input accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx" id="router-upload-input" onChange={handleFileChange} type="file" />
           <button className="button secondary" type="button" disabled={!uploadedFile || isExtracting} onClick={onClearUpload}>Clear Upload</button>
-          <button className="button primary" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>
-            {isExtracting ? 'Extracting...' : 'Extract Text / Data'}
-          </button>
+          <button className="button primary" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>{isExtracting ? 'Extracting...' : 'Extract Text / Data'}</button>
         </div>
         {uploadFeedback && <p className="field-help">{uploadFeedback}</p>}
-        {extractionFeedback && (
-          <p className="field-help">{extractionFeedback.tone === 'success' ? 'Extraction: ' : 'Extraction error: '}{extractionFeedback.message}</p>
-        )}
+        {extractionFeedback && <p className="field-help">{extractionFeedback.tone === 'success' ? 'Extraction: ' : 'Extraction error: '}{extractionFeedback.message}</p>}
         {uploadedFile && (
           <div className="field-row" style={{ marginTop: 14 }}>
-            <strong>
-              Selected File
-              <span className="field-status confirmed">Ready</span>
-            </strong>
+            <strong>Selected File<span className="field-status confirmed">Ready</span></strong>
             <span className="field-value">{uploadedFile.name}</span>
             <span className="field-help">{uploadedFile.type || 'Unknown file type'} · {formatFileSize(uploadedFile.size)}</span>
             {!uploadedFile.isImage && <span className="field-help">Extraction is optimized for uploaded images. Manual entry remains available for other file types.</span>}
-            {uploadedFile.isImage && uploadedFile.previewUrl && (
-              <img alt="Uploaded router preview" className="upload-preview" src={uploadedFile.previewUrl} />
-            )}
+            {uploadedFile.isImage && uploadedFile.previewUrl && <img alt="Uploaded router preview" className="upload-preview" src={uploadedFile.previewUrl} />}
           </div>
         )}
       </article>
@@ -217,42 +191,20 @@ export function CaptureScreen({
           <span className={photoEvidence ? 'field-status confirmed' : 'field-status'}>{photoEvidence ? 'Attached' : 'Optional'}</span>
         </div>
         <div className="action-row">
-          <label className="button secondary" htmlFor="evidence-camera-input">
-            Take Evidence Photo
-          </label>
-          <input
-            accept="image/*"
-            capture="environment"
-            hidden
-            id="evidence-camera-input"
-            onChange={handlePhotoEvidenceChange}
-            type="file"
-          />
-          <label className="button secondary" htmlFor="evidence-upload-input">
-            Upload Evidence Photo
-          </label>
-          <input
-            accept="image/*"
-            hidden
-            id="evidence-upload-input"
-            onChange={handlePhotoEvidenceChange}
-            type="file"
-          />
+          <label className="button secondary" htmlFor="evidence-camera-input">Take Evidence Photo</label>
+          <input accept="image/*" capture="environment" hidden id="evidence-camera-input" onChange={handlePhotoEvidenceChange} type="file" />
+          <label className="button secondary" htmlFor="evidence-upload-input">Upload Evidence Photo</label>
+          <input accept="image/*" hidden id="evidence-upload-input" onChange={handlePhotoEvidenceChange} type="file" />
           <button className="button secondary" type="button" disabled={!photoEvidence} onClick={clearPhotoEvidence}>Clear Evidence</button>
         </div>
         {photoEvidenceFeedback && <p className="field-help">{photoEvidenceFeedback}</p>}
         {photoEvidence && (
           <div className="field-row" style={{ marginTop: 14 }}>
-            <strong>
-              Evidence Image
-              <span className="field-status confirmed">Ready</span>
-            </strong>
+            <strong>Evidence Image<span className="field-status confirmed">Ready</span></strong>
             <span className="field-value">{photoEvidence.evidenceFileName}</span>
             <span className="field-help">{photoEvidence.evidenceFileType || 'Unknown image type'} · {formatFileSize(photoEvidence.evidenceFileSize)}</span>
-            <span className="field-help">M27 stores evidence metadata/status only. The image itself is local/session-only and is not emailed or permanently saved yet.</span>
-            {photoEvidence.previewUrl && (
-              <img alt="Photo evidence preview" className="upload-preview" src={photoEvidence.previewUrl} />
-            )}
+            <span className="field-help">Evidence image is local/session-only for now.</span>
+            {photoEvidence.previewUrl && <img alt="Photo evidence preview" className="upload-preview" src={photoEvidence.previewUrl} />}
           </div>
         )}
       </article>
@@ -263,19 +215,13 @@ export function CaptureScreen({
         <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Router/Header Notes
-            <textarea
-              value={manualEntry}
-              onChange={(event) => onManualEntryChange(event.target.value)}
-              placeholder="Paste or type work order/router information here."
-            />
+            <textarea value={manualEntry} onChange={(event) => onManualEntryChange(event.target.value)} placeholder="Paste or type work order/router information here." />
           </label>
         </div>
         <div className="action-row">
           <button className="button primary full-width" type="button" onClick={onCaptureRouter}>Continue to Confirm</button>
         </div>
       </article>
-
-      <CorrectiveActionBuilderShell />
     </section>
   );
 }
