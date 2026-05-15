@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { buildControlledCorrectiveActionPdfTemplate } from '../logic/controlledPdfTemplateFoundation';
+import type {
+  AiCorrectiveActionDraftSectionKey,
+  StructuredCorrectiveActionDraft,
+} from '../logic/aiCorrectiveActionDraftFoundation';
 import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/wocDataModel';
 import type { ActionFeedback } from '../types/wocSessionTypes';
 import { ControlledPdfPreviewRenderer } from './ControlledPdfPreviewRenderer';
@@ -41,7 +45,7 @@ function formatSectionLabel(section: string) {
     .trim();
 }
 
-const aiDraftDisplaySections: Array<{ key: keyof AiCorrectiveActionDraftResult; label: string }> = [
+const aiDraftDisplaySections: Array<{ key: AiCorrectiveActionDraftSectionKey; label: string }> = [
   { key: 'issueSummary', label: 'Issue Summary' },
   { key: 'correctiveActionRequired', label: 'Corrective Action Required' },
   { key: 'standardWorkRequirement', label: 'Standard Work Requirement' },
@@ -51,6 +55,24 @@ const aiDraftDisplaySections: Array<{ key: keyof AiCorrectiveActionDraftResult; 
   { key: 'photoEvidenceReference', label: 'Photo Evidence Reference' },
   { key: 'closeoutRequirement', label: 'Closeout Requirement' },
 ];
+
+function appendLine(value: string, line: string) {
+  const normalized = value.trimEnd();
+  return normalized ? `${normalized}\n${line}` : line;
+}
+
+function removeLastLine(value: string) {
+  const lines = value.split('\n');
+  if (lines.length <= 1) return '';
+  return lines.slice(0, -1).join('\n');
+}
+
+function getStructuredDraftFromPayload(payload: unknown) {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const structuredDraft = (payload as { structuredDraft?: unknown }).structuredDraft;
+  if (typeof structuredDraft !== 'object' || structuredDraft === null) return null;
+  return structuredDraft as StructuredCorrectiveActionDraft;
+}
 
 export function ReviewSendScreen({
   generatedPackage,
@@ -72,6 +94,7 @@ export function ReviewSendScreen({
   const [isGeneratingAiDraft, setIsGeneratingAiDraft] = useState(false);
   const [aiDraftFeedback, setAiDraftFeedback] = useState<ActionFeedback>(null);
   const [aiCorrectiveActionDraft, setAiCorrectiveActionDraft] = useState<AiCorrectiveActionDraftResult | null>(null);
+  const [structuredDraft, setStructuredDraft] = useState<StructuredCorrectiveActionDraft | null>(null);
   const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
   const controlledPdfPreview = generatedPackage
     ? buildControlledCorrectiveActionPdfTemplate(
@@ -101,6 +124,7 @@ export function ReviewSendScreen({
     setIsGeneratingAiDraft(true);
     setAiDraftFeedback({ tone: 'success', message: 'Requesting AI corrective-action draft...' });
     setAiCorrectiveActionDraft(null);
+    setStructuredDraft(null);
 
     try {
       const response = await fetch('/api/draft-corrective-action', {
@@ -116,6 +140,7 @@ export function ReviewSendScreen({
         return;
       }
 
+      setStructuredDraft(getStructuredDraftFromPayload(payload));
       setAiCorrectiveActionDraft(payload.draft as AiCorrectiveActionDraftResult);
       setAiDraftFeedback({ tone: 'success', message: 'AI corrective-action draft generated. Review and edit before any future release/PDF.' });
     } catch {
@@ -123,6 +148,81 @@ export function ReviewSendScreen({
     } finally {
       setIsGeneratingAiDraft(false);
     }
+  };
+
+  const updateStructuredSectionText = (sectionKey: AiCorrectiveActionDraftSectionKey, draftText: string) => {
+    setStructuredDraft((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        sections: {
+          ...current.sections,
+          [sectionKey]: {
+            ...current.sections[sectionKey],
+            draftText,
+            requiresHumanReview: true,
+          },
+        },
+      };
+    });
+  };
+
+  const addRowToSection = (sectionKey: AiCorrectiveActionDraftSectionKey) => {
+    setStructuredDraft((current) => {
+      if (!current) return current;
+      const section = current.sections[sectionKey];
+
+      return {
+        ...current,
+        sections: {
+          ...current.sections,
+          [sectionKey]: {
+            ...section,
+            draftText: appendLine(section.draftText, 'New row: '),
+            requiresHumanReview: true,
+          },
+        },
+      };
+    });
+  };
+
+  const addBulletToSection = (sectionKey: AiCorrectiveActionDraftSectionKey) => {
+    setStructuredDraft((current) => {
+      if (!current) return current;
+      const section = current.sections[sectionKey];
+
+      return {
+        ...current,
+        sections: {
+          ...current.sections,
+          [sectionKey]: {
+            ...section,
+            draftText: appendLine(section.draftText, '• '),
+            requiresHumanReview: true,
+          },
+        },
+      };
+    });
+  };
+
+  const removeLastEntryFromSection = (sectionKey: AiCorrectiveActionDraftSectionKey) => {
+    setStructuredDraft((current) => {
+      if (!current) return current;
+      const section = current.sections[sectionKey];
+
+      return {
+        ...current,
+        sections: {
+          ...current.sections,
+          [sectionKey]: {
+            ...section,
+            draftText: removeLastLine(section.draftText),
+            requiresHumanReview: true,
+          },
+        },
+      };
+    });
   };
 
   return (
@@ -178,7 +278,7 @@ export function ReviewSendScreen({
 
           <div className="action-row" style={{ marginTop: 14 }}>
             <button className="button primary full-width" type="button" disabled={isGeneratingAiDraft || !generatedPackage} onClick={generateAiCorrectiveActionDraft}>
-              {isGeneratingAiDraft ? 'Generating AI Corrective Action Draft...' : 'Generate AI Corrective Action Draft'}
+              {isGeneratingAiDraft ? 'Generating AI Corrective Action Draft...' : structuredDraft ? 'Regenerate AI Corrective Action Draft' : 'Generate AI Corrective Action Draft'}
             </button>
           </div>
 
@@ -192,7 +292,46 @@ export function ReviewSendScreen({
         </article>
       )}
 
-      {aiCorrectiveActionDraft && (
+      {structuredDraft && (
+        <article className="card review-ai-draft-result-panel">
+          <div className="card-header">
+            <div>
+              <span className="step-pill">STRUCTURED AI DRAFT · EDITABLE · UNCONFIRMED</span>
+              <h2>Structured Corrective Action Draft</h2>
+              <p>Edit each AI-generated section before any future photo/PDF/release work depends on it.</p>
+            </div>
+            <span className="field-status">Human Review Required</span>
+          </div>
+
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            {aiDraftDisplaySections.map((section) => {
+              const structuredSection = structuredDraft.sections[section.key];
+
+              return (
+                <div className="placeholder-item" key={section.key}>
+                  <strong>{structuredSection?.title || section.label}</strong>
+                  <span>{structuredSection?.sourceContext || 'Source context pending human review.'}</span>
+                  <textarea
+                    value={structuredSection?.draftText ?? ''}
+                    onChange={(event) => updateStructuredSectionText(section.key, event.target.value)}
+                    placeholder={`Enter ${section.label.toLowerCase()} draft text`}
+                    style={{ marginTop: 10 }}
+                  />
+                  <div className="action-row">
+                    <button className="button secondary" type="button" onClick={() => addRowToSection(section.key)}>Add Row</button>
+                    <button className="button secondary" type="button" onClick={() => addBulletToSection(section.key)}>Add Bullet</button>
+                    <button className="button secondary" type="button" onClick={() => removeLastEntryFromSection(section.key)}>Remove Last</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="field-help">Status: {structuredDraft.status}. {structuredDraft.releaseGate}</p>
+        </article>
+      )}
+
+      {!structuredDraft && aiCorrectiveActionDraft && (
         <article className="card review-ai-draft-result-panel">
           <div className="card-header">
             <div>
