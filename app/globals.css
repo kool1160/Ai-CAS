@@ -19,7 +19,7 @@
   --green-soft: rgba(53, 208, 127, 0.15);
   --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.38);
   --shadow-glow: 0 0 54px rgba(31, 140, 255, 0.16);
-  --nav-clearance: 240px;
+  --nav-clearance: 360px;
 }
 
 * {
@@ -347,7 +347,7 @@ button:disabled {
 }
 
 .stack {
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  padding-bottom: calc(220px + env(safe-area-inset-bottom));
 }
 
 body:has(.home-screen) .app-frame > .screen-title:first-child {
