@@ -375,7 +375,7 @@ export default function PrintReportPage() {
 
       {report ? (
         <article className="report-page">
-          <div className="brand-bar"><span>REFAB CONNECT</span><span>AI-WOC</span></div>
+          <div className="brand-bar"><span>AI-CAS</span><span>Corrective Action System</span></div>
           <header className="header">
             <div className="header-title-block">
               <div className="kicker">Work Order Correction System</div>
