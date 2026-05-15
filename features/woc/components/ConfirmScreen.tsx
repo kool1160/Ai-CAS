@@ -4,7 +4,7 @@ import type { ExtractionDebugMetadata } from '../types/wocSessionTypes';
 type ConfirmScreenProps = {
   wocData: WocCorrectionData;
   confirmReady: boolean;
-  extractionDebug: ExtractionDebugMetadata;
+  extractionDebug?: ExtractionDebugMetadata;
   getFieldConfirmed: (key: keyof WocCorrectionData) => boolean;
   onUpdateField: (key: keyof WocCorrectionData, value: string) => void;
   onConfirmField: (key: keyof WocCorrectionData) => void;
@@ -15,7 +15,7 @@ type ConfirmScreenProps = {
 export function ConfirmScreen({
   wocData,
   confirmReady,
-  extractionDebug,
+  extractionDebug = null,
   getFieldConfirmed,
   onUpdateField,
   onConfirmField,
