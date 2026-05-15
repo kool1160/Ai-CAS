@@ -38,6 +38,7 @@ import type {
   CurrentUser,
   DraftRecord,
   ExtractedWorkOrderData,
+  ExtractionDebugMetadata,
   HistoryRecord,
   NavItem,
   Screen,
@@ -97,6 +98,19 @@ function normalizePin(value: string) {
   return value.replace(/\D/g, '').slice(0, 4);
 }
 
+function safeStringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function safeFieldSourceNotes(value: unknown) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+
+  return Object.entries(value).reduce<Record<string, string>>((notes, [key, note]) => {
+    if (typeof note === 'string') notes[key] = note;
+    return notes;
+  }, {});
+}
+
 export function WocApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -114,6 +128,7 @@ export function WocApp() {
   const [uploadedFile, setUploadedFile] = useState<UploadedFileInfo | null>(null);
   const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
   const [extractionFeedback, setExtractionFeedback] = useState<ActionFeedback>(null);
+  const [extractionDebug, setExtractionDebug] = useState<ExtractionDebugMetadata>(null);
   const [isExtracting, setIsExtracting] = useState(false);
 
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
@@ -271,6 +286,8 @@ export function WocApp() {
     setUploadedFile((current) => {
       if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
 
+      setExtractionDebug(null);
+
       if (!file) {
         setSelectedUploadFile(null);
         setUploadFeedback('No file selected.');
@@ -300,6 +317,7 @@ export function WocApp() {
     });
     setSelectedUploadFile(null);
     setExtractionFeedback(null);
+    setExtractionDebug(null);
     setUploadFeedback('Uploaded file cleared.');
   };
 
@@ -309,8 +327,17 @@ export function WocApp() {
       workOrderNumber: extracted.workOrderNumber ?? '',
       partNumber: extracted.partNumber ?? '',
       revision: extracted.revision ?? '',
+      partDescription: extracted.partDescription ?? '',
       customerOrJob: extracted.customerOrJob ?? '',
+      operationNumber: extracted.operationNumber ?? '',
+      routerStepOperation: extracted.routerStepOperation ?? '',
       quantity: extracted.quantity ?? '',
+      quantityAffected: extracted.quantityAffected ?? extracted.quantity ?? '',
+      dueDateShipDate: extracted.dueDateShipDate ?? '',
+      foundAtDepartment: extracted.foundAtDepartment ?? current.foundAtDepartment,
+      suspectedFailurePoint: extracted.suspectedFailurePoint ?? current.suspectedFailurePoint,
+      shortIssueDescription: extracted.shortIssueDescription ?? current.shortIssueDescription,
+      detailedIssueNotes: extracted.detailedIssueNotes ?? current.detailedIssueNotes,
     }));
     setConfirmations((current) => ({
       ...current,
@@ -328,15 +355,18 @@ export function WocApp() {
   const extractUploadedData = async () => {
     if (!selectedUploadFile || !uploadedFile) {
       setExtractionFeedback({ tone: 'error', message: 'Upload an image before extracting data.' });
+      setExtractionDebug(null);
       return;
     }
 
     if (!uploadedFile.isImage) {
       setExtractionFeedback({ tone: 'error', message: 'M9 extraction supports uploaded image files only. Manual entry remains available.' });
+      setExtractionDebug(null);
       return;
     }
 
     setIsExtracting(true);
+    setExtractionDebug(null);
     setExtractionFeedback({ tone: 'success', message: 'Extracting work order data...' });
 
     try {
@@ -349,14 +379,22 @@ export function WocApp() {
       if (!response.ok) {
         const message = typeof payload?.error === 'string' ? payload.error : 'Extraction failed. Manual entry remains available.';
         setExtractionFeedback({ tone: 'error', message });
+        setExtractionDebug(null);
         return;
       }
 
       applyExtractedData(payload.extracted ?? {});
+      setExtractionDebug({
+        extractionSource: typeof payload?.extractionSource === 'string' ? payload.extractionSource : 'unknown',
+        extractedKeys: safeStringArray(payload?.extractedKeys),
+        missingExpectedFields: safeStringArray(payload?.missingExpectedFields),
+        fieldSourceNotes: safeFieldSourceNotes(payload?.fieldSourceNotes),
+      });
       setExtractionFeedback({ tone: 'success', message: 'Extraction completed. Review and confirm the extracted fields before continuing.' });
       setActiveScreen('confirm');
     } catch {
       setExtractionFeedback({ tone: 'error', message: 'Extraction could not be completed. Manual entry remains available.' });
+      setExtractionDebug(null);
     } finally {
       setIsExtracting(false);
     }
@@ -732,6 +770,7 @@ export function WocApp() {
           <ConfirmScreen
             wocData={wocData}
             confirmReady={gateStatus.confirmReady}
+            extractionDebug={extractionDebug}
             getFieldConfirmed={getFieldConfirmed}
             onUpdateField={updateWocData}
             onConfirmField={confirmField}
