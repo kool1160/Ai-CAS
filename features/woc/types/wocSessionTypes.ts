@@ -46,12 +46,23 @@ export type ExtractedWorkOrderData = {
   quantity?: string;
   quantityAffected?: string;
   dueDateShipDate?: string;
+  nextOperation?: string;
+  inspectionOperation?: string;
+  material?: string;
   foundAtDepartment?: string;
   suspectedFailurePoint?: string;
   shortIssueDescription?: string;
   detailedIssueNotes?: string;
   notes?: string;
+  fieldSourceNotes?: Record<string, string>;
 };
+
+export type ExtractionDebugMetadata = {
+  extractionSource: string;
+  extractedKeys: string[];
+  missingExpectedFields: string[];
+  fieldSourceNotes: Record<string, string>;
+} | null;
 
 export type SetupConfig = {
   companyName: string;
