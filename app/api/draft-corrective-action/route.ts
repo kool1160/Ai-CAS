@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server';
 import {
+  aiCorrectiveActionDraftSectionTitles,
   buildAiCorrectiveActionDraftPrompt,
   type AiCorrectiveActionDraftFoundation,
   type AiCorrectiveActionDraftOutput,
+  type AiCorrectiveActionDraftSection,
+  type AiCorrectiveActionDraftSectionKey,
+  type StructuredCorrectiveActionDraft,
 } from '../../../features/woc/logic/aiCorrectiveActionDraftFoundation';
 
 type DraftRequestBody = {
   aiDraftFoundation?: AiCorrectiveActionDraftFoundation;
 };
 
-const REQUIRED_DRAFT_KEYS: Array<keyof AiCorrectiveActionDraftOutput> = [
-  'status',
+const REQUIRED_DRAFT_KEYS: AiCorrectiveActionDraftSectionKey[] = [
   'issueSummary',
   'correctiveActionRequired',
   'standardWorkRequirement',
@@ -20,6 +23,8 @@ const REQUIRED_DRAFT_KEYS: Array<keyof AiCorrectiveActionDraftOutput> = [
   'photoEvidenceReference',
   'closeoutRequirement',
 ];
+
+const releaseGate = 'AI draft output is editable and unconfirmed. Human review remains required before release/PDF.';
 
 function safeString(value: unknown) {
   return typeof value === 'string' ? value : '';
@@ -49,30 +54,67 @@ function extractOutputText(responseBody: unknown): string {
     .trim();
 }
 
-function parseDraftJson(outputText: string): AiCorrectiveActionDraftOutput {
+function sectionFromUnknown(key: AiCorrectiveActionDraftSectionKey, value: unknown): AiCorrectiveActionDraftSection {
+  const title = aiCorrectiveActionDraftSectionTitles[key];
+
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const section = value as Partial<AiCorrectiveActionDraftSection>;
+
+    return {
+      key,
+      title,
+      draftText: safeString(section.draftText),
+      sourceContext: safeString(section.sourceContext),
+      requiresHumanReview: true,
+    };
+  }
+
+  return {
+    key,
+    title,
+    draftText: safeString(value),
+    sourceContext: '',
+    requiresHumanReview: true,
+  };
+}
+
+function parseStructuredDraftJson(outputText: string): StructuredCorrectiveActionDraft {
   const cleaned = outputText
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/```$/i, '')
     .trim();
 
-  const parsed = JSON.parse(cleaned) as Partial<AiCorrectiveActionDraftOutput>;
+  const parsed = JSON.parse(cleaned) as Partial<StructuredCorrectiveActionDraft> & Partial<AiCorrectiveActionDraftOutput>;
+  const rawSections = typeof parsed.sections === 'object' && parsed.sections !== null ? parsed.sections : {};
 
   return {
     status: 'draft-only-unconfirmed',
-    issueSummary: safeString(parsed.issueSummary),
-    correctiveActionRequired: safeString(parsed.correctiveActionRequired),
-    standardWorkRequirement: safeString(parsed.standardWorkRequirement),
-    responsibilityByOperation: safeString(parsed.responsibilityByOperation),
-    containmentAction: safeString(parsed.containmentAction),
-    inspectionVerificationRequirement: safeString(parsed.inspectionVerificationRequirement),
-    photoEvidenceReference: safeString(parsed.photoEvidenceReference),
-    closeoutRequirement: safeString(parsed.closeoutRequirement),
+    draftSource: 'openai-corrective-action-draft',
+    releaseGate,
+    sections: REQUIRED_DRAFT_KEYS.reduce<StructuredCorrectiveActionDraft['sections']>((sections, key) => {
+      sections[key] = sectionFromUnknown(key, (rawSections as Record<string, unknown>)[key] ?? parsed[key]);
+      return sections;
+    }, {} as StructuredCorrectiveActionDraft['sections']),
   };
 }
 
-function getMissingDraftSections(draft: AiCorrectiveActionDraftOutput) {
-  return REQUIRED_DRAFT_KEYS.filter((key) => !String(draft[key]).trim());
+function flattenStructuredDraft(structuredDraft: StructuredCorrectiveActionDraft): AiCorrectiveActionDraftOutput {
+  return {
+    status: 'draft-only-unconfirmed',
+    issueSummary: structuredDraft.sections.issueSummary.draftText,
+    correctiveActionRequired: structuredDraft.sections.correctiveActionRequired.draftText,
+    standardWorkRequirement: structuredDraft.sections.standardWorkRequirement.draftText,
+    responsibilityByOperation: structuredDraft.sections.responsibilityByOperation.draftText,
+    containmentAction: structuredDraft.sections.containmentAction.draftText,
+    inspectionVerificationRequirement: structuredDraft.sections.inspectionVerificationRequirement.draftText,
+    photoEvidenceReference: structuredDraft.sections.photoEvidenceReference.draftText,
+    closeoutRequirement: structuredDraft.sections.closeoutRequirement.draftText,
+  };
+}
+
+function getMissingDraftSections(structuredDraft: StructuredCorrectiveActionDraft) {
+  return REQUIRED_DRAFT_KEYS.filter((key) => !structuredDraft.sections[key].draftText.trim());
 }
 
 export async function POST(request: Request) {
@@ -102,7 +144,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const prompt = `${buildAiCorrectiveActionDraftPrompt(aiDraftFoundation.input)}\n\nReturn only valid JSON with these exact keys: status, issueSummary, correctiveActionRequired, standardWorkRequirement, responsibilityByOperation, containmentAction, inspectionVerificationRequirement, photoEvidenceReference, closeoutRequirement. status must equal draft-only-unconfirmed.`;
+  const prompt = buildAiCorrectiveActionDraftPrompt(aiDraftFoundation.input);
 
   const openAiResponse = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -147,15 +189,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const draft = parseDraftJson(outputText);
-    const missingDraftSections = getMissingDraftSections(draft).filter((section) => section !== 'status');
+    const structuredDraft = parseStructuredDraftJson(outputText);
+    const draft = flattenStructuredDraft(structuredDraft);
+    const missingDraftSections = getMissingDraftSections(structuredDraft);
 
     return NextResponse.json({
+      structuredDraft,
       draft,
       status: 'draft-only-unconfirmed',
       draftSource: 'openai-corrective-action-draft',
       missingDraftSections,
-      releaseGate: 'AI draft output is editable and unconfirmed. Human review remains required before release/PDF.',
+      releaseGate,
     });
   } catch {
     return NextResponse.json(
