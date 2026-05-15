@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
   correctionTypeOptions,
   departmentOptions,
@@ -9,7 +8,6 @@ import {
 type GenerateScreenProps = {
   wocData: WocCorrectionData;
   generateReady: boolean;
-  manualEntry: string;
   onUpdateField: (key: keyof WocCorrectionData, value: string) => void;
   onUpdateAffectedArea: (value: string) => void;
   onGenerateDraft: () => void;
@@ -40,19 +38,10 @@ function RouterContextItem({ label, value }: { label: string; value: string }) {
 export function GenerateScreen({
   wocData,
   generateReady,
-  manualEntry,
   onUpdateField,
   onUpdateAffectedArea,
   onGenerateDraft,
 }: GenerateScreenProps) {
-  useEffect(() => {
-    const note = manualEntry.trim();
-    if (!note || wocData.shortIssueDescription.trim()) return;
-
-    onUpdateField('shortIssueDescription', note);
-    onUpdateField('issueDetails', note);
-  }, [manualEntry, onUpdateField, wocData.shortIssueDescription]);
-
   return (
     <section className="stack">
       <div className="screen-title">
