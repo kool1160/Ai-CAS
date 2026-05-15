@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import {
   buildControlledCorrectiveActionPdfTemplate,
   type ControlledPdfEvidenceItem,
@@ -66,6 +66,35 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function buildReviewEvidenceSummary(photoEvidenceItems: ReviewPhotoEvidence[]) {
+  if (!photoEvidenceItems.length) {
+    return [
+      'Photo Evidence Attached: No Review-step photo evidence attached.',
+      'Photo Evidence Note: Images are local/session-only when added. Email attachments, PDF export, and print are not active.',
+    ].join('\n');
+  }
+
+  return [
+    `Photo Evidence Attached: Yes — ${photoEvidenceItems.length} Review-step photo(s).`,
+    'Photo Evidence Boundary: Images are local/session-only previews. Images are not attached to email, exported to PDF, printed, or released.',
+    ...photoEvidenceItems.map((item, index) => [
+      `Evidence ${index + 1}:`,
+      `- File Name: ${item.fileName || '[No file name available]'}`,
+      `- Evidence Label: ${item.label || '[Manual review needed: Evidence Label]'}`,
+      `- Caption / Note: ${item.caption || '[Manual review needed: Caption / Note]'}`,
+      `- File Type: ${item.fileType || 'Unknown type'}`,
+      `- File Size: ${formatFileSize(item.fileSize)}`,
+    ].join('\n')),
+  ].join('\n');
+}
+
+function appendReviewEvidenceToOutput(baseText: string | undefined, photoEvidenceItems: ReviewPhotoEvidence[], outputType: 'report' | 'email') {
+  const base = baseText?.trim() || 'Generate a correction package before final review.';
+  const heading = outputType === 'email' ? 'Review Photo Evidence Context' : 'Review Photo Evidence Metadata';
+
+  return `${base}\n\n${heading}\n${buildReviewEvidenceSummary(photoEvidenceItems)}`;
+}
+
 const aiDraftDisplaySections: Array<{ key: AiCorrectiveActionDraftSectionKey; label: string }> = [
   { key: 'issueSummary', label: 'Issue Summary' },
   { key: 'correctiveActionRequired', label: 'Corrective Action Required' },
@@ -122,13 +151,22 @@ export function ReviewSendScreen({
   const [structuredDraft, setStructuredDraft] = useState<StructuredCorrectiveActionDraft | null>(null);
   const [photoEvidenceItems, setPhotoEvidenceItems] = useState<ReviewPhotoEvidence[]>([]);
   const [photoEvidenceFeedback, setPhotoEvidenceFeedback] = useState<ActionFeedback>(null);
+  const [reviewOutputFeedback, setReviewOutputFeedback] = useState<ActionFeedback>(null);
   const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
+  const enhancedReportPreview = useMemo(
+    () => appendReviewEvidenceToOutput(generatedPackage?.reportPreview, photoEvidenceItems, 'report'),
+    [generatedPackage?.reportPreview, photoEvidenceItems],
+  );
+  const enhancedEmailPreview = useMemo(
+    () => appendReviewEvidenceToOutput(generatedPackage?.emailPreview, photoEvidenceItems, 'email'),
+    [generatedPackage?.emailPreview, photoEvidenceItems],
+  );
   const controlledPdfPreview = generatedPackage
     ? buildControlledCorrectiveActionPdfTemplate(
         {
           correctionType: generatedPackage.subjectLine,
-          shortIssueDescription: generatedPackage.reportPreview,
-          requiredCorrection: generatedPackage.emailPreview,
+          shortIssueDescription: enhancedReportPreview,
+          requiredCorrection: enhancedEmailPreview,
           aiExtractedDataConfirmation: 'Pending human confirmation review',
           humanReleaseConfirmation: confirmations.finalReviewConfirmed
             ? 'Human final review confirmed'
@@ -149,6 +187,20 @@ export function ReviewSendScreen({
       photoEvidenceItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
     };
   }, [photoEvidenceItems]);
+
+  const copyEnhancedOutput = async (text: string, label: string) => {
+    if (!generatedPackage) {
+      setReviewOutputFeedback({ tone: 'error', message: `Generate a correction package before copying the ${label}.` });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setReviewOutputFeedback({ tone: 'success', message: `${label} copied with active Review evidence metadata.` });
+    } catch {
+      setReviewOutputFeedback({ tone: 'error', message: `${label} could not be copied. Use manual selection as fallback.` });
+    }
+  };
 
   const generateAiCorrectiveActionDraft = async () => {
     if (!aiDraftFoundation) {
@@ -291,10 +343,12 @@ export function ReviewSendScreen({
 
     setPhotoEvidenceItems((current) => [...current, nextItem].slice(0, 3));
     setPhotoEvidenceFeedback({ tone: 'success', message: `${file.name} added as Review-step evidence. Stored locally in this session only.` });
+    setReviewOutputFeedback(null);
   };
 
   const updatePhotoEvidence = (id: string, update: Partial<Pick<ReviewPhotoEvidence, 'label' | 'caption'>>) => {
     setPhotoEvidenceItems((current) => current.map((item) => (item.id === id ? { ...item, ...update } : item)));
+    setReviewOutputFeedback(null);
   };
 
   const removePhotoEvidence = (id: string) => {
@@ -304,6 +358,7 @@ export function ReviewSendScreen({
       return current.filter((item) => item.id !== id);
     });
     setPhotoEvidenceFeedback({ tone: 'success', message: 'Review-step evidence photo removed.' });
+    setReviewOutputFeedback(null);
   };
 
   return (
@@ -384,7 +439,7 @@ export function ReviewSendScreen({
             </div>
             <div className="placeholder-item">
               <strong>Evidence Label</strong>
-              <span>{aiDraftFoundation.input.evidenceLabel || '[Manual entry needed: Evidence Label]'}</span>
+              <span>{photoEvidenceItems.map((item) => item.label || '[Unlabeled Review evidence]').join(', ') || aiDraftFoundation.input.evidenceLabel || '[Manual entry needed: Evidence Label]'}</span>
             </div>
             <div className="placeholder-item">
               <strong>Photo Evidence Attached</strong>
@@ -495,16 +550,16 @@ export function ReviewSendScreen({
           </div>
           <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Confirmed' : 'Review Required'}</span>
         </div>
-        <div className="preview-box">{generatedPackage?.reportPreview ?? 'Generate a correction package before final review.'}</div>
+        <div className="preview-box">{enhancedReportPreview}</div>
       </article>
 
       <article className="card review-action-panel">
         <h2>Engineering Email Draft</h2>
-        <div className="preview-box">{generatedPackage?.emailPreview ?? 'Generate a correction package before final review.'}</div>
+        <div className="preview-box">{enhancedEmailPreview}</div>
 
         <div className="action-row">
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyReport}>Copy Report Draft</button>
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyEmailDraft}>Copy Email Draft</button>
+          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedReportPreview, 'Engineering report draft')}>Copy Report Draft</button>
+          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedEmailPreview, 'Email draft')}>Copy Email Draft</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
         </div>
 
@@ -513,6 +568,10 @@ export function ReviewSendScreen({
             Future Controlled PDF / Export Flow — Not Yet Enabled
           </button>
         </div>
+
+        {reviewOutputFeedback && (
+          <p className="field-help">{reviewOutputFeedback.tone === 'success' ? 'Review output: ' : 'Review output error: '}{reviewOutputFeedback.message}</p>
+        )}
 
         {copyFeedback && (
           <p className="field-help">{copyFeedback.tone === 'success' ? 'Copied: ' : 'Copy error: '}{copyFeedback.message}</p>
@@ -524,6 +583,10 @@ export function ReviewSendScreen({
 
         {sendFeedback && (
           <p className="field-help">{sendFeedback.tone === 'success' ? 'Send placeholder: ' : 'Send placeholder error: '}{sendFeedback.message}</p>
+        )}
+
+        {photoEvidenceItems.length > 0 && (
+          <p className="field-help">Save note: Review-step photo evidence is local/session-only. Current draft save keeps existing generated record text unless future record-model support is added.</p>
         )}
 
         <label style={{ marginTop: 14 }}>
