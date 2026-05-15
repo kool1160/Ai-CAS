@@ -367,8 +367,8 @@ export function getGateStatus(
 
   const correctionTypeReady = isFilled(data.correctionType) && confirmations.correctionTypeSelected;
   const affectedAreaReady = isFilled(getEffectiveAffectedArea(data));
-  const issueDetailsReady = isFilled(v4IssueSummary(data)) && confirmations.issueDetailsEntered;
-  const generateReady = confirmReady && correctionTypeReady && affectedAreaReady && issueDetailsReady;
+  const issueDetailsReady = isFilled(v4IssueSummary(data)) || isFilled(data.detailedIssueNotes);
+  const generateReady = confirmReady && issueDetailsReady;
 
   const reviewReady = Boolean(generatedPackage) && confirmations.finalReviewConfirmed;
   const sendReady = generateReady && reviewReady;
