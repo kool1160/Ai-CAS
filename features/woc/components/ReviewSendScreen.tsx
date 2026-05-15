@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { buildControlledCorrectiveActionPdfTemplate } from '../logic/controlledPdfTemplateFoundation';
+import { useEffect, useState, type ChangeEvent } from 'react';
+import {
+  buildControlledCorrectiveActionPdfTemplate,
+  type ControlledPdfEvidenceItem,
+} from '../logic/controlledPdfTemplateFoundation';
 import type {
   AiCorrectiveActionDraftSectionKey,
   StructuredCorrectiveActionDraft,
@@ -38,11 +41,29 @@ type AiCorrectiveActionDraftResult = {
   closeoutRequirement: string;
 };
 
+type ReviewPhotoEvidence = ControlledPdfEvidenceItem & {
+  previewUrl: string;
+};
+
+const evidenceLabelOptions = [
+  'Correct condition',
+  'Incorrect condition',
+  'Gauge / check evidence',
+  'Staging evidence',
+  'Other supporting evidence',
+];
+
 function formatSectionLabel(section: string) {
   return section
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, (firstLetter) => firstLetter.toUpperCase())
     .trim();
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const aiDraftDisplaySections: Array<{ key: AiCorrectiveActionDraftSectionKey; label: string }> = [
@@ -74,6 +95,10 @@ function getStructuredDraftFromPayload(payload: unknown) {
   return structuredDraft as StructuredCorrectiveActionDraft;
 }
 
+function getPdfEvidenceItems(photoEvidenceItems: ReviewPhotoEvidence[]): ControlledPdfEvidenceItem[] {
+  return photoEvidenceItems.map(({ previewUrl, ...item }) => item);
+}
+
 export function ReviewSendScreen({
   generatedPackage,
   submittedBy,
@@ -95,6 +120,8 @@ export function ReviewSendScreen({
   const [aiDraftFeedback, setAiDraftFeedback] = useState<ActionFeedback>(null);
   const [aiCorrectiveActionDraft, setAiCorrectiveActionDraft] = useState<AiCorrectiveActionDraftResult | null>(null);
   const [structuredDraft, setStructuredDraft] = useState<StructuredCorrectiveActionDraft | null>(null);
+  const [photoEvidenceItems, setPhotoEvidenceItems] = useState<ReviewPhotoEvidence[]>([]);
+  const [photoEvidenceFeedback, setPhotoEvidenceFeedback] = useState<ActionFeedback>(null);
   const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
   const controlledPdfPreview = generatedPackage
     ? buildControlledCorrectiveActionPdfTemplate(
@@ -108,12 +135,20 @@ export function ReviewSendScreen({
             : 'Human final review not confirmed',
           routerWorkOrderPhotoPlaceholder: 'Router/work-order evidence placeholder',
           partDefectPhotoPlaceholder: 'Part/defect evidence placeholder',
+          structuredDraft,
+          evidenceItems: getPdfEvidenceItems(photoEvidenceItems),
         },
         {
           finalReviewConfirmed: confirmations.finalReviewConfirmed,
         },
       )
     : null;
+
+  useEffect(() => {
+    return () => {
+      photoEvidenceItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    };
+  }, [photoEvidenceItems]);
 
   const generateAiCorrectiveActionDraft = async () => {
     if (!aiDraftFoundation) {
@@ -225,6 +260,52 @@ export function ReviewSendScreen({
     });
   };
 
+  const addPhotoEvidence = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = '';
+
+    if (!file) {
+      setPhotoEvidenceFeedback({ tone: 'error', message: 'No photo evidence selected.' });
+      return;
+    }
+
+    if (photoEvidenceItems.length >= 3) {
+      setPhotoEvidenceFeedback({ tone: 'error', message: 'Limit reached. Review evidence supports up to 3 photos for now.' });
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoEvidenceFeedback({ tone: 'error', message: 'Evidence upload must be an image file.' });
+      return;
+    }
+
+    const nextItem: ReviewPhotoEvidence = {
+      id: `review-evidence-${Date.now()}-${photoEvidenceItems.length + 1}`,
+      label: '',
+      caption: '',
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      previewUrl: URL.createObjectURL(file),
+    };
+
+    setPhotoEvidenceItems((current) => [...current, nextItem].slice(0, 3));
+    setPhotoEvidenceFeedback({ tone: 'success', message: `${file.name} added as Review-step evidence. Stored locally in this session only.` });
+  };
+
+  const updatePhotoEvidence = (id: string, update: Partial<Pick<ReviewPhotoEvidence, 'label' | 'caption'>>) => {
+    setPhotoEvidenceItems((current) => current.map((item) => (item.id === id ? { ...item, ...update } : item)));
+  };
+
+  const removePhotoEvidence = (id: string) => {
+    setPhotoEvidenceItems((current) => {
+      const removed = current.find((item) => item.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return current.filter((item) => item.id !== id);
+    });
+    setPhotoEvidenceFeedback({ tone: 'success', message: 'Review-step evidence photo removed.' });
+  };
+
   return (
     <section className="stack review-panel-screen">
       <div className="screen-title">
@@ -233,6 +314,57 @@ export function ReviewSendScreen({
       </div>
 
       {controlledPdfPreview && <ControlledPdfPreviewRenderer template={controlledPdfPreview} />}
+
+      <article className="card review-photo-evidence-panel">
+        <div className="card-header">
+          <div>
+            <span className="step-pill">REVIEW EVIDENCE · LOCAL SESSION ONLY</span>
+            <h2>Review-Step Photo Evidence</h2>
+            <p>Add up to 3 labeled photos for controlled preview context. No export or PDF image embedding is enabled.</p>
+          </div>
+          <span className="field-status">{photoEvidenceItems.length}/3</span>
+        </div>
+        <div className="action-row">
+          <label className="button secondary" htmlFor="review-evidence-upload-input">Add Evidence Photo</label>
+          <input accept="image/*" hidden id="review-evidence-upload-input" onChange={addPhotoEvidence} type="file" />
+        </div>
+        {photoEvidenceFeedback && (
+          <p className="field-help">{photoEvidenceFeedback.tone === 'success' ? 'Evidence: ' : 'Evidence error: '}{photoEvidenceFeedback.message}</p>
+        )}
+        {photoEvidenceItems.length > 0 && (
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            {photoEvidenceItems.map((item, index) => (
+              <div className="placeholder-item" key={item.id}>
+                <strong>Evidence Photo {index + 1}</strong>
+                <span>{item.fileName} · {formatFileSize(item.fileSize)}</span>
+                <img alt={`Review evidence ${index + 1}`} className="upload-preview" src={item.previewUrl} style={{ marginTop: 10 }} />
+                <div className="form-grid" style={{ marginTop: 10 }}>
+                  <label>
+                    Evidence Label
+                    <select value={item.label} onChange={(event) => updatePhotoEvidence(item.id, { label: event.target.value })}>
+                      <option value="">Select evidence context</option>
+                      {evidenceLabelOptions.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Caption / Note
+                    <textarea
+                      value={item.caption}
+                      onChange={(event) => updatePhotoEvidence(item.id, { caption: event.target.value })}
+                      placeholder="Describe what this photo proves or supports."
+                    />
+                  </label>
+                </div>
+                <div className="action-row">
+                  <button className="button secondary" type="button" onClick={() => removePhotoEvidence(item.id)}>Remove Photo</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
 
       {aiDraftFoundation && (
         <article className="card review-ai-draft-foundation-panel">
@@ -256,11 +388,11 @@ export function ReviewSendScreen({
             </div>
             <div className="placeholder-item">
               <strong>Photo Evidence Attached</strong>
-              <span>{aiDraftFoundation.input.photoEvidenceAttached ? 'Yes' : 'No'}</span>
+              <span>{photoEvidenceItems.length > 0 ? `Yes — ${photoEvidenceItems.length} Review-step photo(s)` : aiDraftFoundation.input.photoEvidenceAttached ? 'Yes — Capture evidence present' : 'No'}</span>
             </div>
             <div className="placeholder-item">
               <strong>Photo Evidence File Name</strong>
-              <span>{aiDraftFoundation.input.photoEvidenceFileName || '[No photo evidence file name available]'}</span>
+              <span>{photoEvidenceItems.map((item) => item.fileName).join(', ') || aiDraftFoundation.input.photoEvidenceFileName || '[No photo evidence file name available]'}</span>
             </div>
           </div>
 
