@@ -35,6 +35,15 @@ function DepartmentDropdown({
   );
 }
 
+function RouterContextItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="placeholder-item">
+      <strong>{label}</strong>
+      <span>{value.trim() || `[Manual entry needed: ${label}]`}</span>
+    </div>
+  );
+}
+
 export function GenerateScreen({
   wocData,
   generateReady,
@@ -45,16 +54,81 @@ export function GenerateScreen({
   return (
     <section className="stack">
       <div className="screen-title">
-        <h1>Build Corrective Action</h1>
-        <p>Complete the V4 corrective action field model before release/PDF unlocks.</p>
+        <h1>Build Correction</h1>
+        <p>AI-CAS uses confirmed router data plus one operator exception note to draft the corrective action.</p>
       </div>
 
       <article className="card">
-        <div className="screen-title">
-          <h2>1. Job / Router Data</h2>
+        <div className="card-header">
+          <div>
+            <span className="step-pill">SIMPLE MODE · OPERATOR EXCEPTION</span>
+            <h2>What is wrong?</h2>
+            <p>Type one rough shop-floor sentence. AI-CAS will turn it into structured corrective-action language.</p>
+          </div>
+          <span className={wocData.shortIssueDescription.trim() ? 'field-status confirmed' : 'field-status'}>
+            {wocData.shortIssueDescription.trim() ? 'Ready' : 'Needed'}
+          </span>
         </div>
 
         <div className="form-grid">
+          <label>
+            What is wrong?
+            <textarea
+              value={wocData.shortIssueDescription}
+              onChange={(event) => {
+                onUpdateField('shortIssueDescription', event.target.value);
+                onUpdateField('issueDetails', event.target.value);
+              }}
+              placeholder="Example: Work order is missing welding operation."
+              style={{ minHeight: 170 }}
+            />
+          </label>
+          <p className="field-help">
+            Examples: Work order is missing welding operation. Hole size failed no-go pin check. Parts were not cleaned after laser before welding.
+          </p>
+        </div>
+
+        <div className="action-row">
+          <button className="button danger full-width" type="button" onClick={onGenerateDraft} disabled={!generateReady}>
+            Generate AI Corrective Action Draft
+          </button>
+        </div>
+
+        {!generateReady && (
+          <p className="field-help">
+            Generate requires confirmed Work Order, confirmed Part Number, a department/failure-point selection, and one short answer to “What is wrong?”
+          </p>
+        )}
+      </article>
+
+      <article className="card">
+        <div className="card-header">
+          <div>
+            <span className="step-pill">ROUTER CONTEXT · FROM AI VISION / CONFIRM</span>
+            <h2>Confirmed Router / Job Context</h2>
+            <p>These fields should come from the uploaded router/work order when available. Fill blanks only if needed.</p>
+          </div>
+        </div>
+
+        <div className="placeholder-list">
+          <RouterContextItem label="Work Order" value={wocData.workOrderNumber} />
+          <RouterContextItem label="Part Number" value={wocData.partNumber} />
+          <RouterContextItem label="Customer / Job" value={wocData.customerOrJob} />
+          <RouterContextItem label="Quantity" value={wocData.quantityAffected || wocData.quantity} />
+          <RouterContextItem label="Router Step / Operation" value={wocData.routerStepOperation} />
+          <RouterContextItem label="Material" value={wocData.material} />
+          <RouterContextItem label="Next Operation" value={wocData.nextOperation} />
+          <RouterContextItem label="Inspection Operation" value={wocData.inspectionOperation} />
+        </div>
+      </article>
+
+      <details className="card">
+        <summary>
+          <strong>Advanced Details</strong>
+          <p className="field-help">Optional router, department, and issue fields. These stay available but are not required for simple mode unless your shop needs them.</p>
+        </summary>
+
+        <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Correction Type
             <select value={wocData.correctionType} onChange={(event) => onUpdateField('correctionType', event.target.value)}>
@@ -108,20 +182,31 @@ export function GenerateScreen({
               onChange={(event) => onUpdateField('dueDateShipDate', event.target.value)}
             />
           </label>
-        </div>
-      </article>
 
-      <article className="card">
-        <div className="screen-title">
-          <h2>2. Issue Description</h2>
-        </div>
-
-        <div className="form-grid">
           <label>
-            Short Issue Description
-            <textarea
-              value={wocData.shortIssueDescription}
-              onChange={(event) => onUpdateField('shortIssueDescription', event.target.value)}
+            Material
+            <input
+              type="text"
+              value={wocData.material}
+              onChange={(event) => onUpdateField('material', event.target.value)}
+            />
+          </label>
+
+          <label>
+            Next Operation
+            <input
+              type="text"
+              value={wocData.nextOperation}
+              onChange={(event) => onUpdateField('nextOperation', event.target.value)}
+            />
+          </label>
+
+          <label>
+            Inspection Operation
+            <input
+              type="text"
+              value={wocData.inspectionOperation}
+              onChange={(event) => onUpdateField('inspectionOperation', event.target.value)}
             />
           </label>
 
@@ -149,15 +234,7 @@ export function GenerateScreen({
               onChange={(event) => onUpdateField('productionImpact', event.target.value)}
             />
           </label>
-        </div>
-      </article>
 
-      <article className="card">
-        <div className="screen-title">
-          <h2>3. Department / Flow Control</h2>
-        </div>
-
-        <div className="form-grid">
           <DepartmentDropdown
             label="Found At Department"
             value={wocData.foundAtDepartment}
@@ -197,14 +274,15 @@ export function GenerateScreen({
             </label>
           )}
         </div>
-      </article>
+      </details>
 
-      <article className="card">
-        <div className="screen-title">
-          <h2>4. Corrective Action Requirements</h2>
-        </div>
+      <details className="card">
+        <summary>
+          <strong>Edit Generated Sections</strong>
+          <p className="field-help">Optional manual overrides. AI-CAS can draft these from the router context and “What is wrong?” note.</p>
+        </summary>
 
-        <div className="form-grid">
+        <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Immediate Containment
             <textarea
@@ -248,14 +326,15 @@ export function GenerateScreen({
             />
           </label>
         </div>
-      </article>
+      </details>
 
-      <article className="card">
-        <div className="screen-title">
-          <h2>5. Evidence / Confirmation</h2>
-        </div>
+      <details className="card">
+        <summary>
+          <strong>Evidence Details</strong>
+          <p className="field-help">Optional evidence wording. Review-step photo evidence stays available later in Review.</p>
+        </summary>
 
-        <div className="form-grid">
+        <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Router / Work Order Photo Placeholder
             <textarea
@@ -288,20 +367,7 @@ export function GenerateScreen({
             />
           </label>
         </div>
-
-        <div className="action-row">
-          <button className="button danger full-width" type="button" onClick={onGenerateDraft} disabled={!generateReady}>
-            Generate Draft
-          </button>
-        </div>
-
-        {!generateReady && (
-          <p className="field-help">
-            Generate requires confirmed Work Order, confirmed Part Number, department flow selections,
-            issue details, and corrective action requirements.
-          </p>
-        )}
-      </article>
+      </details>
     </section>
   );
 }
