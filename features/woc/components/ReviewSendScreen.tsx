@@ -53,6 +53,17 @@ const evidenceLabelOptions = [
   'Other supporting evidence',
 ];
 
+const aiDraftDisplaySections: Array<{ key: AiCorrectiveActionDraftSectionKey; label: string }> = [
+  { key: 'issueSummary', label: 'Issue Summary' },
+  { key: 'correctiveActionRequired', label: 'Corrective Action Required' },
+  { key: 'standardWorkRequirement', label: 'Standard Work Requirement' },
+  { key: 'responsibilityByOperation', label: 'Responsibility by Operation' },
+  { key: 'containmentAction', label: 'Containment Action' },
+  { key: 'inspectionVerificationRequirement', label: 'Inspection / Verification Requirement' },
+  { key: 'photoEvidenceReference', label: 'Photo Evidence Reference' },
+  { key: 'closeoutRequirement', label: 'Closeout Requirement' },
+];
+
 function formatSectionLabel(section: string) {
   return section
     .replace(/([A-Z])/g, ' $1')
@@ -64,6 +75,12 @@ function formatFileSize(size: number) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function extractPreviewLine(text: string | undefined, label: string) {
+  const lines = text?.split('\n') ?? [];
+  const line = lines.find((entry) => entry.trim().startsWith(`${label}:`));
+  return line?.replace(`${label}:`, '').trim() || 'Not captured';
 }
 
 function buildReviewEvidenceSummary(photoEvidenceItems: ReviewPhotoEvidence[]) {
@@ -95,17 +112,6 @@ function appendReviewEvidenceToOutput(baseText: string | undefined, photoEvidenc
   return `${base}\n\n${heading}\n${buildReviewEvidenceSummary(photoEvidenceItems)}`;
 }
 
-const aiDraftDisplaySections: Array<{ key: AiCorrectiveActionDraftSectionKey; label: string }> = [
-  { key: 'issueSummary', label: 'Issue Summary' },
-  { key: 'correctiveActionRequired', label: 'Corrective Action Required' },
-  { key: 'standardWorkRequirement', label: 'Standard Work Requirement' },
-  { key: 'responsibilityByOperation', label: 'Responsibility by Operation' },
-  { key: 'containmentAction', label: 'Containment Action' },
-  { key: 'inspectionVerificationRequirement', label: 'Inspection / Verification Requirement' },
-  { key: 'photoEvidenceReference', label: 'Photo Evidence Reference' },
-  { key: 'closeoutRequirement', label: 'Closeout Requirement' },
-];
-
 function appendLine(value: string, line: string) {
   const normalized = value.trimEnd();
   return normalized ? `${normalized}\n${line}` : line;
@@ -128,6 +134,15 @@ function getPdfEvidenceItems(photoEvidenceItems: ReviewPhotoEvidence[]): Control
   return photoEvidenceItems.map(({ previewUrl, ...item }) => item);
 }
 
+function DraftSectionCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="placeholder-item">
+      <strong>{label}</strong>
+      <span>{value || `[Manual review needed: ${label}]`}</span>
+    </div>
+  );
+}
+
 export function ReviewSendScreen({
   generatedPackage,
   submittedBy,
@@ -138,8 +153,6 @@ export function ReviewSendScreen({
   saveFeedback,
   sendFeedback,
   confirmations,
-  onCopyReport,
-  onCopyEmailDraft,
   onSaveDraft,
   onFinalReviewChange,
   onSendPinChange,
@@ -361,38 +374,160 @@ export function ReviewSendScreen({
     setReviewOutputFeedback(null);
   };
 
+  const jobContextPreview = generatedPackage?.reportPreview;
+  const displayedStructuredDraft = structuredDraft;
+
   return (
     <section className="stack review-panel-screen">
       <div className="screen-title">
-        <h1>Review / Draft Control</h1>
-        <p>Review the editable corrective action draft. Final PDF/export release remains locked until future V4 controlled release flow is built.</p>
+        <h1>Review Corrective Action</h1>
+        <p>Review the AI-generated corrective action draft before release.</p>
       </div>
 
-      {controlledPdfPreview && <ControlledPdfPreviewRenderer template={controlledPdfPreview} />}
+      <article className="card">
+        <div className="card-header">
+          <div>
+            <span className="step-pill">JOB CONTEXT</span>
+            <h2>Confirmed Job Context</h2>
+            <p>Captured router/job details used to draft this corrective action.</p>
+          </div>
+        </div>
+        <div className="placeholder-list">
+          <DraftSectionCard label="Work Order" value={extractPreviewLine(jobContextPreview, 'Work Order')} />
+          <DraftSectionCard label="Part Number" value={extractPreviewLine(jobContextPreview, 'Part Number')} />
+          <DraftSectionCard label="Customer / Job" value={extractPreviewLine(jobContextPreview, 'Customer / Job Name')} />
+          <DraftSectionCard label="Router Step / Operation" value={extractPreviewLine(jobContextPreview, 'Router Step / Operation')} />
+          <DraftSectionCard label="Quantity" value={extractPreviewLine(jobContextPreview, 'Quantity Affected')} />
+        </div>
+      </article>
+
+      <article className="card review-report-panel">
+        <div className="card-header">
+          <div>
+            <span className="step-pill">AI-GENERATED DRAFT</span>
+            <h2>{generatedPackage ? 'Corrective Action Draft' : 'Draft Not Generated'}</h2>
+            <p>Generated draft language for review. Advanced editing tools are available below if needed.</p>
+          </div>
+          <span className={confirmations.finalReviewConfirmed ? 'field-status confirmed' : 'field-status'}>
+            {confirmations.finalReviewConfirmed ? 'Reviewed' : 'Review Required'}
+          </span>
+        </div>
+
+        {displayedStructuredDraft ? (
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            {aiDraftDisplaySections.map((section) => {
+              const structuredSection = displayedStructuredDraft.sections[section.key];
+              return (
+                <DraftSectionCard
+                  key={section.key}
+                  label={structuredSection?.title || section.label}
+                  value={structuredSection?.draftText || ''}
+                />
+              );
+            })}
+          </div>
+        ) : aiCorrectiveActionDraft ? (
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            {aiDraftDisplaySections.map((section) => (
+              <DraftSectionCard key={section.key} label={section.label} value={aiCorrectiveActionDraft[section.key] || ''} />
+            ))}
+          </div>
+        ) : (
+          <div className="preview-box">{enhancedReportPreview}</div>
+        )}
+      </article>
 
       <article className="card review-photo-evidence-panel">
         <div className="card-header">
           <div>
-            <span className="step-pill">REVIEW EVIDENCE · LOCAL SESSION ONLY</span>
-            <h2>Review-Step Photo Evidence</h2>
-            <p>Add up to 3 labeled photos for controlled preview context. No export or PDF image embedding is enabled.</p>
+            <span className="step-pill">EVIDENCE SUMMARY</span>
+            <h2>Evidence</h2>
+            <p>Attached evidence remains local/session-only. Export, print, email, and PDF image release are not enabled.</p>
           </div>
           <span className="field-status">{photoEvidenceItems.length}/3</span>
         </div>
+
+        {photoEvidenceItems.length > 0 ? (
+          <div className="placeholder-list" style={{ marginTop: 14 }}>
+            {photoEvidenceItems.map((item, index) => (
+              <div className="placeholder-item" key={item.id}>
+                <strong>Evidence {index + 1}: {item.label || 'Label needed'}</strong>
+                <span>{item.fileName} · {formatFileSize(item.fileSize)} · {item.caption || 'No caption entered'}</span>
+                <img alt={`Review evidence ${index + 1}`} className="upload-preview" src={item.previewUrl} style={{ marginTop: 10 }} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="field-help">No Review-step evidence photos attached.</p>
+        )}
+      </article>
+
+      <article className="card review-action-panel">
+        <div className="card-header">
+          <div>
+            <h2>Human Confirmation</h2>
+            <p>Confirm review, then copy or save the draft. Release actions remain disabled.</p>
+          </div>
+          <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Confirmed' : 'Review Required'}</span>
+        </div>
+
+        <label>
+          <input
+            checked={confirmations.finalReviewConfirmed}
+            disabled={!generatedPackage || isSending}
+            onChange={(event) => onFinalReviewChange(event.target.checked)}
+            type="checkbox"
+          />
+          Human final review confirmed
+        </label>
+
+        <div className="action-row" style={{ marginTop: 14 }}>
+          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedReportPreview, 'Engineering report draft')}>Copy Report Draft</button>
+          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedEmailPreview, 'Email draft')}>Copy Email Draft</button>
+          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
+        </div>
+
         <div className="action-row">
+          <button className="button secondary full-width" type="button" disabled>
+            Future Controlled PDF / Export Flow — Not Yet Enabled
+          </button>
+        </div>
+
+        {reviewOutputFeedback && (
+          <p className="field-help">{reviewOutputFeedback.tone === 'success' ? 'Review output: ' : 'Review output error: '}{reviewOutputFeedback.message}</p>
+        )}
+        {copyFeedback && <p className="field-help">{copyFeedback.tone === 'success' ? 'Copied: ' : 'Copy error: '}{copyFeedback.message}</p>}
+        {saveFeedback && <p className="field-help">{saveFeedback.tone === 'success' ? 'Saved: ' : 'Save error: '}{saveFeedback.message}</p>}
+        {sendFeedback && <p className="field-help">{sendFeedback.tone === 'success' ? 'Send placeholder: ' : 'Send placeholder error: '}{sendFeedback.message}</p>}
+
+        <p className="field-help">Submitted By: {submittedBy}</p>
+      </article>
+
+      <details className="card">
+        <summary>
+          <strong>Advanced Editing / Evidence Tools</strong>
+          <p className="field-help">AI drafting inputs, photo labeling, row/bullet controls, raw preview, and release placeholders stay available but collapsed.</p>
+        </summary>
+
+        <div className="action-row" style={{ marginTop: 14 }}>
           <label className="button secondary" htmlFor="review-evidence-upload-input">Add Evidence Photo</label>
           <input accept="image/*" hidden id="review-evidence-upload-input" onChange={addPhotoEvidence} type="file" />
+          <button className="button primary" type="button" disabled={isGeneratingAiDraft || !generatedPackage || !aiDraftFoundation} onClick={generateAiCorrectiveActionDraft}>
+            {isGeneratingAiDraft ? 'Generating AI Corrective Action Draft...' : structuredDraft ? 'Regenerate AI Corrective Action Draft' : 'Generate AI Corrective Action Draft'}
+          </button>
         </div>
+
         {photoEvidenceFeedback && (
           <p className="field-help">{photoEvidenceFeedback.tone === 'success' ? 'Evidence: ' : 'Evidence error: '}{photoEvidenceFeedback.message}</p>
         )}
+        {aiDraftFeedback && <p className="field-help">{aiDraftFeedback.tone === 'success' ? 'AI Draft: ' : 'AI Draft error: '}{aiDraftFeedback.message}</p>}
+
         {photoEvidenceItems.length > 0 && (
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             {photoEvidenceItems.map((item, index) => (
               <div className="placeholder-item" key={item.id}>
                 <strong>Evidence Photo {index + 1}</strong>
                 <span>{item.fileName} · {formatFileSize(item.fileSize)}</span>
-                <img alt={`Review evidence ${index + 1}`} className="upload-preview" src={item.previewUrl} style={{ marginTop: 10 }} />
                 <div className="form-grid" style={{ marginTop: 10 }}>
                   <label>
                     Evidence Label
@@ -419,81 +554,19 @@ export function ReviewSendScreen({
             ))}
           </div>
         )}
-      </article>
 
-      {aiDraftFoundation && (
-        <article className="card review-ai-draft-foundation-panel">
-          <div className="card-header">
-            <div>
-              <span className="step-pill">AI DRAFT FOUNDATION · CONTROLLED MANUAL REQUEST</span>
-              <h2>AI Corrective Action Drafting Input Preview</h2>
-              <p>Review the structured facts that will feed AI-generated corrective-action language. Output remains draft-only, editable, and unconfirmed.</p>
-            </div>
-            <span className="field-status">Human Review Required</span>
-          </div>
-
+        {aiDraftFoundation && (
           <div className="placeholder-list" style={{ marginTop: 14 }}>
-            <div className="placeholder-item">
-              <strong>Short Issue Description</strong>
-              <span>{aiDraftFoundation.input.shortIssueDescription || '[Manual entry needed: Short Issue Description]'}</span>
-            </div>
-            <div className="placeholder-item">
-              <strong>Evidence Label</strong>
-              <span>{photoEvidenceItems.map((item) => item.label || '[Unlabeled Review evidence]').join(', ') || aiDraftFoundation.input.evidenceLabel || '[Manual entry needed: Evidence Label]'}</span>
-            </div>
-            <div className="placeholder-item">
-              <strong>Photo Evidence Attached</strong>
-              <span>{photoEvidenceItems.length > 0 ? `Yes — ${photoEvidenceItems.length} Review-step photo(s)` : aiDraftFoundation.input.photoEvidenceAttached ? 'Yes — Capture evidence present' : 'No'}</span>
-            </div>
-            <div className="placeholder-item">
-              <strong>Photo Evidence File Name</strong>
-              <span>{photoEvidenceItems.map((item) => item.fileName).join(', ') || aiDraftFoundation.input.photoEvidenceFileName || '[No photo evidence file name available]'}</span>
-            </div>
+            <DraftSectionCard label="Short Issue Description" value={aiDraftFoundation.input.shortIssueDescription || ''} />
+            <DraftSectionCard label="Evidence Label" value={photoEvidenceItems.map((item) => item.label || '[Unlabeled Review evidence]').join(', ') || aiDraftFoundation.input.evidenceLabel || ''} />
+            <DraftSectionCard label="Photo Evidence Attached" value={photoEvidenceItems.length > 0 ? `Yes — ${photoEvidenceItems.length} Review-step photo(s)` : aiDraftFoundation.input.photoEvidenceAttached ? 'Yes — Capture evidence present' : 'No'} />
           </div>
+        )}
 
-          <h3 style={{ marginTop: 16 }}>Future AI Draft Sections</h3>
-          <div className="placeholder-list" style={{ marginTop: 14 }}>
-            {aiDraftFoundation.requiredOutputSections
-              .filter((section) => section !== 'status')
-              .map((section) => (
-                <div className="placeholder-item" key={section}>
-                  <strong>{formatSectionLabel(section)}</strong>
-                  <span>Draft foundation ready — AI language generates only when manually requested.</span>
-                </div>
-              ))}
-          </div>
-
-          <div className="action-row" style={{ marginTop: 14 }}>
-            <button className="button primary full-width" type="button" disabled={isGeneratingAiDraft || !generatedPackage} onClick={generateAiCorrectiveActionDraft}>
-              {isGeneratingAiDraft ? 'Generating AI Corrective Action Draft...' : structuredDraft ? 'Regenerate AI Corrective Action Draft' : 'Generate AI Corrective Action Draft'}
-            </button>
-          </div>
-
-          {aiDraftFeedback && (
-            <p className="field-help">{aiDraftFeedback.tone === 'success' ? 'AI Draft: ' : 'AI Draft error: '}{aiDraftFeedback.message}</p>
-          )}
-
-          <p className="field-help">
-            This controlled action does not export a PDF, send email, or bypass human confirmation. AI draft text must be reviewed and edited before future release.
-          </p>
-        </article>
-      )}
-
-      {structuredDraft && (
-        <article className="card review-ai-draft-result-panel">
-          <div className="card-header">
-            <div>
-              <span className="step-pill">STRUCTURED AI DRAFT · EDITABLE · UNCONFIRMED</span>
-              <h2>Structured Corrective Action Draft</h2>
-              <p>Edit each AI-generated section before any future photo/PDF/release work depends on it.</p>
-            </div>
-            <span className="field-status">Human Review Required</span>
-          </div>
-
+        {structuredDraft && (
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             {aiDraftDisplaySections.map((section) => {
               const structuredSection = structuredDraft.sections[section.key];
-
               return (
                 <div className="placeholder-item" key={section.key}>
                   <strong>{structuredSection?.title || section.label}</strong>
@@ -513,91 +586,17 @@ export function ReviewSendScreen({
               );
             })}
           </div>
-
-          <p className="field-help">Status: {structuredDraft.status}. {structuredDraft.releaseGate}</p>
-        </article>
-      )}
-
-      {!structuredDraft && aiCorrectiveActionDraft && (
-        <article className="card review-ai-draft-result-panel">
-          <div className="card-header">
-            <div>
-              <span className="step-pill">AI GENERATED · DRAFT ONLY</span>
-              <h2>AI Corrective Action Draft</h2>
-              <p>Draft-only engineered language. Human review, editing, and confirmation remain required.</p>
-            </div>
-            <span className="field-status">Unconfirmed</span>
-          </div>
-
-          <div className="placeholder-list" style={{ marginTop: 14 }}>
-            {aiDraftDisplaySections.map((section) => (
-              <div className="placeholder-item" key={section.key}>
-                <strong>{section.label}</strong>
-                <span>{aiCorrectiveActionDraft[section.key] || `[Manual review needed: ${section.label}]`}</span>
-              </div>
-            ))}
-          </div>
-
-          <p className="field-help">Status: {aiCorrectiveActionDraft.status}. This draft is not released and does not change the controlled PDF/export gate.</p>
-        </article>
-      )}
-
-      <article className="card review-report-panel">
-        <div className="card-header">
-          <div>
-            <h2>{generatedPackage ? 'Corrective Action Draft Ready' : 'Draft Not Generated'}</h2>
-            <p>Review the correction package and confirm it before any future controlled release flow unlocks.</p>
-          </div>
-          <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Confirmed' : 'Review Required'}</span>
-        </div>
-        <div className="preview-box">{enhancedReportPreview}</div>
-      </article>
-
-      <article className="card review-action-panel">
-        <h2>Engineering Email Draft</h2>
-        <div className="preview-box">{enhancedEmailPreview}</div>
-
-        <div className="action-row">
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedReportPreview, 'Engineering report draft')}>Copy Report Draft</button>
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedEmailPreview, 'Email draft')}>Copy Email Draft</button>
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
-        </div>
-
-        <div className="action-row">
-          <button className="button secondary full-width" type="button" disabled>
-            Future Controlled PDF / Export Flow — Not Yet Enabled
-          </button>
-        </div>
-
-        {reviewOutputFeedback && (
-          <p className="field-help">{reviewOutputFeedback.tone === 'success' ? 'Review output: ' : 'Review output error: '}{reviewOutputFeedback.message}</p>
         )}
 
-        {copyFeedback && (
-          <p className="field-help">{copyFeedback.tone === 'success' ? 'Copied: ' : 'Copy error: '}{copyFeedback.message}</p>
-        )}
+        <details style={{ marginTop: 14 }}>
+          <summary><strong>Raw Email Draft Preview</strong></summary>
+          <div className="preview-box" style={{ marginTop: 10 }}>{enhancedEmailPreview}</div>
+        </details>
 
-        {saveFeedback && (
-          <p className="field-help">{saveFeedback.tone === 'success' ? 'Saved: ' : 'Save error: '}{saveFeedback.message}</p>
-        )}
-
-        {sendFeedback && (
-          <p className="field-help">{sendFeedback.tone === 'success' ? 'Send placeholder: ' : 'Send placeholder error: '}{sendFeedback.message}</p>
-        )}
-
-        {photoEvidenceItems.length > 0 && (
-          <p className="field-help">Save note: Review-step photo evidence is local/session-only. Current draft save keeps existing generated record text unless future record-model support is added.</p>
-        )}
-
-        <label style={{ marginTop: 14 }}>
-          <input
-            checked={confirmations.finalReviewConfirmed}
-            disabled={!generatedPackage || isSending}
-            onChange={(event) => onFinalReviewChange(event.target.checked)}
-            type="checkbox"
-          />
-          Human final review confirmed
-        </label>
+        <details style={{ marginTop: 14 }}>
+          <summary><strong>Controlled PDF Preview Foundation</strong></summary>
+          {controlledPdfPreview && <ControlledPdfPreviewRenderer template={controlledPdfPreview} />}
+        </details>
 
         <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
@@ -613,7 +612,7 @@ export function ReviewSendScreen({
               placeholder="Disabled until controlled release flow"
             />
           </label>
-          <p className="field-help">Direct send/export remains intentionally disabled in V4-M3C.</p>
+          <p className="field-help">Direct send/export remains intentionally disabled.</p>
         </div>
 
         <div className="action-row">
@@ -621,11 +620,7 @@ export function ReviewSendScreen({
             Future Controlled Release Flow — Disabled
           </button>
         </div>
-
-        <p className="field-help">
-          Submitted By: {submittedBy}
-        </p>
-      </article>
+      </details>
     </section>
   );
 }
