@@ -67,7 +67,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
   const humanConfirmed = Boolean(confirmations.finalReviewConfirmed);
 
   return {
-    templateName: 'REFAB Connect V4 Controlled Corrective Action PDF',
+    templateName: 'AI-CAS Controlled Corrective Action PDF',
     templateVersion: 'V4-M4-foundation',
     modelSource: 'WO 008604 corrective action style model',
     status: humanConfirmed ? 'locked-until-controlled-release' : 'foundation-only',
