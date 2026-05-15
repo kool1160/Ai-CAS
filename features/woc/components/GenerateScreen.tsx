@@ -1,5 +1,5 @@
+import { useEffect } from 'react';
 import {
-  affectedAreaOptions,
   correctionTypeOptions,
   departmentOptions,
   otherAffectedAreaOption,
@@ -9,20 +9,13 @@ import {
 type GenerateScreenProps = {
   wocData: WocCorrectionData;
   generateReady: boolean;
+  manualEntry: string;
   onUpdateField: (key: keyof WocCorrectionData, value: string) => void;
   onUpdateAffectedArea: (value: string) => void;
   onGenerateDraft: () => void;
 };
 
-function DepartmentDropdown({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function DepartmentDropdown({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label>
       {label}
@@ -39,7 +32,7 @@ function RouterContextItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="placeholder-item">
       <strong>{label}</strong>
-      <span>{value.trim() || `[Manual entry needed: ${label}]`}</span>
+      <span>{value.trim() || 'Not captured'}</span>
     </div>
   );
 }
@@ -47,23 +40,52 @@ function RouterContextItem({ label, value }: { label: string; value: string }) {
 export function GenerateScreen({
   wocData,
   generateReady,
+  manualEntry,
   onUpdateField,
   onUpdateAffectedArea,
   onGenerateDraft,
 }: GenerateScreenProps) {
+  useEffect(() => {
+    const note = manualEntry.trim();
+    if (!note || wocData.shortIssueDescription.trim()) return;
+
+    onUpdateField('shortIssueDescription', note);
+    onUpdateField('issueDetails', note);
+  }, [manualEntry, onUpdateField, wocData.shortIssueDescription]);
+
   return (
     <section className="stack">
       <div className="screen-title">
-        <h1>Build Correction</h1>
-        <p>AI-CAS uses confirmed router data plus one operator exception note to draft the corrective action.</p>
+        <h1>Build Corrective Action</h1>
+        <p>Confirm the job context, describe the issue in plain language, and let AI-CAS draft the corrective action.</p>
       </div>
 
       <article className="card">
         <div className="card-header">
           <div>
-            <span className="step-pill">SIMPLE MODE · OPERATOR EXCEPTION</span>
+            <span className="step-pill">JOB CONTEXT · READ ONLY</span>
+            <h2>Captured Job Context</h2>
+            <p>AI Vision and confirmation provide the job/router context. The operator only needs to state the exception.</p>
+          </div>
+        </div>
+
+        <div className="placeholder-list">
+          <RouterContextItem label="Work Order" value={wocData.workOrderNumber} />
+          <RouterContextItem label="Part Number" value={wocData.partNumber} />
+          <RouterContextItem label="Customer / Job" value={wocData.customerOrJob} />
+          <RouterContextItem label="Quantity" value={wocData.quantityAffected || wocData.quantity} />
+          <RouterContextItem label="Router Step / Operation" value={wocData.routerStepOperation} />
+          <RouterContextItem label="Due Date / Ship Date" value={wocData.dueDateShipDate} />
+          {wocData.material.trim() && <RouterContextItem label="Material" value={wocData.material} />}
+        </div>
+      </article>
+
+      <article className="card">
+        <div className="card-header">
+          <div>
+            <span className="step-pill">SIMPLE MODE</span>
             <h2>What is wrong?</h2>
-            <p>Type one rough shop-floor sentence. AI-CAS will turn it into structured corrective-action language.</p>
+            <p>Use one rough shop-floor sentence. AI-CAS will write the professional corrective-action draft.</p>
           </div>
           <span className={wocData.shortIssueDescription.trim() ? 'field-status confirmed' : 'field-status'}>
             {wocData.shortIssueDescription.trim() ? 'Ready' : 'Needed'}
@@ -80,52 +102,29 @@ export function GenerateScreen({
                 onUpdateField('issueDetails', event.target.value);
               }}
               placeholder="Example: Work order is missing welding operation."
-              style={{ minHeight: 170 }}
+              style={{ minHeight: 190 }}
             />
           </label>
           <p className="field-help">
-            Examples: Work order is missing welding operation. Hole size failed no-go pin check. Parts were not cleaned after laser before welding.
+            Examples: Work order is missing welding operation. This job needs 2 per part and only 1 per part was cut. Hole size failed no-go pin check. Parts were not cleaned after laser before welding.
           </p>
         </div>
 
         <div className="action-row">
-          <button className="button danger full-width" type="button" onClick={onGenerateDraft} disabled={!generateReady}>
-            Generate AI Corrective Action Draft
+          <button className="button primary full-width" type="button" onClick={onGenerateDraft} disabled={!generateReady}>
+            Generate Corrective Action Draft
           </button>
         </div>
 
         {!generateReady && (
-          <p className="field-help">
-            Generate requires confirmed Work Order, confirmed Part Number, a department/failure-point selection, and one short answer to “What is wrong?”
-          </p>
+          <p className="field-help">Confirm the Work Order and Part Number, then enter one short answer to “What is wrong?”</p>
         )}
-      </article>
-
-      <article className="card">
-        <div className="card-header">
-          <div>
-            <span className="step-pill">ROUTER CONTEXT · FROM AI VISION / CONFIRM</span>
-            <h2>Confirmed Router / Job Context</h2>
-            <p>These fields should come from the uploaded router/work order when available. Fill blanks only if needed.</p>
-          </div>
-        </div>
-
-        <div className="placeholder-list">
-          <RouterContextItem label="Work Order" value={wocData.workOrderNumber} />
-          <RouterContextItem label="Part Number" value={wocData.partNumber} />
-          <RouterContextItem label="Customer / Job" value={wocData.customerOrJob} />
-          <RouterContextItem label="Quantity" value={wocData.quantityAffected || wocData.quantity} />
-          <RouterContextItem label="Router Step / Operation" value={wocData.routerStepOperation} />
-          <RouterContextItem label="Material" value={wocData.material} />
-          <RouterContextItem label="Next Operation" value={wocData.nextOperation} />
-          <RouterContextItem label="Inspection Operation" value={wocData.inspectionOperation} />
-        </div>
       </article>
 
       <details className="card">
         <summary>
-          <strong>Advanced Details</strong>
-          <p className="field-help">Optional router, department, and issue fields. These stay available but are not required for simple mode unless your shop needs them.</p>
+          <strong>Advanced / Manual Controls</strong>
+          <p className="field-help">Optional controls remain available for review, but they are collapsed for Simple Mode.</p>
         </summary>
 
         <div className="form-grid" style={{ marginTop: 14 }}>
@@ -140,99 +139,32 @@ export function GenerateScreen({
 
           <label>
             Part Description
-            <input
-              type="text"
-              value={wocData.partDescription}
-              onChange={(event) => onUpdateField('partDescription', event.target.value)}
-            />
+            <input type="text" value={wocData.partDescription} onChange={(event) => onUpdateField('partDescription', event.target.value)} />
           </label>
 
           <label>
             Operation Number
-            <input
-              type="text"
-              value={wocData.operationNumber}
-              onChange={(event) => onUpdateField('operationNumber', event.target.value)}
-            />
+            <input type="text" value={wocData.operationNumber} onChange={(event) => onUpdateField('operationNumber', event.target.value)} />
           </label>
 
           <label>
             Router Step / Operation
-            <input
-              type="text"
-              value={wocData.routerStepOperation}
-              onChange={(event) => onUpdateField('routerStepOperation', event.target.value)}
-            />
+            <input type="text" value={wocData.routerStepOperation} onChange={(event) => onUpdateField('routerStepOperation', event.target.value)} />
           </label>
 
           <label>
             Quantity Affected
-            <input
-              type="text"
-              value={wocData.quantityAffected}
-              onChange={(event) => onUpdateField('quantityAffected', event.target.value)}
-            />
+            <input type="text" value={wocData.quantityAffected} onChange={(event) => onUpdateField('quantityAffected', event.target.value)} />
           </label>
 
           <label>
             Due Date / Ship Date
-            <input
-              type="text"
-              value={wocData.dueDateShipDate}
-              onChange={(event) => onUpdateField('dueDateShipDate', event.target.value)}
-            />
+            <input type="text" value={wocData.dueDateShipDate} onChange={(event) => onUpdateField('dueDateShipDate', event.target.value)} />
           </label>
 
           <label>
             Material
-            <input
-              type="text"
-              value={wocData.material}
-              onChange={(event) => onUpdateField('material', event.target.value)}
-            />
-          </label>
-
-          <label>
-            Next Operation
-            <input
-              type="text"
-              value={wocData.nextOperation}
-              onChange={(event) => onUpdateField('nextOperation', event.target.value)}
-            />
-          </label>
-
-          <label>
-            Inspection Operation
-            <input
-              type="text"
-              value={wocData.inspectionOperation}
-              onChange={(event) => onUpdateField('inspectionOperation', event.target.value)}
-            />
-          </label>
-
-          <label>
-            Detailed Issue Notes
-            <textarea
-              value={wocData.detailedIssueNotes}
-              onChange={(event) => onUpdateField('detailedIssueNotes', event.target.value)}
-            />
-          </label>
-
-          <label>
-            Defect / Problem Type
-            <input
-              type="text"
-              value={wocData.defectProblemType}
-              onChange={(event) => onUpdateField('defectProblemType', event.target.value)}
-            />
-          </label>
-
-          <label>
-            Production Impact
-            <textarea
-              value={wocData.productionImpact}
-              onChange={(event) => onUpdateField('productionImpact', event.target.value)}
-            />
+            <input type="text" value={wocData.material} onChange={(event) => onUpdateField('material', event.target.value)} />
           </label>
 
           <DepartmentDropdown
@@ -256,12 +188,6 @@ export function GenerateScreen({
             onChange={(value) => onUpdateField('suspectedFailurePoint', value)}
           />
 
-          <DepartmentDropdown
-            label="Escaped Through Departments"
-            value={wocData.escapedThroughDepartments}
-            onChange={(value) => onUpdateField('escapedThroughDepartments', value)}
-          />
-
           {wocData.foundAtDepartment === otherAffectedAreaOption && (
             <label>
               Other / Needs Review Detail
@@ -273,22 +199,15 @@ export function GenerateScreen({
               />
             </label>
           )}
-        </div>
-      </details>
 
-      <details className="card">
-        <summary>
-          <strong>Edit Generated Sections</strong>
-          <p className="field-help">Optional manual overrides. AI-CAS can draft these from the router context and “What is wrong?” note.</p>
-        </summary>
+          <label>
+            Detailed Issue Notes
+            <textarea value={wocData.detailedIssueNotes} onChange={(event) => onUpdateField('detailedIssueNotes', event.target.value)} />
+          </label>
 
-        <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Immediate Containment
-            <textarea
-              value={wocData.immediateContainment}
-              onChange={(event) => onUpdateField('immediateContainment', event.target.value)}
-            />
+            <textarea value={wocData.immediateContainment} onChange={(event) => onUpdateField('immediateContainment', event.target.value)} />
           </label>
 
           <label>
@@ -304,67 +223,17 @@ export function GenerateScreen({
 
           <label>
             Prevention / Standard Work Update
-            <textarea
-              value={wocData.preventionStandardWorkUpdate}
-              onChange={(event) => onUpdateField('preventionStandardWorkUpdate', event.target.value)}
-            />
+            <textarea value={wocData.preventionStandardWorkUpdate} onChange={(event) => onUpdateField('preventionStandardWorkUpdate', event.target.value)} />
           </label>
 
           <label>
             Inspection / Verification Requirement
-            <textarea
-              value={wocData.inspectionVerificationRequirement}
-              onChange={(event) => onUpdateField('inspectionVerificationRequirement', event.target.value)}
-            />
+            <textarea value={wocData.inspectionVerificationRequirement} onChange={(event) => onUpdateField('inspectionVerificationRequirement', event.target.value)} />
           </label>
 
           <label>
-            Release Approval Requirement
-            <textarea
-              value={wocData.releaseApprovalRequirement}
-              onChange={(event) => onUpdateField('releaseApprovalRequirement', event.target.value)}
-            />
-          </label>
-        </div>
-      </details>
-
-      <details className="card">
-        <summary>
-          <strong>Evidence Details</strong>
-          <p className="field-help">Optional evidence wording. Review-step photo evidence stays available later in Review.</p>
-        </summary>
-
-        <div className="form-grid" style={{ marginTop: 14 }}>
-          <label>
-            Router / Work Order Photo Placeholder
-            <textarea
-              value={wocData.routerWorkOrderPhotoPlaceholder}
-              onChange={(event) => onUpdateField('routerWorkOrderPhotoPlaceholder', event.target.value)}
-            />
-          </label>
-
-          <label>
-            Part / Defect Photo Placeholder
-            <textarea
-              value={wocData.partDefectPhotoPlaceholder}
-              onChange={(event) => onUpdateField('partDefectPhotoPlaceholder', event.target.value)}
-            />
-          </label>
-
-          <label>
-            AI Extracted Data Confirmation
-            <textarea
-              value={wocData.aiExtractedDataConfirmation}
-              onChange={(event) => onUpdateField('aiExtractedDataConfirmation', event.target.value)}
-            />
-          </label>
-
-          <label>
-            Human Release Confirmation
-            <textarea
-              value={wocData.humanReleaseConfirmation}
-              onChange={(event) => onUpdateField('humanReleaseConfirmation', event.target.value)}
-            />
+            Evidence Details
+            <textarea value={wocData.partDefectPhotoPlaceholder} onChange={(event) => onUpdateField('partDefectPhotoPlaceholder', event.target.value)} />
           </label>
         </div>
       </details>
