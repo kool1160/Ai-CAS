@@ -42,19 +42,19 @@ export default function PrintReportPage() {
     try {
       const raw = window.sessionStorage.getItem(PRINT_REPORT_STORAGE_KEY);
       if (!raw) {
-        setLoadError('No report data was found. Return to Refab Connect and choose Export / Print Report again.');
+        setLoadError('No report data was found. Return to AI-CAS and choose Export / Print Report again.');
         return;
       }
 
       const parsed = JSON.parse(raw);
       if (!isPrintPayload(parsed)) {
-        setLoadError('Saved print report data is invalid. Return to Refab Connect and export the report again.');
+        setLoadError('Saved print report data is invalid. Return to AI-CAS and export the report again.');
         return;
       }
 
       setReport(parsed);
     } catch {
-      setLoadError('Unable to load the print report. Return to Refab Connect and export the report again.');
+      setLoadError('Unable to load the print report. Return to AI-CAS and export the report again.');
     }
   }, []);
 
