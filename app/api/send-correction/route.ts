@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const DEFAULT_RESEND_FROM = 'REFAB Connect <onboarding@resend.dev>';
+const DEFAULT_RESEND_FROM = 'AI-CAS <onboarding@resend.dev>';
 
 type SendCorrectionRequest = {
   subjectLine?: string;
@@ -43,7 +43,7 @@ function buildEmailBody(payload: SendCorrectionRequest) {
 
   return `Engineering Team,
 
-A work order correction has been submitted through Refab Connect.
+A work order correction has been submitted through AI-CAS.
 
 Work Order: ${workOrderNumber}
 Part Number: ${partNumber}
@@ -53,7 +53,7 @@ Affected Area: ${affectedArea}${companyName ? `\nCompany: ${companyName}` : ''}$
 Please review the Engineering Correction Report for the full issue summary and requested Engineering action.
 
 Thank you,
-Refab Connect`;
+AI-CAS`;
 }
 
 export async function POST(request: Request) {

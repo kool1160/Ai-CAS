@@ -1,4 +1,4 @@
-export const CORRECTION_RECORD_SOURCE = 'Refab Connect / AI-WOC' as const;
+export const CORRECTION_RECORD_SOURCE = 'AI-CAS' as const;
 export const CORRECTION_RECORD_SCHEMA_VERSION = 'M17-backend-ready-v1' as const;
 
 export type CorrectionRecordType = 'Draft' | 'Sent' | 'History';
