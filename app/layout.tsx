@@ -4,8 +4,8 @@ import './v2-more-admin-layout.css';
 import './v2-tablet-polish.css';
 
 export const metadata: Metadata = {
-  title: 'REFAB Connect',
-  description: 'Work Order Correction System powered by Applied Intelligence Framework.',
+  title: 'AI-CAS',
+  description: 'Corrective Action System powered by Applied Intelligence Framework.',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'REFAB Connect',
+    title: 'AI-CAS',
   },
 };
 

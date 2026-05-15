@@ -22,10 +22,10 @@ export function LaunchSplash({ children }: LaunchSplashProps) {
   if (!showSplash) return <>{children}</>;
 
   return (
-    <main className="launch-splash" aria-label="Refab Connect launch screen">
+    <main className="launch-splash" aria-label="AI-CAS launch screen">
       <section className="launch-splash-card">
-        <span className="launch-splash-kicker">REFAB CONNECT</span>
-        <h1>Work Order Correction System</h1>
+        <span className="launch-splash-kicker">AI-CAS</span>
+        <h1>Corrective Action System</h1>
         <p>Powered by Applied Intelligence Framework</p>
         <div className="launch-splash-status" aria-live="polite">
           <span className="status-dot" />

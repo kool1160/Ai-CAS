@@ -1,7 +1,7 @@
 {
-  "name": "Refab Connect",
-  "short_name": "Refab Connect",
-  "description": "Work Order Correction System powered by Applied Intelligence Framework",
+  "name": "AI-CAS",
+  "short_name": "AI-CAS",
+  "description": "Corrective Action System powered by Applied Intelligence Framework",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
