@@ -3,17 +3,19 @@ import './globals.css';
 import './v2-more-admin-layout.css';
 import './v2-tablet-polish.css';
 
+const iconVersion = 'ai-cas-v2';
+
 export const metadata: Metadata = {
   title: 'AI-CAS',
   description: 'Corrective Action System powered by Applied Intelligence Framework.',
-  manifest: '/manifest.webmanifest',
+  manifest: `/manifest.webmanifest?v=${iconVersion}`,
   icons: {
     icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: `/icon-192.png?v=${iconVersion}`, sizes: '192x192', type: 'image/png' },
+      { url: `/icon-512.png?v=${iconVersion}`, sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: `/apple-touch-icon.png?v=${iconVersion}`, sizes: '180x180', type: 'image/png' },
     ],
   },
   appleWebApp: {
