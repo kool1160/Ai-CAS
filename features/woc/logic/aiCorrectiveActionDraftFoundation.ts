@@ -24,6 +24,31 @@ export type AiCorrectiveActionDraftInput = {
   photoEvidenceFileName?: string;
 };
 
+export type AiCorrectiveActionDraftSectionKey =
+  | 'issueSummary'
+  | 'correctiveActionRequired'
+  | 'standardWorkRequirement'
+  | 'responsibilityByOperation'
+  | 'containmentAction'
+  | 'inspectionVerificationRequirement'
+  | 'photoEvidenceReference'
+  | 'closeoutRequirement';
+
+export type AiCorrectiveActionDraftSection = {
+  key: AiCorrectiveActionDraftSectionKey;
+  title: string;
+  draftText: string;
+  sourceContext: string;
+  requiresHumanReview: true;
+};
+
+export type StructuredCorrectiveActionDraft = {
+  status: 'draft-only-unconfirmed';
+  draftSource: 'openai-corrective-action-draft';
+  releaseGate: string;
+  sections: Record<AiCorrectiveActionDraftSectionKey, AiCorrectiveActionDraftSection>;
+};
+
 export type AiCorrectiveActionDraftOutput = {
   status: 'draft-only-unconfirmed';
   issueSummary: string;
@@ -38,11 +63,11 @@ export type AiCorrectiveActionDraftOutput = {
 
 export type AiCorrectiveActionDraftFoundation = {
   foundationName: string;
-  version: 'V4-M8-foundation';
+  version: 'V4-M13A-structured-foundation';
   purpose: string;
   releaseGate: string;
   input: AiCorrectiveActionDraftInput;
-  requiredOutputSections: Array<keyof AiCorrectiveActionDraftOutput>;
+  requiredOutputSections: AiCorrectiveActionDraftSectionKey[];
   prompt: string;
 };
 
@@ -51,8 +76,7 @@ const manualBlank = (label: string, value?: string) => {
   return normalized || `[Manual entry needed: ${label}]`;
 };
 
-export const aiCorrectiveActionDraftSections: Array<keyof AiCorrectiveActionDraftOutput> = [
-  'status',
+export const aiCorrectiveActionDraftSections: AiCorrectiveActionDraftSectionKey[] = [
   'issueSummary',
   'correctiveActionRequired',
   'standardWorkRequirement',
@@ -62,6 +86,17 @@ export const aiCorrectiveActionDraftSections: Array<keyof AiCorrectiveActionDraf
   'photoEvidenceReference',
   'closeoutRequirement',
 ];
+
+export const aiCorrectiveActionDraftSectionTitles: Record<AiCorrectiveActionDraftSectionKey, string> = {
+  issueSummary: 'Issue Summary',
+  correctiveActionRequired: 'Corrective Action Required',
+  standardWorkRequirement: 'Standard Work Requirement',
+  responsibilityByOperation: 'Responsibility by Operation',
+  containmentAction: 'Containment Action',
+  inspectionVerificationRequirement: 'Inspection / Verification Requirement',
+  photoEvidenceReference: 'Photo Evidence Reference',
+  closeoutRequirement: 'Closeout Requirement',
+};
 
 export function buildAiCorrectiveActionDraftPrompt(input: AiCorrectiveActionDraftInput) {
   const photoEvidenceStatus = input.photoEvidenceAttached
@@ -89,15 +124,27 @@ Detailed Issue Notes: ${manualBlank('Detailed Issue Notes', input.detailedIssueN
 Evidence Label: ${manualBlank('Evidence Label', input.evidenceLabel)}
 Photo Evidence: ${photoEvidenceStatus}
 
-Draft output sections required:
-1. Issue Summary
-2. Corrective Action Required
-3. Standard Work Requirement
-4. Responsibility by Operation
-5. Containment Action
-6. Inspection / Verification Requirement
-7. Photo Evidence Reference
-8. Closeout Requirement
+Return only valid JSON in this exact structure:
+{
+  "status": "draft-only-unconfirmed",
+  "draftSource": "openai-corrective-action-draft",
+  "releaseGate": "AI draft output is editable and unconfirmed. Human review remains required before release/PDF.",
+  "sections": {
+    "issueSummary": { "key": "issueSummary", "title": "Issue Summary", "draftText": "", "sourceContext": "", "requiresHumanReview": true },
+    "correctiveActionRequired": { "key": "correctiveActionRequired", "title": "Corrective Action Required", "draftText": "", "sourceContext": "", "requiresHumanReview": true },
+    "standardWorkRequirement": { "key": "standardWorkRequirement", "title": "Standard Work Requirement", "draftText": "", "sourceContext": "", "requiresHumanReview": true },
+    "responsibilityByOperation": { "key": "responsibilityByOperation", "title": "Responsibility by Operation", "draftText": "", "sourceContext": "", "requiresHumanReview": true },
+    "containmentAction": { "key": "containmentAction", "title": "Containment Action", "draftText": "", "sourceContext": "", "requiresHumanReview": true },
+    "inspectionVerificationRequirement": { "key": "inspectionVerificationRequirement", "title": "Inspection / Verification Requirement", "draftText": "", "sourceContext": "", "requiresHumanReview": true },
+    "photoEvidenceReference": { "key": "photoEvidenceReference", "title": "Photo Evidence Reference", "draftText": "", "sourceContext": "", "requiresHumanReview": true },
+    "closeoutRequirement": { "key": "closeoutRequirement", "title": "Closeout Requirement", "draftText": "", "sourceContext": "", "requiresHumanReview": true }
+  }
+}
+
+Structured section guidance:
+- draftText contains the professional corrective-action language for that section.
+- sourceContext briefly names the provided fact source used for the section, such as issue notes, router operation, evidence label, department, or photo evidence.
+- requiresHumanReview must always be true.
 
 Tone and style:
 - Professional shop-floor corrective-action language
@@ -114,7 +161,7 @@ export function buildAiCorrectiveActionDraftFoundation(
 ): AiCorrectiveActionDraftFoundation {
   return {
     foundationName: 'AI-CAS Corrective Action Drafting Foundation',
-    version: 'V4-M8-foundation',
+    version: 'V4-M13A-structured-foundation',
     purpose:
       'Prepare confirmed router/work-order data, plain shop-floor issue notes, and evidence label context for future AI-generated engineered corrective-action draft language.',
     releaseGate:
