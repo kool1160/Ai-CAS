@@ -378,7 +378,7 @@ export default function PrintReportPage() {
           <div className="brand-bar"><span>AI-CAS</span><span>Corrective Action System</span></div>
           <header className="header">
             <div className="header-title-block">
-              <div className="kicker">Work Order Correction System</div>
+              <div className="kicker">Corrective Action System</div>
               <h1>Engineering Correction Report</h1>
               <p className="subtitle">Powered by Applied Intelligence Framework · Print-Ready Correction Document</p>
             </div>
