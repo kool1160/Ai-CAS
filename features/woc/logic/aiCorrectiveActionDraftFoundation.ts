@@ -67,7 +67,7 @@ export type AiCorrectiveActionDraftFoundation = {
   purpose: string;
   releaseGate: string;
   input: AiCorrectiveActionDraftInput;
-  requiredOutputSections: AiCorrectiveActionDraftSectionKey[];
+  requiredOutputSections: Array<keyof AiCorrectiveActionDraftOutput>;
   prompt: string;
 };
 
@@ -76,7 +76,7 @@ const manualBlank = (label: string, value?: string) => {
   return normalized || `[Manual entry needed: ${label}]`;
 };
 
-export const aiCorrectiveActionDraftSections: AiCorrectiveActionDraftSectionKey[] = [
+export const structuredCorrectiveActionSectionKeys: AiCorrectiveActionDraftSectionKey[] = [
   'issueSummary',
   'correctiveActionRequired',
   'standardWorkRequirement',
@@ -85,6 +85,11 @@ export const aiCorrectiveActionDraftSections: AiCorrectiveActionDraftSectionKey[
   'inspectionVerificationRequirement',
   'photoEvidenceReference',
   'closeoutRequirement',
+];
+
+export const aiCorrectiveActionDraftSections: Array<keyof AiCorrectiveActionDraftOutput> = [
+  'status',
+  ...structuredCorrectiveActionSectionKeys,
 ];
 
 export const aiCorrectiveActionDraftSectionTitles: Record<AiCorrectiveActionDraftSectionKey, string> = {
