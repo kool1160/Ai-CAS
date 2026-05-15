@@ -21,6 +21,9 @@ export type WocCorrectionData = {
   quantity: string;
   quantityAffected: string;
   dueDateShipDate: string;
+  material: string;
+  nextOperation: string;
+  inspectionOperation: string;
   correctionType: string;
   affectedArea: string;
   customAffectedArea: string;
@@ -118,35 +121,38 @@ export const defaultWocCorrectionData: WocCorrectionData = {
   quantity: '35 EA',
   quantityAffected: '35 EA',
   dueDateShipDate: '',
-  correctionType: 'Incorrect Time / Rate',
+  material: '',
+  nextOperation: '',
+  inspectionOperation: '',
+  correctionType: 'Other',
   affectedArea: 'Welding',
   customAffectedArea: '',
-  shortIssueDescription: 'Router time does not match the sustainable shop-floor baseline.',
-  detailedIssueNotes: 'Router time does not match the sustainable shop-floor baseline.',
-  defectProblemType: 'Work Order / Router Correction',
-  productionImpact: 'Potential delay, rework, or repeat issue if not corrected before the next run.',
+  shortIssueDescription: '',
+  detailedIssueNotes: '',
+  defectProblemType: 'Operator Exception',
+  productionImpact: '',
   foundAtDepartment: 'Welding',
-  correctiveActionOwnerDepartment: 'Welding',
-  suspectedFailurePoint: 'Welding',
+  correctiveActionOwnerDepartment: 'Other / Needs Review',
+  suspectedFailurePoint: 'Other / Needs Review',
   escapedThroughDepartments: 'Other / Needs Review',
-  immediateContainment: 'Hold affected parts and verify the current work order/router before continuing production.',
-  requiredCorrection: 'Review and update the router time/rate to the correct Engineering-approved baseline.',
-  preventionStandardWorkUpdate: 'Update the controlled router/work instruction so future runs use the corrected requirement.',
-  inspectionVerificationRequirement: 'Verify corrected router data and affected parts before release.',
-  releaseApprovalRequirement: 'Human release confirmation required before PDF/release.',
+  immediateContainment: '',
+  requiredCorrection: '',
+  preventionStandardWorkUpdate: '',
+  inspectionVerificationRequirement: '',
+  releaseApprovalRequirement: 'Human confirmation required before PDF/release.',
   routerWorkOrderPhotoPlaceholder: 'Router / work order photo evidence placeholder.',
   partDefectPhotoPlaceholder: 'Part / defect photo evidence placeholder.',
   aiExtractedDataConfirmation: 'AI extracted data must be reviewed and confirmed by the user.',
   humanReleaseConfirmation: 'Human confirmation required before release/PDF.',
-  issueDetails: 'Router time does not match the sustainable shop-floor baseline.',
-  requestedEngineeringAction: 'Review and update the router time/rate to the correct Engineering-approved baseline.',
+  issueDetails: '',
+  requestedEngineeringAction: '',
 };
 
 export const defaultWocConfirmations: WocConfirmationState = {
   workOrderDataConfirmed: false,
   partNumberConfirmed: false,
   correctionTypeSelected: true,
-  issueDetailsEntered: true,
+  issueDetailsEntered: false,
   requestedActionEntered: true,
   finalReviewConfirmed: false,
 };
@@ -187,11 +193,11 @@ function v4IssueSummary(data: WocCorrectionData) {
 }
 
 function v4IssueDetails(data: WocCorrectionData) {
-  return data.detailedIssueNotes.trim() || data.issueDetails.trim();
+  return data.detailedIssueNotes.trim() || data.issueDetails.trim() || data.shortIssueDescription.trim();
 }
 
 function v4RequiredCorrection(data: WocCorrectionData) {
-  return data.requiredCorrection.trim() || data.requestedEngineeringAction.trim();
+  return data.requiredCorrection.trim() || data.requestedEngineeringAction.trim() || 'AI-CAS should draft the required corrective action from confirmed router context and the operator exception note.';
 }
 
 export function getPhotoEvidenceStatusLine() {
@@ -213,12 +219,12 @@ export function buildEngineeringReport(
 Status: Draft / Editable / Unconfirmed
 Release Gate: Human confirmation required before release/PDF.
 
-1. Job / Router Data
+1. Confirmed Router / Job Context
 Work Order: ${manualBlank('Work Order', data.workOrderNumber)}
 Part Number: ${manualBlank('Part Number', data.partNumber)}
-${optionalLine('Part Description', data.partDescription)}${optionalLine('Customer / Job Name', data.customerOrJob)}${optionalLine('Operation Number', data.operationNumber)}${optionalLine('Router Step / Operation', data.routerStepOperation)}${optionalLine('Quantity Affected', data.quantityAffected || data.quantity)}${optionalLine('Due Date / Ship Date', data.dueDateShipDate)}
-2. Problem Summary
-Short Issue Description: ${manualBlank('Short Issue Description', v4IssueSummary(data))}
+${optionalLine('Part Description', data.partDescription)}${optionalLine('Customer / Job Name', data.customerOrJob)}${optionalLine('Operation Number', data.operationNumber)}${optionalLine('Router Step / Operation', data.routerStepOperation)}${optionalLine('Quantity Affected', data.quantityAffected || data.quantity)}${optionalLine('Due Date / Ship Date', data.dueDateShipDate)}${optionalLine('Material', data.material)}${optionalLine('Next Operation', data.nextOperation)}${optionalLine('Inspection Operation', data.inspectionOperation)}
+2. Operator Exception Note
+What is wrong: ${manualBlank('What is wrong', v4IssueSummary(data))}
 Detailed Issue Notes: ${manualBlank('Detailed Issue Notes', v4IssueDetails(data))}
 Defect / Problem Type: ${manualBlank('Defect / Problem Type', data.defectProblemType)}
 Production Impact: ${manualBlank('Production Impact', data.productionImpact)}
@@ -279,8 +285,26 @@ ${manualBlank('Work Order', data.workOrderNumber)}
 Part Number:
 ${manualBlank('Part Number', data.partNumber)}
 
-Problem Summary:
-${manualBlank('Problem Summary', v4IssueSummary(data))}
+Customer / Job:
+${manualBlank('Customer / Job Name', data.customerOrJob)}
+
+Quantity Affected:
+${manualBlank('Quantity Affected', data.quantityAffected || data.quantity)}
+
+Router / Operation Context:
+${manualBlank('Router Step / Operation', data.routerStepOperation)}
+
+Material:
+${manualBlank('Material', data.material)}
+
+Next Operation:
+${manualBlank('Next Operation', data.nextOperation)}
+
+Inspection Operation:
+${manualBlank('Inspection Operation', data.inspectionOperation)}
+
+Operator Exception Note:
+${manualBlank('What is wrong', v4IssueSummary(data))}
 
 Found At Department:
 ${manualBlank('Found At Department', affectedArea)}
@@ -344,8 +368,7 @@ export function getGateStatus(
   const correctionTypeReady = isFilled(data.correctionType) && confirmations.correctionTypeSelected;
   const affectedAreaReady = isFilled(getEffectiveAffectedArea(data));
   const issueDetailsReady = isFilled(v4IssueSummary(data)) && confirmations.issueDetailsEntered;
-  const requestedActionReady = isFilled(v4RequiredCorrection(data)) && confirmations.requestedActionEntered;
-  const generateReady = confirmReady && correctionTypeReady && affectedAreaReady && issueDetailsReady && requestedActionReady;
+  const generateReady = confirmReady && correctionTypeReady && affectedAreaReady && issueDetailsReady;
 
   const reviewReady = Boolean(generatedPackage) && confirmations.finalReviewConfirmed;
   const sendReady = generateReady && reviewReady;
@@ -357,7 +380,7 @@ export function getGateStatus(
     correctionTypeReady,
     affectedAreaReady,
     issueDetailsReady,
-    requestedActionReady,
+    requestedActionReady: true,
     generateReady,
     reviewReady,
     sendReady,
@@ -388,7 +411,7 @@ export function resetDependentConfirmations(
   }
 
   if (key === 'requestedEngineeringAction' || key === 'requiredCorrection') {
-    next.requestedActionEntered = isFilled(value);
+    next.requestedActionEntered = true;
   }
 
   return next;
