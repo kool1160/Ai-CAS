@@ -45,20 +45,10 @@ function formatFileSize(size: number) {
 }
 
 function getOpenAiVisionStatus(isExtracting: boolean, extractionFeedback: ActionFeedback) {
-  if (isExtracting) {
-    return 'Sending image to OpenAI Vision...';
-  }
-
+  if (isExtracting) return 'Extracting router/work-order data with AI Vision...';
   if (!extractionFeedback) return '';
-
-  if (extractionFeedback.tone === 'error') {
-    return `OpenAI Vision extraction failed — manual entry available. ${extractionFeedback.message}`;
-  }
-
-  if (extractionFeedback.message.toLowerCase().includes('completed')) {
-    return 'OpenAI Vision extraction complete. Some fields may not be found and can be entered manually.';
-  }
-
+  if (extractionFeedback.tone === 'error') return `AI Vision could not extract the image. Manual entry is still available. ${extractionFeedback.message}`;
+  if (extractionFeedback.message.toLowerCase().includes('completed')) return 'AI Vision extraction complete. Review the key fields on Confirm.';
   return extractionFeedback.message;
 }
 
@@ -175,9 +165,7 @@ export function CaptureScreen({
       mergedContext.evidenceLabel ? `Evidence label: ${mergedContext.evidenceLabel}` : '',
     ].filter(Boolean);
 
-    if (contextLines.length) {
-      onManualEntryChange(contextLines.join('\n'));
-    }
+    onManualEntryChange(contextLines.join('\n'));
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -198,8 +186,7 @@ export function CaptureScreen({
         return null;
       }
 
-      const isImage = file.type.startsWith('image/');
-      if (!isImage) {
+      if (!file.type.startsWith('image/')) {
         setPhotoEvidenceFeedback('Photo evidence must be an image file.');
         savePhotoEvidenceMetadata(null);
         return null;
@@ -214,7 +201,7 @@ export function CaptureScreen({
       };
 
       savePhotoEvidenceMetadata(nextEvidence, evidenceLabel);
-      setPhotoEvidenceFeedback(`${file.name} added as optional photo evidence. This image stays local/session-only for now.`);
+      setPhotoEvidenceFeedback(`${file.name} added as optional evidence. Stored locally for this session.`);
       return nextEvidence;
     });
   };
@@ -232,79 +219,82 @@ export function CaptureScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Capture Router</h1>
-        <p>Take a photo or upload a router/work order image, extract the header data, or enter issue context manually when needed.</p>
+        <p>Upload or photograph the router/work order. AI-CAS extracts the job context before you confirm it.</p>
       </div>
 
       <article className="card">
         <div className="card-header">
           <div>
-            <h2>Capture + OpenAI Vision Extract</h2>
-            <p>Snap a router photo or select a file from your device, then send the image to OpenAI Vision for draft field extraction.</p>
+            <span className="step-pill">AI VISION FIRST</span>
+            <h2>Upload Router / Work Order</h2>
+            <p>Take a photo or upload an image, then extract the job fields.</p>
           </div>
-          <span className="step-pill">01</span>
+          <span className={uploadedFile ? 'field-status confirmed' : 'field-status'}>{uploadedFile ? 'Ready' : 'Needed'}</span>
         </div>
+
         <div className="action-row">
           <label className="button primary" htmlFor="router-camera-input">Take Photo</label>
           <input accept="image/*" capture="environment" hidden id="router-camera-input" onChange={handleFileChange} type="file" />
-          <label className="button secondary" htmlFor="router-upload-input">Upload File / Photo</label>
-          <input accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx" id="router-upload-input" onChange={handleFileChange} type="file" />
-          <button className="button secondary" type="button" disabled={!uploadedFile || isExtracting} onClick={onClearUpload}>Clear Upload</button>
-          <button className="button primary" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>{isExtracting ? 'Sending to OpenAI Vision...' : 'Extract with OpenAI Vision'}</button>
+          <label className="button primary" htmlFor="router-upload-input">Upload Image</label>
+          <input accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx" hidden id="router-upload-input" onChange={handleFileChange} type="file" />
+          <button className="button primary full-width" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>
+            {isExtracting ? 'Extracting...' : 'Extract with AI Vision'}
+          </button>
         </div>
-        {uploadFeedback && <p className="field-help">{uploadFeedback}</p>}
-        {openAiVisionStatus && <p className="field-help">{openAiVisionStatus}</p>}
+
         {uploadedFile && (
           <div className="field-row" style={{ marginTop: 14 }}>
             <strong>Selected File<span className="field-status confirmed">Ready</span></strong>
             <span className="field-value">{uploadedFile.name}</span>
             <span className="field-help">{uploadedFile.type || 'Unknown file type'} · {formatFileSize(uploadedFile.size)}</span>
-            {!uploadedFile.isImage && <span className="field-help">OpenAI Vision extraction is optimized for uploaded images. Manual entry remains available for other file types.</span>}
+            {!uploadedFile.isImage && <span className="field-help">AI Vision extraction needs an image. Manual entry is still available below.</span>}
             {uploadedFile.isImage && uploadedFile.previewUrl && <img alt="Uploaded router preview" className="upload-preview" src={uploadedFile.previewUrl} />}
           </div>
         )}
+
+        {uploadFeedback && <p className="field-help">{uploadFeedback}</p>}
+        {openAiVisionStatus && <p className="field-help">{openAiVisionStatus}</p>}
+
+        <div className="action-row">
+          <button className="button secondary" type="button" disabled={!uploadedFile || isExtracting} onClick={onClearUpload}>Clear Upload</button>
+          <button className="button secondary" type="button" onClick={onCaptureRouter}>Skip to Confirm</button>
+        </div>
       </article>
 
       <article className="card">
         <div className="card-header">
           <div>
-            <h2>Issue Description + Evidence Context</h2>
-            <p>Add plain shop-floor issue notes and label the evidence context for future AI corrective-action drafting.</p>
+            <span className="step-pill">OPTIONAL</span>
+            <h2>Issue Note</h2>
+            <p>Add one short note now, or leave it for Generate.</p>
           </div>
-          <span className="field-status">Foundation</span>
         </div>
+        <label>
+          What is wrong?
+          <textarea
+            value={shortIssueDescription}
+            onChange={(event) => updateCaptureContext({ shortIssueDescription: event.target.value })}
+            placeholder="Example: Hole size failed no-go pin check."
+            style={{ minHeight: 120 }}
+          />
+        </label>
+      </article>
+
+      <details className="card">
+        <summary>
+          <strong>Evidence Photo</strong>
+          <p className="field-help">Optional supporting image. Kept collapsed so Capture stays quick.</p>
+        </summary>
         <div className="form-grid" style={{ marginTop: 14 }}>
-          <label>
-            Short Issue Description
-            <textarea
-              value={shortIssueDescription}
-              onChange={(event) => updateCaptureContext({ shortIssueDescription: event.target.value })}
-              placeholder="Example: Hole size failed no-go check after laser; parts also need cleanup before welding."
-            />
-          </label>
           <label>
             Evidence Label
             <select value={evidenceLabel} onChange={(event) => updateCaptureContext({ evidenceLabel: event.target.value })}>
               <option value="">Select evidence context</option>
-              {evidenceLabelOptions.map((option) => {
-                return (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                );
-              })}
+              {evidenceLabelOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
             </select>
           </label>
-        </div>
-        <p className="field-help">Foundation only: issue description and evidence label are stored as local/session context and copied into router/header notes for future AI drafting.</p>
-      </article>
-
-      <article className="card">
-        <div className="card-header">
-          <div>
-            <h2>Photo Evidence</h2>
-            <p>Add one optional supporting image for Engineering context. This is separate from the router image used for extraction.</p>
-          </div>
-          <span className={photoEvidence ? 'field-status confirmed' : 'field-status'}>{photoEvidence ? 'Attached' : 'Optional'}</span>
         </div>
         <div className="action-row">
           <label className="button secondary" htmlFor="evidence-camera-input">Take Evidence Photo</label>
@@ -320,15 +310,16 @@ export function CaptureScreen({
             <span className="field-value">{photoEvidence.evidenceFileName}</span>
             <span className="field-help">{photoEvidence.evidenceFileType || 'Unknown image type'} · {formatFileSize(photoEvidence.evidenceFileSize)}</span>
             <span className="field-help">Evidence label: {evidenceLabel || 'Not selected yet'}</span>
-            <span className="field-help">Evidence image is local/session-only for now.</span>
             {photoEvidence.previewUrl && <img alt="Photo evidence preview" className="upload-preview" src={photoEvidence.previewUrl} />}
           </div>
         )}
-      </article>
+      </details>
 
-      <article className="card">
-        <h2>Manual Entry</h2>
-        <p>Use this path when the uploaded image is unclear, OpenAI Vision cannot read a value, or router details need to be entered directly.</p>
+      <details className="card">
+        <summary>
+          <strong>Manual Fallback</strong>
+          <p className="field-help">Use only when the image is unclear or AI Vision cannot read the router.</p>
+        </summary>
         <div className="form-grid" style={{ marginTop: 14 }}>
           <label>
             Router/Header Notes
@@ -338,7 +329,7 @@ export function CaptureScreen({
         <div className="action-row">
           <button className="button primary full-width" type="button" onClick={onCaptureRouter}>Continue to Confirm</button>
         </div>
-      </article>
+      </details>
     </section>
   );
 }
