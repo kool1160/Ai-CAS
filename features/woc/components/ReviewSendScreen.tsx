@@ -134,6 +134,25 @@ function getPdfEvidenceItems(photoEvidenceItems: ReviewPhotoEvidence[]): Control
   return photoEvidenceItems.map(({ previewUrl, ...item }) => item);
 }
 
+function sanitizeFilenameSegment(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function buildSafePdfFilename(generatedPackage: GeneratedCorrectionPackage) {
+  const workOrder = sanitizeFilenameSegment(
+    generatedPackage?.aiDraftFoundation.input.workOrderNumber || extractPreviewLine(generatedPackage?.reportPreview, 'Work Order'),
+  );
+  const fallbackDate = new Date().toISOString().slice(0, 10);
+  const suffix = workOrder && workOrder !== 'not-captured' ? workOrder : fallbackDate;
+
+  return `ai-cas-corrective-action-${suffix}.pdf`;
+}
+
 function DraftSectionCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="placeholder-item">
@@ -165,6 +184,7 @@ export function ReviewSendScreen({
   const [photoEvidenceItems, setPhotoEvidenceItems] = useState<ReviewPhotoEvidence[]>([]);
   const [photoEvidenceFeedback, setPhotoEvidenceFeedback] = useState<ActionFeedback>(null);
   const [reviewOutputFeedback, setReviewOutputFeedback] = useState<ActionFeedback>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
   const enhancedReportPreview = useMemo(
     () => appendReviewEvidenceToOutput(generatedPackage?.reportPreview, photoEvidenceItems, 'report'),
@@ -177,6 +197,7 @@ export function ReviewSendScreen({
   const controlledPdfPreview = generatedPackage
     ? buildControlledCorrectiveActionPdfTemplate(
         {
+          ...generatedPackage.aiDraftFoundation.input,
           correctionType: generatedPackage.subjectLine,
           shortIssueDescription: enhancedReportPreview,
           requiredCorrection: enhancedEmailPreview,
@@ -200,6 +221,66 @@ export function ReviewSendScreen({
       photoEvidenceItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
     };
   }, [photoEvidenceItems]);
+
+  const downloadControlledPdf = async () => {
+    if (!generatedPackage || !controlledPdfPreview) {
+      setReviewOutputFeedback({ tone: 'error', message: 'Generate a correction package before downloading the controlled PDF.' });
+      return;
+    }
+
+    if (!confirmations.finalReviewConfirmed) {
+      setReviewOutputFeedback({ tone: 'error', message: 'Human final review must be confirmed before downloading the controlled PDF.' });
+      return;
+    }
+
+    setIsDownloadingPdf(true);
+    setReviewOutputFeedback({ tone: 'success', message: 'Generating controlled PDF download...' });
+
+    let downloadUrl: string | null = null;
+
+    try {
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template: controlledPdfPreview,
+          confirmations: {
+            finalReviewConfirmed: confirmations.finalReviewConfirmed,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        let message = 'Controlled PDF generation failed. Confirm review and try again.';
+
+        try {
+          const payload = await response.json();
+          if (typeof payload?.error === 'string') message = payload.error;
+        } catch {
+          // Binary response parsing is unavailable for failed non-JSON responses.
+        }
+
+        setReviewOutputFeedback({ tone: 'error', message });
+        return;
+      }
+
+      const pdfBlob = await response.blob();
+      downloadUrl = URL.createObjectURL(pdfBlob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.download = buildSafePdfFilename(generatedPackage);
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+
+      setReviewOutputFeedback({ tone: 'success', message: 'Controlled PDF downloaded. Email send with PDF remains disabled.' });
+    } catch {
+      setReviewOutputFeedback({ tone: 'error', message: 'Controlled PDF request could not be completed. Try again from Review.' });
+    } finally {
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+      setIsDownloadingPdf(false);
+    }
+  };
 
   const copyEnhancedOutput = async (text: string, label: string) => {
     if (!generatedPackage) {
@@ -485,11 +566,19 @@ export function ReviewSendScreen({
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedReportPreview, 'Engineering report draft')}>Copy Report Draft</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedEmailPreview, 'Email draft')}>Copy Email Draft</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
+          <button
+            className="button primary"
+            type="button"
+            disabled={!generatedPackage || !confirmations.finalReviewConfirmed || isSending || isDownloadingPdf}
+            onClick={downloadControlledPdf}
+          >
+            {isDownloadingPdf ? 'Generating PDF...' : 'Download PDF'}
+          </button>
         </div>
 
         <div className="action-row">
           <button className="button secondary full-width" type="button" disabled>
-            Future Controlled PDF / Export Flow — Not Yet Enabled
+            Email Send With PDF — Disabled
           </button>
         </div>
 
