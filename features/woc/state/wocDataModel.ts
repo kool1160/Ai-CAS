@@ -6,9 +6,9 @@ import { buildAiCorrectiveActionDraftInputFromWocData } from '../logic/aiCorrect
 import {
   buildPhotoEvidenceStatusLine,
   loadPhotoEvidenceMetadataFromSession,
-  PHOTO_EVIDENCE_STORAGE_KEY,
   type EvidenceAttachmentMetadata,
 } from '../logic/evidenceAttachmentPreparation';
+import { PHOTO_EVIDENCE_STORAGE_KEY } from '../logic/wocStorageKeys';
 
 export type WocCorrectionData = {
   workOrderNumber: string;

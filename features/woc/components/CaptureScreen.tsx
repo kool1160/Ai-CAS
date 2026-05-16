@@ -1,8 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import type { ActionFeedback, UploadedFileInfo } from '../types/wocSessionTypes';
-
-const PHOTO_EVIDENCE_STORAGE_KEY = 'refab-connect-photo-evidence';
-const CAPTURE_CONTEXT_STORAGE_KEY = 'refab-connect-v4-capture-context';
+import { CAPTURE_CONTEXT_STORAGE_KEY, PHOTO_EVIDENCE_STORAGE_KEY } from '../logic/wocStorageKeys';
 
 const evidenceLabelOptions = [
   'Correct condition',

@@ -1,3 +1,5 @@
+import { PHOTO_EVIDENCE_STORAGE_KEY } from './wocStorageKeys';
+
 export type PrintCorrectionReportInput = {
   subjectLine?: string;
   workOrderNumber?: string;
@@ -15,7 +17,6 @@ export type PrintCorrectionReportInput = {
 };
 
 export const PRINT_REPORT_STORAGE_KEY = 'refab-connect-print-report';
-const PHOTO_EVIDENCE_STORAGE_KEY = 'refab-connect-photo-evidence';
 
 function formatEvidenceFileSize(size: number) {
   if (!Number.isFinite(size) || size <= 0) return 'unknown size';

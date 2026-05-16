@@ -1,6 +1,7 @@
+import { PHOTO_EVIDENCE_STORAGE_KEY } from './wocStorageKeys';
+
 export const ACCEPTED_FUTURE_EVIDENCE_ATTACHMENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const MAX_FUTURE_EVIDENCE_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-export const PHOTO_EVIDENCE_STORAGE_KEY = 'refab-connect-photo-evidence';
 
 export type AcceptedFutureEvidenceAttachmentType = (typeof ACCEPTED_FUTURE_EVIDENCE_ATTACHMENT_TYPES)[number];
 

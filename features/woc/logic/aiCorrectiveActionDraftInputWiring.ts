@@ -1,8 +1,8 @@
 import { loadPhotoEvidenceMetadataFromSession } from './evidenceAttachmentPreparation';
+import { CAPTURE_CONTEXT_STORAGE_KEY } from './wocStorageKeys';
 import type { AiCorrectiveActionDraftInput } from './aiCorrectiveActionDraftFoundation';
 import type { WocCorrectionData } from '../state/wocDataModel';
 
-const CAPTURE_CONTEXT_STORAGE_KEY = 'refab-connect-v4-capture-context';
 
 type CaptureContext = {
   shortIssueDescription?: string;
