@@ -72,7 +72,7 @@ export function MoreScreen({
             </div>
             <div className="placeholder-item">
               <strong>Build Status</strong>
-              <span>V4 corrective action workflow active.</span>
+              <span>AI-CAS corrective action workflow active.</span>
             </div>
           </div>
         </article>
@@ -123,7 +123,7 @@ export function MoreScreen({
                   type="text"
                   value={setupConfig.senderDisplayName}
                   onChange={(event) => onUpdateSetupConfig('senderDisplayName', event.target.value)}
-                  placeholder="REFAB Connect"
+                  placeholder="AI-CAS"
                 />
               </label>
               <label>

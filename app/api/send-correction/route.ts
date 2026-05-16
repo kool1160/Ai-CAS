@@ -91,7 +91,7 @@ Part Number: ${partNumber}
 Correction Type: ${correctionType}
 Affected Area: ${affectedArea}${companyName ? `\nCompany: ${companyName}` : ''}${submittedBy ? `\nSubmitted By: ${submittedBy}` : ''}
 
-Please review the Engineering Correction Report for the full issue summary and requested Engineering action.
+Please review the Corrective Action Report for the full issue summary and requested Engineering action.
 
 Thank you,
 AI-CAS`;
