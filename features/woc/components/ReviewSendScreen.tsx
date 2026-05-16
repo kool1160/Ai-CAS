@@ -18,12 +18,9 @@ type ReviewSendScreenProps = {
   sendReady: boolean;
   isSending: boolean;
   sendPin: string;
-  copyFeedback: ActionFeedback;
   saveFeedback: ActionFeedback;
   sendFeedback: ActionFeedback;
   confirmations: WocConfirmationState;
-  onCopyReport: () => void;
-  onCopyEmailDraft: () => void;
   onSaveDraft: () => void;
   onFinalReviewChange: (confirmed: boolean) => void;
   onSendPinChange: (value: string) => void;
@@ -182,7 +179,6 @@ export function ReviewSendScreen({
   sendReady,
   isSending,
   sendPin,
-  copyFeedback,
   saveFeedback,
   sendFeedback,
   confirmations,
@@ -713,7 +709,6 @@ export function ReviewSendScreen({
         {reviewOutputFeedback && (
           <p className="field-help">{reviewOutputFeedback.tone === 'success' ? 'Review output: ' : 'Review output error: '}{reviewOutputFeedback.message}</p>
         )}
-        {copyFeedback && <p className="field-help">{copyFeedback.tone === 'success' ? 'Copied: ' : 'Copy error: '}{copyFeedback.message}</p>}
         {saveFeedback && <p className="field-help">{saveFeedback.tone === 'success' ? 'Saved: ' : 'Save error: '}{saveFeedback.message}</p>}
         {sendFeedback && <p className="field-help">{sendFeedback.tone === 'success' ? 'Send placeholder: ' : 'Send placeholder error: '}{sendFeedback.message}</p>}
 
@@ -814,23 +809,6 @@ export function ReviewSendScreen({
           <summary><strong>Controlled PDF Preview Foundation</strong></summary>
           {controlledPdfPreview && <ControlledPdfPreviewRenderer template={controlledPdfPreview} />}
         </details>
-
-        <div className="form-grid" style={{ marginTop: 14 }}>
-          <label>
-            4-Digit Release PIN Placeholder
-            <input
-              inputMode="numeric"
-              maxLength={4}
-              pattern="[0-9]*"
-              type="password"
-              value={sendPin}
-              disabled
-              onChange={(event) => onSendPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="Use active Send PIN field above"
-            />
-          </label>
-          <p className="field-help">Advanced placeholder retained for compatibility. Use the active gated Send PIN field above.</p>
-        </div>
 
         <div className="action-row">
           <button className="button danger full-width" type="button" disabled onClick={onSendEmail}>
