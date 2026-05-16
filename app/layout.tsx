@@ -3,7 +3,7 @@ import './globals.css';
 import './v2-more-admin-layout.css';
 import './v2-tablet-polish.css';
 
-const iconVersion = 'ai-cas-v3';
+const iconVersion = 'ai-cas-v4';
 
 export const metadata: Metadata = {
   title: 'AI-CAS',
