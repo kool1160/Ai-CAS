@@ -423,10 +423,12 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
 
 .review-badge-header > div {
   flex: 1 1 min(100%, 240px);
+  width: 100%;
 }
 
 .review-badge-row {
   display: flex;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   flex-wrap: wrap;
@@ -935,7 +937,7 @@ select option {
   .review-badge-row .status-pill,
   .review-badge-row .step-pill,
   .review-badge-row .field-status {
-    width: auto;
+    width: 100%;
     max-width: 100%;
     max-inline-size: 100%;
   }
