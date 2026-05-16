@@ -132,6 +132,7 @@ export function WocApp() {
   const [isExtracting, setIsExtracting] = useState(false);
 
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
+  const [simpleModeAiDraftRequested, setSimpleModeAiDraftRequested] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
   const [sendFeedback, setSendFeedback] = useState<ActionFeedback>(null);
   const [isSending, setIsSending] = useState(false);
@@ -206,6 +207,7 @@ export function WocApp() {
 
   const clearGeneratedOutput = () => {
     setGeneratedPackage(null);
+    setSimpleModeAiDraftRequested(false);
     setSaveFeedback(null);
     setSendFeedback(null);
     setSendPin('');
@@ -426,6 +428,7 @@ export function WocApp() {
   const generateDraft = () => {
     if (!gateStatus.generateReady) return;
     setGeneratedPackage(createGeneratedPackage(wocData, submittedByLabel));
+    setSimpleModeAiDraftRequested(true);
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
     setSaveFeedback(null);
     setSendFeedback(null);
@@ -804,6 +807,8 @@ export function WocApp() {
             saveFeedback={saveFeedback}
             sendFeedback={sendFeedback}
             confirmations={confirmations}
+            simpleModeAiDraftRequested={simpleModeAiDraftRequested}
+            onSimpleModeAiDraftRequestHandled={() => setSimpleModeAiDraftRequested(false)}
             onSaveDraft={saveCurrentDraft}
             onFinalReviewChange={setFinalReviewConfirmed}
             onSendPinChange={(value) => {

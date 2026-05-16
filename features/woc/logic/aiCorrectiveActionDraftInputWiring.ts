@@ -31,6 +31,14 @@ function firstFilled(...values: Array<string | undefined>) {
   return values.find((value) => value?.trim())?.trim() ?? '';
 }
 
+function getSimpleModeAffectedArea(data: WocCorrectionData) {
+  if (data.foundAtDepartment === 'Other / Needs Review' && data.customAffectedArea.trim()) {
+    return data.customAffectedArea.trim();
+  }
+
+  return firstFilled(data.foundAtDepartment, data.affectedArea);
+}
+
 export function buildAiCorrectiveActionDraftInputFromWocData(data: WocCorrectionData): AiCorrectiveActionDraftInput {
   const captureContext = loadCaptureContextFromSession();
   const photoEvidence = loadPhotoEvidenceMetadataFromSession();
@@ -43,11 +51,13 @@ export function buildAiCorrectiveActionDraftInputFromWocData(data: WocCorrection
     operationNumber: data.operationNumber,
     routerStepOperation: data.routerStepOperation,
     quantityAffected: firstFilled(data.quantityAffected, data.quantity),
+    correctionType: data.correctionType,
+    affectedArea: getSimpleModeAffectedArea(data),
     foundAtDepartment: firstFilled(data.foundAtDepartment, data.affectedArea),
     suspectedFailurePoint: data.suspectedFailurePoint,
     correctiveActionOwnerDepartment: data.correctiveActionOwnerDepartment,
-    shortIssueDescription: firstFilled(captureContext.shortIssueDescription, data.shortIssueDescription, data.issueDetails),
-    detailedIssueNotes: firstFilled(data.detailedIssueNotes, data.issueDetails),
+    shortIssueDescription: firstFilled(data.shortIssueDescription, data.issueDetails, captureContext.shortIssueDescription),
+    detailedIssueNotes: firstFilled(data.detailedIssueNotes, data.issueDetails, data.shortIssueDescription),
     evidenceLabel: captureContext.evidenceLabel ?? '',
     photoEvidenceAttached: Boolean(photoEvidence?.evidenceAttached),
     photoEvidenceFileName: photoEvidence?.evidenceFileName ?? '',
