@@ -323,6 +323,11 @@ button:disabled {
   margin: 8px 0 18px;
 }
 
+.screen-title > .step-pill {
+  justify-self: start;
+  max-inline-size: 100%;
+}
+
 .screen-title h1 {
   margin: 0;
   font-size: 30px;
@@ -434,6 +439,7 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
 .review-badge-row .step-pill,
 .review-badge-row .field-status {
   max-width: 100%;
+  max-inline-size: 100%;
   min-width: 0;
   flex: 0 1 auto;
   white-space: normal;
@@ -931,6 +937,7 @@ select option {
   .review-badge-row .field-status {
     width: auto;
     max-width: 100%;
+    max-inline-size: 100%;
   }
 
 }
