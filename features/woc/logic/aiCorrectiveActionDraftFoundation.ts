@@ -14,6 +14,8 @@ export type AiCorrectiveActionDraftInput = {
   operationNumber?: string;
   routerStepOperation?: string;
   quantityAffected?: string;
+  correctionType?: string;
+  affectedArea?: string;
   foundAtDepartment?: string;
   suspectedFailurePoint?: string;
   correctiveActionOwnerDepartment?: string;
@@ -121,6 +123,8 @@ Customer / Job Name: ${manualBlank('Customer / Job Name', input.customerOrJob)}
 Operation Number: ${manualBlank('Operation Number', input.operationNumber)}
 Router Step / Operation: ${manualBlank('Router Step / Operation', input.routerStepOperation)}
 Quantity Affected: ${manualBlank('Quantity Affected', input.quantityAffected)}
+Correction Type: ${manualBlank('Correction Type', input.correctionType)}
+Affected Area: ${manualBlank('Affected Area', input.affectedArea)}
 Found At Department: ${manualBlank('Found At Department', input.foundAtDepartment)}
 Suspected Failure Point: ${manualBlank('Suspected Failure Point', input.suspectedFailurePoint)}
 Corrective Action Owner Department: ${manualBlank('Corrective Action Owner Department', input.correctiveActionOwnerDepartment)}
@@ -152,6 +156,8 @@ Structured section guidance:
 - requiresHumanReview must always be true.
 
 Tone and style:
+- Treat the rough operator issue description as the primary problem statement.
+- Use correction type, affected area, department, router/job context, and evidence metadata as supporting context.
 - Professional shop-floor corrective-action language
 - Clear enough for Engineering, Quality, and Production
 - No blame language

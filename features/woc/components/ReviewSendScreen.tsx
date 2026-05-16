@@ -21,6 +21,8 @@ type ReviewSendScreenProps = {
   saveFeedback: ActionFeedback;
   sendFeedback: ActionFeedback;
   confirmations: WocConfirmationState;
+  simpleModeAiDraftRequested: boolean;
+  onSimpleModeAiDraftRequestHandled: () => void;
   onSaveDraft: () => void;
   onFinalReviewChange: (confirmed: boolean) => void;
   onSendPinChange: (value: string) => void;
@@ -182,6 +184,8 @@ export function ReviewSendScreen({
   saveFeedback,
   sendFeedback,
   confirmations,
+  simpleModeAiDraftRequested,
+  onSimpleModeAiDraftRequestHandled,
   onSaveDraft,
   onFinalReviewChange,
   onSendPinChange,
@@ -392,7 +396,10 @@ export function ReviewSendScreen({
 
   const generateAiCorrectiveActionDraft = async () => {
     if (!aiDraftFoundation) {
-      setAiDraftFeedback({ tone: 'error', message: 'Generate a correction package before requesting an AI draft.' });
+      setAiDraftFeedback({
+        tone: 'error',
+        message: 'AI draft could not start because the correction package is missing. Manual review and editing remain available.',
+      });
       return;
     }
 
@@ -410,7 +417,7 @@ export function ReviewSendScreen({
       const payload = await response.json();
 
       if (!response.ok) {
-        const message = typeof payload?.error === 'string' ? payload.error : 'AI draft failed. Manual drafting remains available.';
+        const message = typeof payload?.error === 'string' ? payload.error : 'AI draft failed. Manual drafting and editing remain available.';
         setAiDraftFeedback({ tone: 'error', message });
         return;
       }
@@ -419,11 +426,21 @@ export function ReviewSendScreen({
       setAiCorrectiveActionDraft(payload.draft as AiCorrectiveActionDraftResult);
       setAiDraftFeedback({ tone: 'success', message: 'AI corrective-action draft generated. Review and edit before any future release/PDF.' });
     } catch {
-      setAiDraftFeedback({ tone: 'error', message: 'AI draft request could not be completed. Manual drafting remains available.' });
+      setAiDraftFeedback({
+        tone: 'error',
+        message: 'AI draft request could not be completed. Manual drafting and editing remain available.',
+      });
     } finally {
       setIsGeneratingAiDraft(false);
     }
   };
+
+  useEffect(() => {
+    if (!simpleModeAiDraftRequested || !generatedPackage || !aiDraftFoundation) return;
+
+    onSimpleModeAiDraftRequestHandled();
+    void generateAiCorrectiveActionDraft();
+  }, [simpleModeAiDraftRequested, generatedPackage, aiDraftFoundation, onSimpleModeAiDraftRequestHandled]);
 
   const updateStructuredSectionText = (sectionKey: AiCorrectiveActionDraftSectionKey, draftText: string) => {
     setStructuredDraft((current) => {
@@ -586,9 +603,17 @@ export function ReviewSendScreen({
               </span>
             </div>
             <h2>{generatedPackage ? 'Corrective Action Draft' : 'Draft Not Generated'}</h2>
-            <p>Generated draft language for review. Advanced editing tools are available below if needed.</p>
+            <p>Simple Mode AI draft language is shown here for human review. Advanced editing tools remain collapsed and optional.</p>
           </div>
         </div>
+
+        {aiDraftFeedback && (
+          <p className="field-help">
+            {aiDraftFeedback.tone === 'success' ? 'AI Draft: ' : 'AI Draft error: '}{aiDraftFeedback.message}
+          </p>
+        )}
+
+        {isGeneratingAiDraft && <p className="field-help">AI-CAS is drafting corrective-action language from the Simple Mode issue description and confirmed job context...</p>}
 
         {displayedStructuredDraft ? (
           <div className="placeholder-list" style={{ marginTop: 14 }}>

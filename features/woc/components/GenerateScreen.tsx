@@ -73,8 +73,8 @@ export function GenerateScreen({
         <div className="card-header">
           <div>
             <span className="step-pill">SIMPLE MODE</span>
-            <h2>What is wrong?</h2>
-            <p>Use one rough shop-floor sentence. AI-CAS will write the professional corrective-action draft.</p>
+            <h2>Describe the issue</h2>
+            <p>Type or use your phone’s voice dictation. Rough shop-floor wording is fine — AI-CAS will clean it up for review.</p>
           </div>
           <span className={wocData.shortIssueDescription.trim() ? 'field-status confirmed' : 'field-status'}>
             {wocData.shortIssueDescription.trim() ? 'Ready' : 'Needed'}
@@ -83,30 +83,60 @@ export function GenerateScreen({
 
         <div className="form-grid">
           <label>
-            What is wrong?
+            Describe the issue
             <textarea
               value={wocData.shortIssueDescription}
               onChange={(event) => {
                 onUpdateField('shortIssueDescription', event.target.value);
                 onUpdateField('issueDetails', event.target.value);
               }}
-              placeholder="Example: Work order is missing welding operation."
+              placeholder="Example: Welding router says 4 per hour, but we can only get 2 per hour. This affects scheduling and labor planning. Router time needs reviewed and corrected."
               style={{ minHeight: 190 }}
             />
           </label>
           <p className="field-help">
-            Examples: Work order is missing welding operation. This job needs 2 per part and only 1 per part was cut. Hole size failed no-go pin check. Parts were not cleaned after laser before welding.
+            Type or use your phone’s voice dictation. Include what is wrong, what department or process it affects, and what needs to be corrected. Rough shop-floor wording is fine — AI-CAS will clean it up for review.
           </p>
+
+          <label>
+            Correction Type
+            <select value={wocData.correctionType} onChange={(event) => onUpdateField('correctionType', event.target.value)}>
+              {correctionTypeOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+
+          <DepartmentDropdown
+            label="Department / Affected Area"
+            value={wocData.foundAtDepartment}
+            onChange={(value) => {
+              onUpdateField('foundAtDepartment', value);
+              onUpdateAffectedArea(value);
+            }}
+          />
+
+          {wocData.foundAtDepartment === otherAffectedAreaOption && (
+            <label>
+              Other / Needs Review Detail
+              <input
+                type="text"
+                value={wocData.customAffectedArea}
+                onChange={(event) => onUpdateField('customAffectedArea', event.target.value)}
+                placeholder="Enter department or process affected"
+              />
+            </label>
+          )}
         </div>
 
         <div className="action-row">
           <button className="button primary full-width" type="button" onClick={onGenerateDraft} disabled={!generateReady}>
-            Generate Corrective Action Draft
+            Draft Corrective Action with AI
           </button>
         </div>
 
         {!generateReady && (
-          <p className="field-help">Confirm the Work Order and Part Number, then enter one short answer to “What is wrong?”</p>
+          <p className="field-help">Confirm the Work Order and Part Number, then describe the issue in Simple Mode.</p>
         )}
       </article>
 
