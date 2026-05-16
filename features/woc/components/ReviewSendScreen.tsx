@@ -8,6 +8,7 @@ import type {
   StructuredCorrectiveActionDraft,
 } from '../logic/aiCorrectiveActionDraftFoundation';
 import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/wocDataModel';
+import { loadSetupConfigFromStorage } from '../logic/setupConfigStorage';
 import type { ActionFeedback } from '../types/wocSessionTypes';
 import { ControlledPdfPreviewRenderer } from './ControlledPdfPreviewRenderer';
 
@@ -143,6 +144,19 @@ function sanitizeFilenameSegment(value: string) {
     .replace(/^-|-$/g, '');
 }
 
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('PDF attachment could not be prepared.'));
+    reader.onloadend = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      const [, base64 = ''] = result.split(',');
+      resolve(base64);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
 function buildSafePdfFilename(generatedPackage: GeneratedCorrectionPackage) {
   const workOrder = sanitizeFilenameSegment(
     generatedPackage?.aiDraftFoundation.input.workOrderNumber || extractPreviewLine(generatedPackage?.reportPreview, 'Work Order'),
@@ -185,6 +199,7 @@ export function ReviewSendScreen({
   const [photoEvidenceFeedback, setPhotoEvidenceFeedback] = useState<ActionFeedback>(null);
   const [reviewOutputFeedback, setReviewOutputFeedback] = useState<ActionFeedback>(null);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isSendingEmailWithPdf, setIsSendingEmailWithPdf] = useState(false);
   const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
   const enhancedReportPreview = useMemo(
     () => appendReviewEvidenceToOutput(generatedPackage?.reportPreview, photoEvidenceItems, 'report'),
@@ -222,6 +237,38 @@ export function ReviewSendScreen({
     };
   }, [photoEvidenceItems]);
 
+  const generateControlledPdfBlob = async () => {
+    if (!controlledPdfPreview) {
+      throw new Error('Generate a correction package before creating the controlled PDF.');
+    }
+
+    const response = await fetch('/api/generate-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template: controlledPdfPreview,
+        confirmations: {
+          finalReviewConfirmed: confirmations.finalReviewConfirmed,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      let message = 'Controlled PDF generation failed. Confirm review and try again.';
+
+      try {
+        const payload = await response.json();
+        if (typeof payload?.error === 'string') message = payload.error;
+      } catch {
+        // Binary response parsing is unavailable for failed non-JSON responses.
+      }
+
+      throw new Error(message);
+    }
+
+    return response.blob();
+  };
+
   const downloadControlledPdf = async () => {
     if (!generatedPackage || !controlledPdfPreview) {
       setReviewOutputFeedback({ tone: 'error', message: 'Generate a correction package before downloading the controlled PDF.' });
@@ -239,32 +286,7 @@ export function ReviewSendScreen({
     let downloadUrl: string | null = null;
 
     try {
-      const response = await fetch('/api/generate-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          template: controlledPdfPreview,
-          confirmations: {
-            finalReviewConfirmed: confirmations.finalReviewConfirmed,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        let message = 'Controlled PDF generation failed. Confirm review and try again.';
-
-        try {
-          const payload = await response.json();
-          if (typeof payload?.error === 'string') message = payload.error;
-        } catch {
-          // Binary response parsing is unavailable for failed non-JSON responses.
-        }
-
-        setReviewOutputFeedback({ tone: 'error', message });
-        return;
-      }
-
-      const pdfBlob = await response.blob();
+      const pdfBlob = await generateControlledPdfBlob();
       downloadUrl = URL.createObjectURL(pdfBlob);
       const downloadLink = document.createElement('a');
       downloadLink.href = downloadUrl;
@@ -273,12 +295,88 @@ export function ReviewSendScreen({
       downloadLink.click();
       downloadLink.remove();
 
-      setReviewOutputFeedback({ tone: 'success', message: 'Controlled PDF downloaded. Email send with PDF remains disabled.' });
-    } catch {
-      setReviewOutputFeedback({ tone: 'error', message: 'Controlled PDF request could not be completed. Try again from Review.' });
+      setReviewOutputFeedback({ tone: 'success', message: 'Controlled PDF downloaded. Email with PDF remains gated by final review and Send PIN.' });
+    } catch (error) {
+      setReviewOutputFeedback({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Controlled PDF request could not be completed. Try again from Review.',
+      });
     } finally {
       if (downloadUrl) URL.revokeObjectURL(downloadUrl);
       setIsDownloadingPdf(false);
+    }
+  };
+
+  const sendControlledEmailWithPdf = async () => {
+    if (!generatedPackage || !controlledPdfPreview) {
+      setReviewOutputFeedback({ tone: 'error', message: 'Generate a correction package before sending email with PDF.' });
+      return;
+    }
+
+    if (!confirmations.finalReviewConfirmed || !sendReady) {
+      setReviewOutputFeedback({ tone: 'error', message: 'Human final review must be confirmed before sending email with PDF.' });
+      return;
+    }
+
+    if (sendPin.length !== 4) {
+      setReviewOutputFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending email with PDF.' });
+      return;
+    }
+
+    setIsSendingEmailWithPdf(true);
+    setReviewOutputFeedback({ tone: 'success', message: 'Generating controlled PDF attachment for email...' });
+
+    try {
+      const pdfBlob = await generateControlledPdfBlob();
+      const pdfBase64 = await blobToBase64(pdfBlob);
+      const pdfFileName = buildSafePdfFilename(generatedPackage);
+      const input = generatedPackage.aiDraftFoundation.input;
+      const setupConfig = loadSetupConfigFromStorage();
+
+      setReviewOutputFeedback({ tone: 'success', message: 'Sending reviewed email with controlled PDF attachment...' });
+
+      const response = await fetch('/api/send-correction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subjectLine: generatedPackage.subjectLine,
+          reportText: enhancedReportPreview,
+          emailDraftText: enhancedEmailPreview,
+          workOrderNumber: input.workOrderNumber,
+          partNumber: input.partNumber,
+          affectedArea: input.foundAtDepartment,
+          correctionType: generatedPackage.subjectLine,
+          sendPin,
+          recipientEmail: setupConfig.engineeringRecipientEmail,
+          senderDisplayName: setupConfig.senderDisplayName,
+          submittedByName: submittedBy,
+          companyName: setupConfig.companyName,
+          pdfBase64,
+          pdfFileName,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message = typeof payload?.error === 'string' ? payload.error : 'Email send with PDF failed. Copy and save controls remain available.';
+        setReviewOutputFeedback({ tone: 'error', message });
+        return;
+      }
+
+      const recipient = typeof payload?.recipient === 'string' ? payload.recipient : 'configured recipient';
+      const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
+      setReviewOutputFeedback({
+        tone: 'success',
+        message: `Reviewed email with controlled PDF sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}`,
+      });
+      onSendPinChange('');
+    } catch (error) {
+      setReviewOutputFeedback({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Email with PDF could not be completed. Copy and save controls remain available.',
+      });
+    } finally {
+      setIsSendingEmailWithPdf(false);
     }
   };
 
@@ -547,7 +645,7 @@ export function ReviewSendScreen({
         <div className="card-header">
           <div>
             <h2>Human Confirmation</h2>
-            <p>Confirm review, then copy or save the draft. Release actions remain disabled.</p>
+            <p>Confirm review, then copy, save, download PDF, or send a reviewed email with a controlled PDF attachment.</p>
           </div>
           <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Confirmed' : 'Review Required'}</span>
         </div>
@@ -569,16 +667,38 @@ export function ReviewSendScreen({
           <button
             className="button primary"
             type="button"
-            disabled={!generatedPackage || !confirmations.finalReviewConfirmed || isSending || isDownloadingPdf}
+            disabled={!generatedPackage || !confirmations.finalReviewConfirmed || isSending || isDownloadingPdf || isSendingEmailWithPdf}
             onClick={downloadControlledPdf}
           >
             {isDownloadingPdf ? 'Generating PDF...' : 'Download PDF'}
           </button>
         </div>
 
+        <div className="form-grid" style={{ marginTop: 14 }}>
+          <label>
+            4-Digit Send PIN
+            <input
+              inputMode="numeric"
+              maxLength={4}
+              pattern="[0-9]*"
+              type="password"
+              value={sendPin}
+              disabled={!generatedPackage || !confirmations.finalReviewConfirmed || isSending || isSendingEmailWithPdf}
+              onChange={(event) => onSendPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="Enter Send PIN"
+            />
+          </label>
+          <p className="field-help">PDF email send remains gated by generated package, final human review, and the configured Send PIN. Photo images are not attached.</p>
+        </div>
+
         <div className="action-row">
-          <button className="button secondary full-width" type="button" disabled>
-            Email Send With PDF — Disabled
+          <button
+            className="button danger full-width"
+            type="button"
+            disabled={!generatedPackage || !sendReady || sendPin.length !== 4 || isSending || isDownloadingPdf || isSendingEmailWithPdf}
+            onClick={sendControlledEmailWithPdf}
+          >
+            {isSendingEmailWithPdf ? 'Sending Reviewed Email With PDF...' : 'Send Reviewed Email With PDF'}
           </button>
         </div>
 
@@ -698,15 +818,15 @@ export function ReviewSendScreen({
               value={sendPin}
               disabled
               onChange={(event) => onSendPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="Disabled until controlled release flow"
+              placeholder="Use active Send PIN field above"
             />
           </label>
-          <p className="field-help">Direct send/export remains intentionally disabled.</p>
+          <p className="field-help">Advanced placeholder retained for compatibility. Use the active gated Send PIN field above.</p>
         </div>
 
         <div className="action-row">
           <button className="button danger full-width" type="button" disabled onClick={onSendEmail}>
-            Future Controlled Release Flow — Disabled
+            Legacy Text-Only Send Control — Disabled
           </button>
         </div>
       </details>

@@ -16,6 +16,13 @@ type SendCorrectionRequest = {
   submittedByEmail?: string;
   companyName?: string;
   sendPin?: string;
+  pdfBase64?: string;
+  pdfFileName?: string;
+};
+
+type ResendAttachment = {
+  filename: string;
+  content: string;
 };
 
 function cleanValue(value: unknown) {
@@ -28,6 +35,40 @@ function resolveRecipient(payload: SendCorrectionRequest) {
 
 function resolveSender() {
   return cleanValue(process.env.REFAB_CONNECT_EMAIL_FROM) || DEFAULT_RESEND_FROM;
+}
+
+function normalizePdfFileName(value: string) {
+  const fallback = 'ai-cas-corrective-action.pdf';
+  const normalized = value
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 120);
+
+  if (!normalized) return fallback;
+  return normalized.toLowerCase().endsWith('.pdf') ? normalized : `${normalized}.pdf`;
+}
+
+function buildPdfAttachment(payload: SendCorrectionRequest): ResendAttachment | null {
+  const pdfBase64 = cleanValue(payload.pdfBase64);
+  const pdfFileName = normalizePdfFileName(cleanValue(payload.pdfFileName));
+
+  if (!pdfBase64 && !cleanValue(payload.pdfFileName)) return null;
+
+  if (!pdfBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(pdfBase64)) {
+    throw new Error('Invalid PDF attachment payload. Generate the controlled PDF again before sending.');
+  }
+
+  const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+  if (pdfBuffer.length === 0 || pdfBuffer.subarray(0, 4).toString('latin1') !== '%PDF') {
+    throw new Error('Invalid PDF attachment payload. Only controlled PDF attachments are supported.');
+  }
+
+  return {
+    filename: pdfFileName,
+    content: pdfBase64,
+  };
 }
 
 function buildEmailBody(payload: SendCorrectionRequest) {
@@ -94,6 +135,17 @@ export async function POST(request: Request) {
   const recipient = resolveRecipient(payload);
   const from = resolveSender();
 
+  let pdfAttachment: ResendAttachment | null = null;
+
+  try {
+    pdfAttachment = buildPdfAttachment(payload);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Invalid PDF attachment payload.' },
+      { status: 400 },
+    );
+  }
+
   if (!recipient) {
     return NextResponse.json(
       { error: 'No Engineering recipient email is configured. Add one in Setup/Admin or set REFAB_CONNECT_EMAIL_TO.' },
@@ -119,6 +171,7 @@ export async function POST(request: Request) {
       to: [recipient],
       subject: subjectLine,
       text: buildEmailBody(payload),
+      ...(pdfAttachment ? { attachments: [pdfAttachment] } : {}),
     }),
   });
 
