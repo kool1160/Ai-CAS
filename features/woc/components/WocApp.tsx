@@ -132,7 +132,6 @@ export function WocApp() {
   const [isExtracting, setIsExtracting] = useState(false);
 
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
-  const [copyFeedback, setCopyFeedback] = useState<ActionFeedback>(null);
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
   const [sendFeedback, setSendFeedback] = useState<ActionFeedback>(null);
   const [isSending, setIsSending] = useState(false);
@@ -207,7 +206,6 @@ export function WocApp() {
 
   const clearGeneratedOutput = () => {
     setGeneratedPackage(null);
-    setCopyFeedback(null);
     setSaveFeedback(null);
     setSendFeedback(null);
     setSendPin('');
@@ -429,7 +427,6 @@ export function WocApp() {
     if (!gateStatus.generateReady) return;
     setGeneratedPackage(createGeneratedPackage(wocData, submittedByLabel));
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
-    setCopyFeedback(null);
     setSaveFeedback(null);
     setSendFeedback(null);
     setSendPin('');
@@ -804,12 +801,9 @@ export function WocApp() {
             sendReady={gateStatus.sendReady}
             isSending={isSending}
             sendPin={sendPin}
-            copyFeedback={copyFeedback}
             saveFeedback={saveFeedback}
             sendFeedback={sendFeedback}
             confirmations={confirmations}
-            onCopyReport={() => copyTextToClipboard(generatedPackage?.reportPreview, 'Engineering report', setCopyFeedback)}
-            onCopyEmailDraft={() => copyTextToClipboard(generatedPackage?.emailPreview, 'Email draft', setCopyFeedback)}
             onSaveDraft={saveCurrentDraft}
             onFinalReviewChange={setFinalReviewConfirmed}
             onSendPinChange={(value) => {
