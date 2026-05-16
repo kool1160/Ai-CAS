@@ -39,13 +39,13 @@ export function MoreScreen({
     <section className="stack more-admin-screen">
       <div className="screen-title">
         <h1>More</h1>
-        <p>Settings, help, setup/admin controls, and saved user access.</p>
+        <p>Setup, help, and saved operator access.</p>
       </div>
 
       <div className="more-left-column">
         <article className="card more-user-panel">
-          <h2>Current User</h2>
-          <p>This saved identity is used as Submitted By on correction reports.</p>
+          <h2>Current Operator</h2>
+          <p>This operator name is used as Submitted By on correction reports.</p>
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             <div className="placeholder-item">
               <strong>{currentUser.displayName}</strong>
@@ -56,15 +56,15 @@ export function MoreScreen({
           <div className="action-row">
             <button className="button secondary full-width" type="button" onClick={onLogout}>Lock App</button>
             {onResetUser && (
-              <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved User</button>
+              <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved Operator</button>
             )}
           </div>
-          <p className="field-help">Lock App keeps the saved identity and returns to the 4-digit App Access PIN screen. Reset Saved User clears the local profile and returns to first-time setup.</p>
+          <p className="field-help">Lock App keeps this operator saved and returns to the 4-digit App Access PIN. Reset Saved Operator clears this device profile and starts operator setup again.</p>
         </article>
 
         <article className="card more-settings-panel">
           <h2>Settings / Help</h2>
-          <p>Core settings and help information without disrupting the corrective action workflow.</p>
+          <p>Quick reference for the active corrective action workflow.</p>
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             <div className="placeholder-item">
               <strong>System Purpose</strong>
@@ -81,7 +81,7 @@ export function MoreScreen({
       <div className="more-right-column">
         <article className="card more-setup-panel">
           <h2>Setup / Admin</h2>
-          <p>Local demo setup. This remains separate from App Access PIN and still requires the master code.</p>
+          <p>Setup controls for this device. Unlocking Setup is separate from the App Access PIN and requires the master code.</p>
           {!setupUnlocked ? (
             <div className="form-grid" style={{ marginTop: 14 }}>
               <label>
@@ -95,7 +95,7 @@ export function MoreScreen({
                 />
               </label>
               <button className="button primary full-width" type="button" onClick={onUnlockSetup}>Unlock Setup</button>
-              <p className="field-help">Setup unlock lasts only while you are editing. The code is not saved in localStorage.</p>
+              <p className="field-help">Setup stays unlocked only while you edit this screen. The master code is not saved on this device.</p>
             </div>
           ) : (
             <div className="form-grid" style={{ marginTop: 14 }}>
@@ -127,26 +127,26 @@ export function MoreScreen({
                 />
               </label>
               <label>
-                Default Submitted By Name
+                Default Operator Name
                 <input
                   type="text"
                   value={setupConfig.defaultSubmittedByName}
                   onChange={(event) => onUpdateSetupConfig('defaultSubmittedByName', event.target.value)}
-                  placeholder="Submitted by name"
+                  placeholder="Operator name"
                 />
               </label>
               <label>
-                Default Submitted By Email
+                Default Operator Email
                 <input
                   type="email"
                   value={setupConfig.defaultSubmittedByEmail}
                   onChange={(event) => onUpdateSetupConfig('defaultSubmittedByEmail', event.target.value)}
-                  placeholder="submittedby@example.com"
+                  placeholder="operator@example.com"
                 />
               </label>
-              <button className="button success full-width" type="button" onClick={onSaveSetupConfig}>Save Setup Config</button>
+              <button className="button success full-width" type="button" onClick={onSaveSetupConfig}>Save Setup</button>
               <button className="button secondary full-width" type="button" onClick={onLockSetup}>Lock Setup</button>
-              <p className="field-help">Engineering Recipient Email controls email routing. If blank, the server fallback REFAB_CONNECT_EMAIL_TO is used. Saving relocks Setup/Admin.</p>
+              <p className="field-help">Engineering Recipient Email controls where correction reports are sent. If blank, the server email fallback is used. Saving locks Setup again.</p>
             </div>
           )}
           {setupFeedback && (
