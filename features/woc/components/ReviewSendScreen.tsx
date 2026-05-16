@@ -664,14 +664,16 @@ export function ReviewSendScreen({
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedReportPreview, 'Engineering report draft')}>Copy Report Draft</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={() => copyEnhancedOutput(enhancedEmailPreview, 'Email draft')}>Copy Email Draft</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
-          <button
-            className="button primary"
-            type="button"
-            disabled={!generatedPackage || !confirmations.finalReviewConfirmed || isSending || isDownloadingPdf || isSendingEmailWithPdf}
-            onClick={downloadControlledPdf}
-          >
-            {isDownloadingPdf ? 'Generating PDF...' : 'Download PDF'}
-          </button>
+          {confirmations.finalReviewConfirmed && (
+            <button
+              className="button primary"
+              type="button"
+              disabled={!generatedPackage || isSending || isDownloadingPdf || isSendingEmailWithPdf}
+              onClick={downloadControlledPdf}
+            >
+              {isDownloadingPdf ? 'Generating PDF...' : 'Download PDF'}
+            </button>
+          )}
         </div>
 
         <div className="form-grid" style={{ marginTop: 14 }}>
