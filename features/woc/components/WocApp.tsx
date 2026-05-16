@@ -183,6 +183,14 @@ export function WocApp() {
   }, [historyRecords, localRecordsLoaded]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }, [activeScreen]);
+
+  useEffect(() => {
     if (activeScreen === 'more') return;
     setSetupUnlocked(false);
     setSetupCodeInput('');
