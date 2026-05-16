@@ -98,35 +98,46 @@ export function GenerateScreen({
             Type or use your phone’s voice dictation. Include what is wrong, what department or process it affects, and what needs to be corrected. Rough shop-floor wording is fine — AI-CAS will clean it up for review.
           </p>
 
-          <label>
-            Correction Type
-            <select value={wocData.correctionType} onChange={(event) => onUpdateField('correctionType', event.target.value)}>
-              {correctionTypeOptions.map((option) => (
-                <option key={option}>{option}</option>
-              ))}
-            </select>
-          </label>
+          <details className="placeholder-item" style={{ marginTop: 4 }}>
+            <summary>
+              <strong>Optional context</strong>
+              <p className="field-help">
+                Add department or correction type if it helps AI-CAS draft the correction. You can also include this in the issue description.
+              </p>
+            </summary>
 
-          <DepartmentDropdown
-            label="Department / Affected Area"
-            value={wocData.foundAtDepartment}
-            onChange={(value) => {
-              onUpdateField('foundAtDepartment', value);
-              onUpdateAffectedArea(value);
-            }}
-          />
+            <div className="form-grid" style={{ marginTop: 12 }}>
+              <label>
+                Correction Type (optional)
+                <select value={wocData.correctionType} onChange={(event) => onUpdateField('correctionType', event.target.value)}>
+                  {correctionTypeOptions.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
 
-          {wocData.foundAtDepartment === otherAffectedAreaOption && (
-            <label>
-              Other / Needs Review Detail
-              <input
-                type="text"
-                value={wocData.customAffectedArea}
-                onChange={(event) => onUpdateField('customAffectedArea', event.target.value)}
-                placeholder="Enter department or process affected"
+              <DepartmentDropdown
+                label="Department / Affected Area (optional)"
+                value={wocData.foundAtDepartment}
+                onChange={(value) => {
+                  onUpdateField('foundAtDepartment', value);
+                  onUpdateAffectedArea(value);
+                }}
               />
-            </label>
-          )}
+
+              {wocData.foundAtDepartment === otherAffectedAreaOption && (
+                <label>
+                  Other / Needs Review Detail (optional)
+                  <input
+                    type="text"
+                    value={wocData.customAffectedArea}
+                    onChange={(event) => onUpdateField('customAffectedArea', event.target.value)}
+                    placeholder="Enter department or process affected"
+                  />
+                </label>
+              )}
+            </div>
+          </details>
         </div>
 
         <div className="action-row">
