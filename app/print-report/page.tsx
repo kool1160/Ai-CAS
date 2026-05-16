@@ -379,8 +379,8 @@ export default function PrintReportPage() {
           <header className="header">
             <div className="header-title-block">
               <div className="kicker">Corrective Action System</div>
-              <h1>Engineering Correction Report</h1>
-              <p className="subtitle">Powered by Applied Intelligence Framework · Print-Ready Correction Document</p>
+              <h1>Corrective Action Report</h1>
+              <p className="subtitle">Powered by Applied Intelligence Framework · AI-CAS Controlled Corrective Action Document</p>
             </div>
             <img
               className="ai-print-logo"
@@ -414,7 +414,7 @@ export default function PrintReportPage() {
             </section>
           )}
 
-          <h2 className="section-title">Full Engineering Correction Report</h2>
+          <h2 className="section-title">Full Corrective Action Report</h2>
           <section className="report-box">{report.reportText}</section>
         </article>
       ) : (

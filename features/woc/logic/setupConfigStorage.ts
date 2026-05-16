@@ -5,7 +5,7 @@ export const SETUP_CONFIG_STORAGE_KEY = 'refab-connect-setup-config';
 export const defaultSetupConfig: SetupConfig = {
   companyName: '',
   engineeringRecipientEmail: '',
-  senderDisplayName: 'REFAB Connect',
+  senderDisplayName: 'AI-CAS',
   defaultSubmittedByName: '',
   defaultSubmittedByEmail: '',
 };
