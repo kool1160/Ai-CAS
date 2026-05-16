@@ -14,13 +14,15 @@ function getSectionClass(layoutHint: string) {
 export function ControlledPdfPreviewRenderer({ template }: ControlledPdfPreviewRendererProps) {
   return (
     <article className="card controlled-pdf-preview">
-      <div className="card-header">
+      <div className="card-header review-badge-header">
         <div>
-          <span className="step-pill">PDF PREVIEW · DRAFT ONLY</span>
+          <div className="review-badge-row" aria-label="Controlled PDF preview status">
+            <span className="step-pill">PDF PREVIEW · DRAFT ONLY</span>
+            <span className="field-status">Unreleased</span>
+          </div>
           <h2>{template.templateName}</h2>
           <p>{template.modelSource} · {template.templateVersion}</p>
         </div>
-        <span className="field-status">Unreleased</span>
       </div>
 
       <div className="preview-box">

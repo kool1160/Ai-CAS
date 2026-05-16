@@ -411,6 +411,36 @@ body:has(.home-screen) .app-frame > .screen-title:first-child {
   max-width: 100%;
 }
 
+
+.review-badge-header {
+  align-items: flex-start;
+}
+
+.review-badge-header > div {
+  flex: 1 1 min(100%, 240px);
+}
+
+.review-badge-row {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.review-badge-row .status-pill,
+.review-badge-row .step-pill,
+.review-badge-row .field-status {
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .card h2,
 .card h3 {
   margin: 0;
@@ -889,6 +919,20 @@ select option {
     justify-content: flex-start;
     text-align: left;
   }
+  .review-badge-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .review-badge-row .status-pill,
+  .review-badge-row .step-pill,
+  .review-badge-row .field-status {
+    width: auto;
+    max-width: 100%;
+  }
+
 }
 
 @media (max-width: 380px) {

@@ -581,15 +581,17 @@ export function ReviewSendScreen({
       </article>
 
       <article className="card review-report-panel">
-        <div className="card-header">
+        <div className="card-header review-badge-header">
           <div>
-            <span className="step-pill">AI-GENERATED DRAFT</span>
+            <div className="review-badge-row" aria-label="Corrective action draft review status">
+              <span className="step-pill">AI-GENERATED DRAFT</span>
+              <span className={confirmations.finalReviewConfirmed ? 'field-status confirmed' : 'field-status'}>
+                {confirmations.finalReviewConfirmed ? 'Reviewed' : 'Review Required'}
+              </span>
+            </div>
             <h2>{generatedPackage ? 'Corrective Action Draft' : 'Draft Not Generated'}</h2>
             <p>Generated draft language for review. Advanced editing tools are available below if needed.</p>
           </div>
-          <span className={confirmations.finalReviewConfirmed ? 'field-status confirmed' : 'field-status'}>
-            {confirmations.finalReviewConfirmed ? 'Reviewed' : 'Review Required'}
-          </span>
         </div>
 
         {displayedStructuredDraft ? (
@@ -617,13 +619,15 @@ export function ReviewSendScreen({
       </article>
 
       <article className="card review-photo-evidence-panel">
-        <div className="card-header">
+        <div className="card-header review-badge-header">
           <div>
-            <span className="step-pill">EVIDENCE SUMMARY</span>
+            <div className="review-badge-row" aria-label="Review evidence status">
+              <span className="step-pill">EVIDENCE SUMMARY</span>
+              <span className="field-status">{photoEvidenceItems.length}/3</span>
+            </div>
             <h2>Evidence</h2>
             <p>Attached evidence remains local/session-only. Export, print, email, and PDF image release are not enabled.</p>
           </div>
-          <span className="field-status">{photoEvidenceItems.length}/3</span>
         </div>
 
         {photoEvidenceItems.length > 0 ? (
@@ -642,12 +646,14 @@ export function ReviewSendScreen({
       </article>
 
       <article className="card review-action-panel">
-        <div className="card-header">
+        <div className="card-header review-badge-header">
           <div>
+            <div className="review-badge-row" aria-label="Human confirmation status">
+              <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Confirmed' : 'Review Required'}</span>
+            </div>
             <h2>Human Confirmation</h2>
             <p>Confirm review, then copy, save, download PDF, or send a reviewed email with a controlled PDF attachment.</p>
           </div>
-          <span className={sendReady ? 'field-status confirmed' : 'field-status'}>{sendReady ? 'Confirmed' : 'Review Required'}</span>
         </div>
 
         <label>
