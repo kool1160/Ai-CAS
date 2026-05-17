@@ -1,12 +1,7 @@
-import { useState } from 'react';
-
 import { type WocCorrectionData } from '../state/wocDataModel';
-import type { ExtractionDebugMetadata } from '../types/wocSessionTypes';
-
 type ConfirmScreenProps = {
   wocData: WocCorrectionData;
   confirmReady: boolean;
-  extractionDebug?: ExtractionDebugMetadata;
   getFieldConfirmed: (key: keyof WocCorrectionData) => boolean;
   onUpdateField: (key: keyof WocCorrectionData, value: string) => void;
   onConfirmField: (key: keyof WocCorrectionData) => void;
@@ -19,7 +14,7 @@ const primaryConfirmFields: Array<{ key: keyof WocCorrectionData; label: string;
   { key: 'partNumber', label: 'Part Number', required: true, confirmable: true },
   { key: 'customerOrJob', label: 'Customer / Job' },
   { key: 'quantityAffected', label: 'Quantity' },
-  { key: 'dueDateShipDate', label: 'Due Date' },
+  { key: 'dueDateShipDate', label: 'Due Date / Ship Date' },
 ];
 
 const secondaryConfirmFields: Array<{ key: keyof WocCorrectionData; label: string }> = [
@@ -77,15 +72,12 @@ function ConfirmField({
 export function ConfirmScreen({
   wocData,
   confirmReady,
-  extractionDebug = null,
   getFieldConfirmed,
   onUpdateField,
   onConfirmField,
   onConfirmRequired,
   onContinue,
 }: ConfirmScreenProps) {
-  const [debugOpen, setDebugOpen] = useState(false);
-
   return (
     <section className="stack">
       <div className="screen-title">
@@ -147,47 +139,6 @@ export function ConfirmScreen({
         </div>
       </details>
 
-      {extractionDebug && (
-        <details className="card" open={debugOpen} onToggle={(event) => setDebugOpen(event.currentTarget.open)}>
-          <summary>
-            <strong>Extraction Debug</strong>
-            <p className="field-help">Internal troubleshooting metadata only. Expand only when support asks for it.</p>
-          </summary>
-          <div className="field-list" style={{ marginTop: 14 }}>
-            <div className="field-row">
-              <strong>Extraction Source</strong>
-              <span className="field-value">{extractionDebug.extractionSource}</span>
-            </div>
-            <div className="field-row">
-              <strong>Extracted Keys</strong>
-              <span className="field-value">
-                {extractionDebug.extractedKeys.length > 0 ? extractionDebug.extractedKeys.join(', ') : 'None returned'}
-              </span>
-            </div>
-            <div className="field-row">
-              <strong>Missing Expected Fields</strong>
-              <span className="field-value">
-                {extractionDebug.missingExpectedFields.length > 0
-                  ? extractionDebug.missingExpectedFields.join(', ')
-                  : 'None — all expected fields returned'}
-              </span>
-            </div>
-            {Object.keys(extractionDebug.fieldSourceNotes).length > 0 && (
-              <div className="field-row">
-                <strong>Field Source Notes</strong>
-                <span className="field-value" style={{ whiteSpace: 'pre-wrap' }}>
-                  {Object.entries(extractionDebug.fieldSourceNotes)
-                    .map(([key, note]) => `${key}: ${note}`)
-                    .join('\n')}
-                </span>
-              </div>
-            )}
-          </div>
-          <p className="field-help" style={{ marginTop: 10 }}>
-            AI extracted data is draft-only until human confirmed. Missing fields remain editable.
-          </p>
-        </details>
-      )}
     </section>
   );
 }

@@ -130,6 +130,8 @@ export function WocApp() {
   const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
   const [extractionFeedback, setExtractionFeedback] = useState<ActionFeedback>(null);
   const [extractionDebug, setExtractionDebug] = useState<ExtractionDebugMetadata>(null);
+  // Keep extraction diagnostics in session state for internal troubleshooting, but never pass them to normal UI screens.
+  void extractionDebug;
   const [isExtracting, setIsExtracting] = useState(false);
 
   const [generatedPackage, setGeneratedPackage] = useState<GeneratedCorrectionPackage>(null);
@@ -768,7 +770,6 @@ export function WocApp() {
           <ConfirmScreen
             wocData={wocData}
             confirmReady={gateStatus.confirmReady}
-            extractionDebug={extractionDebug}
             getFieldConfirmed={getFieldConfirmed}
             onUpdateField={updateWocData}
             onConfirmField={confirmField}
