@@ -234,7 +234,7 @@ export function CaptureScreen({
           <label className="button primary" htmlFor="router-camera-input">Take Photo</label>
           <input accept="image/*" capture="environment" hidden id="router-camera-input" onChange={handleFileChange} type="file" />
           <label className="button primary" htmlFor="router-upload-input">Upload Image</label>
-          <input accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx" hidden id="router-upload-input" onChange={handleFileChange} type="file" />
+          <input accept="image/*" hidden id="router-upload-input" onChange={handleFileChange} type="file" />
           <button className="button primary full-width" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>
             {isExtracting ? 'Extracting...' : 'Extract with AI Vision'}
           </button>
