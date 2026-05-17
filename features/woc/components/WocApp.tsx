@@ -137,14 +137,12 @@ export function WocApp() {
   const [saveFeedback, setSaveFeedback] = useState<ActionFeedback>(null);
   const [sendFeedback, setSendFeedback] = useState<ActionFeedback>(null);
   const [isSending, setIsSending] = useState(false);
-  const [sendPin, setSendPin] = useState('');
 
   const [draftRecords, setDraftRecords] = useState<DraftRecord[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [draftFinalReviewConfirmed, setDraftFinalReviewConfirmed] = useState(false);
   const [draftActionFeedback, setDraftActionFeedback] = useState<ActionFeedback>(null);
   const [isSendingDraft, setIsSendingDraft] = useState(false);
-  const [draftSendPin, setDraftSendPin] = useState('');
 
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
@@ -211,7 +209,6 @@ export function WocApp() {
     setSimpleModeAiDraftRequested(false);
     setSaveFeedback(null);
     setSendFeedback(null);
-    setSendPin('');
   };
 
   const handleSetupUser = () => {
@@ -270,8 +267,6 @@ export function WocApp() {
     setAppUnlockPin('');
     setSetupUnlocked(false);
     setSetupCodeInput('');
-    setSendPin('');
-    setDraftSendPin('');
     setActiveScreen('home');
   };
 
@@ -437,14 +432,12 @@ export function WocApp() {
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: false }));
     setSaveFeedback(null);
     setSendFeedback(null);
-    setSendPin('');
     setActiveScreen('review');
   };
 
   const setFinalReviewConfirmed = (confirmed: boolean) => {
     setConfirmations((current) => ({ ...current, finalReviewConfirmed: confirmed }));
     setSendFeedback(null);
-    setSendPin('');
   };
 
   const copyTextToClipboard = async (text: string | undefined, label: string, setFeedback: (feedback: ActionFeedback) => void) => {
@@ -488,7 +481,6 @@ export function WocApp() {
       setDraftRecords((current) => [record, ...current]);
       setSelectedDraftId(record.draftId);
       setDraftFinalReviewConfirmed(false);
-      setDraftSendPin('');
       setDraftActionFeedback(null);
       setSaveFeedback({ tone: 'success', message: `${draftId} saved for this browser.` });
     } catch {
@@ -550,11 +542,6 @@ export function WocApp() {
       return;
     }
 
-    if (sendPin.length !== 4) {
-      setSendFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending.' });
-      return;
-    }
-
     setIsSending(true);
     setSendFeedback({ tone: 'success', message: 'Sending email...' });
 
@@ -571,7 +558,6 @@ export function WocApp() {
           affectedArea: getEffectiveAffectedProcess(wocData),
           affectedOperationEquipment: getEffectiveAffectedOperationEquipment(wocData),
           correctionType: wocData.correctionType,
-          sendPin,
           ...buildSendSetupPayload(setupConfig, currentUser),
         }),
       });
@@ -580,7 +566,6 @@ export function WocApp() {
       if (!response.ok) {
         const message = typeof payload?.error === 'string' ? payload.error : 'Email send failed. Copy controls remain available.';
         setSendFeedback({ tone: 'error', message });
-        setSendPin('');
         return;
       }
 
@@ -588,10 +573,8 @@ export function WocApp() {
       const recipient = typeof payload?.recipient === 'string' ? payload.recipient : 'configured recipient';
       addSentHistoryRecord(resendId);
       setSendFeedback({ tone: 'success', message: `Email sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
-      setSendPin('');
     } catch {
       setSendFeedback({ tone: 'error', message: 'Email send could not be completed. Copy controls remain available.' });
-      setSendPin('');
     } finally {
       setIsSending(false);
     }
@@ -600,7 +583,6 @@ export function WocApp() {
   const selectDraft = (draftId: string) => {
     setSelectedDraftId(draftId);
     setDraftFinalReviewConfirmed(false);
-    setDraftSendPin('');
     setDraftActionFeedback(null);
   };
 
@@ -612,11 +594,6 @@ export function WocApp() {
 
     if (!draftFinalReviewConfirmed) {
       setDraftActionFeedback({ tone: 'error', message: 'Final review is required before sending this saved draft.' });
-      return;
-    }
-
-    if (draftSendPin.length !== 4) {
-      setDraftActionFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending.' });
       return;
     }
 
@@ -635,7 +612,6 @@ export function WocApp() {
           partNumber: selectedDraft.partNumber,
           affectedArea: selectedDraft.affectedArea,
           correctionType: selectedDraft.correctionType,
-          sendPin: draftSendPin,
           ...buildSendSetupPayload(setupConfig, currentUser),
         }),
       });
@@ -644,7 +620,6 @@ export function WocApp() {
       if (!response.ok) {
         const message = typeof payload?.error === 'string' ? payload.error : 'Saved draft email send failed. Copy controls remain available.';
         setDraftActionFeedback({ tone: 'error', message });
-        setDraftSendPin('');
         return;
       }
 
@@ -653,10 +628,8 @@ export function WocApp() {
       addSentHistoryRecordFromDraft(selectedDraft, resendId);
       setDraftActionFeedback({ tone: 'success', message: `Saved draft sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setDraftFinalReviewConfirmed(false);
-      setDraftSendPin('');
     } catch {
       setDraftActionFeedback({ tone: 'error', message: 'Saved draft email send could not be completed. Copy controls remain available.' });
-      setDraftSendPin('');
     } finally {
       setIsSendingDraft(false);
     }
@@ -712,7 +685,6 @@ export function WocApp() {
     setHistoryRecords([]);
     setSelectedDraftId(null);
     setDraftFinalReviewConfirmed(false);
-    setDraftSendPin('');
     setDraftActionFeedback(null);
     setSelectedHistoryId(null);
     setLocalRecordsFeedback({ tone: 'success', message: 'Drafts and History were cleared from this browser.' });
@@ -809,7 +781,6 @@ export function WocApp() {
             submittedBy={submittedByLabel}
             sendReady={gateStatus.sendReady}
             isSending={isSending}
-            sendPin={sendPin}
             saveFeedback={saveFeedback}
             sendFeedback={sendFeedback}
             confirmations={confirmations}
@@ -817,10 +788,6 @@ export function WocApp() {
             onSimpleModeAiDraftRequestHandled={() => setSimpleModeAiDraftRequested(false)}
             onSaveDraft={saveCurrentDraft}
             onFinalReviewChange={setFinalReviewConfirmed}
-            onSendPinChange={(value) => {
-              setSendPin(normalizePin(value));
-              setSendFeedback(null);
-            }}
             onSendEmail={sendCorrectionEmail}
           />
         )}
@@ -830,18 +797,12 @@ export function WocApp() {
             selectedDraft={selectedDraft}
             draftFinalReviewConfirmed={draftFinalReviewConfirmed}
             isSendingDraft={isSendingDraft}
-            draftSendPin={draftSendPin}
             draftActionFeedback={draftActionFeedback}
             onSelectDraft={selectDraft}
             onCopyDraftReport={() => copyTextToClipboard(selectedDraft?.reportText, 'Saved draft report', setDraftActionFeedback)}
             onCopyDraftEmail={() => copyTextToClipboard(selectedDraft?.emailDraftText, 'Saved draft email', setDraftActionFeedback)}
             onDraftFinalReviewChange={(confirmed) => {
               setDraftFinalReviewConfirmed(confirmed);
-              setDraftSendPin('');
-              setDraftActionFeedback(null);
-            }}
-            onDraftSendPinChange={(value) => {
-              setDraftSendPin(normalizePin(value));
               setDraftActionFeedback(null);
             }}
             onSendDraftEmail={sendSelectedDraftEmail}

@@ -6,13 +6,11 @@ type DraftsScreenProps = {
   selectedDraft: DraftRecord | null;
   draftFinalReviewConfirmed: boolean;
   isSendingDraft: boolean;
-  draftSendPin: string;
   draftActionFeedback: ActionFeedback;
   onSelectDraft: (draftId: string) => void;
   onCopyDraftReport: () => void;
   onCopyDraftEmail: () => void;
   onDraftFinalReviewChange: (confirmed: boolean) => void;
-  onDraftSendPinChange: (value: string) => void;
   onSendDraftEmail: () => void;
 };
 
@@ -47,13 +45,11 @@ export function DraftsScreen({
   selectedDraft,
   draftFinalReviewConfirmed,
   isSendingDraft,
-  draftSendPin,
   draftActionFeedback,
   onSelectDraft,
   onCopyDraftReport,
   onCopyDraftEmail,
   onDraftFinalReviewChange,
-  onDraftSendPinChange,
   onSendDraftEmail,
 }: DraftsScreenProps) {
   const handlePrintDraftReport = () => {
@@ -136,26 +132,11 @@ export function DraftsScreen({
             Final review confirmed
           </label>
 
-          <div className="form-grid" style={{ marginTop: 14 }}>
-            <label>
-              4-Digit Send PIN
-              <input
-                inputMode="numeric"
-                maxLength={4}
-                pattern="[0-9]*"
-                type="password"
-                value={draftSendPin}
-                disabled={!draftFinalReviewConfirmed || isSendingDraft}
-                onChange={(event) => onDraftSendPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="Enter PIN"
-              />
-            </label>
-            <p className="field-help">PIN is required only for real email sending.</p>
-          </div>
+          <p className="field-help">Email send remains gated by final human review confirmation.</p>
 
           <div className="action-row">
-            <button className="button danger full-width" type="button" disabled={!draftFinalReviewConfirmed || draftSendPin.length !== 4 || isSendingDraft} onClick={onSendDraftEmail}>
-              {isSendingDraft ? 'Sending...' : 'Confirm Send'}
+            <button className="button danger full-width" type="button" disabled={!draftFinalReviewConfirmed || isSendingDraft} onClick={onSendDraftEmail}>
+              {isSendingDraft ? 'Sending...' : 'Send Reviewed Email'}
             </button>
           </div>
         </article>

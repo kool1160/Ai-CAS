@@ -16,7 +16,6 @@ type SendCorrectionRequest = {
   submittedByName?: string;
   submittedByEmail?: string;
   companyName?: string;
-  sendPin?: string;
   pdfBase64?: string;
   pdfFileName?: string;
 };
@@ -153,18 +152,9 @@ AI-CAS`;
 
 export async function POST(request: Request) {
   const apiKey = process.env.RESEND_API_KEY;
-  const configuredSendPin = cleanValue(process.env.REFAB_CONNECT_SEND_PIN);
-
   if (!apiKey) {
     return NextResponse.json(
       { error: 'RESEND_API_KEY is not configured. Email was not sent.' },
-      { status: 503 },
-    );
-  }
-
-  if (!configuredSendPin) {
-    return NextResponse.json(
-      { error: 'REFAB_CONNECT_SEND_PIN is not configured. Email was not sent.' },
       { status: 503 },
     );
   }
@@ -175,12 +165,6 @@ export async function POST(request: Request) {
     payload = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid send request.' }, { status: 400 });
-  }
-
-  const submittedSendPin = cleanValue(payload.sendPin);
-
-  if (!/^\d{4}$/.test(submittedSendPin) || submittedSendPin !== configuredSendPin) {
-    return NextResponse.json({ error: 'Incorrect Send PIN. Email was not sent.' }, { status: 401 });
   }
 
   const subjectLine = sanitizeSubjectLine(cleanValue(payload.subjectLine));

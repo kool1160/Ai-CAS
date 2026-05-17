@@ -21,7 +21,6 @@ type ReviewSendScreenProps = {
   submittedBy: string;
   sendReady: boolean;
   isSending: boolean;
-  sendPin: string;
   saveFeedback: ActionFeedback;
   sendFeedback: ActionFeedback;
   confirmations: WocConfirmationState;
@@ -29,7 +28,6 @@ type ReviewSendScreenProps = {
   onSimpleModeAiDraftRequestHandled: () => void;
   onSaveDraft: () => void;
   onFinalReviewChange: (confirmed: boolean) => void;
-  onSendPinChange: (value: string) => void;
   onSendEmail: () => void;
 };
 
@@ -167,7 +165,6 @@ export function ReviewSendScreen({
   submittedBy,
   sendReady,
   isSending,
-  sendPin,
   saveFeedback,
   sendFeedback,
   confirmations,
@@ -175,7 +172,6 @@ export function ReviewSendScreen({
   onSimpleModeAiDraftRequestHandled,
   onSaveDraft,
   onFinalReviewChange,
-  onSendPinChange,
   onSendEmail,
 }: ReviewSendScreenProps) {
   const [isGeneratingAiDraft, setIsGeneratingAiDraft] = useState(false);
@@ -289,7 +285,7 @@ export function ReviewSendScreen({
       downloadLink.click();
       downloadLink.remove();
 
-      setReviewOutputFeedback({ tone: 'success', message: 'Controlled PDF downloaded. Email with PDF remains gated by final review and Send PIN.' });
+      setReviewOutputFeedback({ tone: 'success', message: 'Controlled PDF downloaded. Email send remains gated by generated package and final human review confirmation.' });
     } catch (error) {
       setReviewOutputFeedback({
         tone: 'error',
@@ -309,11 +305,6 @@ export function ReviewSendScreen({
 
     if (!confirmations.finalReviewConfirmed || !sendReady) {
       setReviewOutputFeedback({ tone: 'error', message: 'Human final review must be confirmed before sending email with PDF.' });
-      return;
-    }
-
-    if (sendPin.length !== 4) {
-      setReviewOutputFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending email with PDF.' });
       return;
     }
 
@@ -341,7 +332,6 @@ export function ReviewSendScreen({
           affectedArea: getReviewAffectedProcess(input),
           affectedOperationEquipment: input.affectedOperationEquipment,
           correctionType: input.correctionType,
-          sendPin,
           recipientEmail: setupConfig.engineeringRecipientEmail,
           senderDisplayName: setupConfig.senderDisplayName,
           submittedByName: submittedBy,
@@ -364,7 +354,6 @@ export function ReviewSendScreen({
         tone: 'success',
         message: `Reviewed email with controlled PDF sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}`,
       });
-      onSendPinChange('');
     } catch (error) {
       setReviewOutputFeedback({
         tone: 'error',
@@ -677,31 +666,16 @@ export function ReviewSendScreen({
           )}
         </div>
 
-        <div className="form-grid" style={{ marginTop: 14 }}>
-          <label>
-            4-Digit Send PIN
-            <input
-              inputMode="numeric"
-              maxLength={4}
-              pattern="[0-9]*"
-              type="password"
-              value={sendPin}
-              disabled={!generatedPackage || !confirmations.finalReviewConfirmed || isSending || isSendingEmailWithPdf}
-              onChange={(event) => onSendPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="Enter Send PIN"
-            />
-          </label>
-          <p className="field-help">PDF email send remains gated by generated package, final human review, and the configured Send PIN. Photo images are not attached.</p>
-        </div>
+        <p className="field-help">Email send remains gated by generated package and final human review confirmation. Photo images are not attached.</p>
 
         <div className="action-row">
           <button
             className="button danger full-width"
             type="button"
-            disabled={!generatedPackage || !sendReady || sendPin.length !== 4 || isSending || isDownloadingPdf || isSendingEmailWithPdf}
+            disabled={!generatedPackage || !sendReady || isSending || isDownloadingPdf || isSendingEmailWithPdf}
             onClick={sendControlledEmailWithPdf}
           >
-            {isSendingEmailWithPdf ? 'Sending Reviewed Email With PDF...' : 'Send Reviewed Email With PDF'}
+            {isSendingEmailWithPdf ? 'Sending Reviewed Email with PDF...' : 'Send Reviewed Email with PDF'}
           </button>
         </div>
 
