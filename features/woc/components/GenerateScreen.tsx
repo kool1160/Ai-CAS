@@ -61,7 +61,7 @@ export function GenerateScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Build Corrective Action</h1>
-        <p>Confirm the job context, describe the issue in plain language, and let AI-CAS draft the corrective action.</p>
+        <p>Confirm the job context, describe the issue in plain language, and let Vectis draft the corrective action.</p>
       </div>
 
       <article className="card">
@@ -89,7 +89,7 @@ export function GenerateScreen({
           <div>
             <span className="step-pill">SIMPLE MODE</span>
             <h2>Describe the issue</h2>
-            <p>Type or use your phone’s voice dictation. Rough shop-floor wording is fine — AI-CAS will clean it up for review.</p>
+            <p>Type or use your phone’s voice dictation. Rough shop-floor wording is fine — Vectis will clean it up for review.</p>
           </div>
           <span className={wocData.shortIssueDescription.trim() ? 'field-status confirmed' : 'field-status'}>
             {wocData.shortIssueDescription.trim() ? 'Ready' : 'Needed'}
@@ -110,14 +110,14 @@ export function GenerateScreen({
             />
           </label>
           <p className="field-help">
-            Type or use your phone’s voice dictation. Include what is wrong, what department or process it affects, and what needs to be corrected. Rough shop-floor wording is fine — AI-CAS will clean it up for review.
+            Type or use your phone’s voice dictation. Include what is wrong, what department or process it affects, and what needs to be corrected. Rough shop-floor wording is fine — Vectis will clean it up for review.
           </p>
 
           <details className="placeholder-item" style={{ marginTop: 4 }}>
             <summary>
               <strong>Optional context</strong>
               <p className="field-help">
-                Select the affected department and operation/equipment if it helps AI-CAS draft the correction. You can also include this in the issue description.
+                Select the affected department and operation/equipment if it helps Vectis draft the correction. You can also include this in the issue description.
               </p>
             </summary>
 

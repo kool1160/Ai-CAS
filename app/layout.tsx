@@ -3,11 +3,11 @@ import './globals.css';
 import './v2-more-admin-layout.css';
 import './v2-tablet-polish.css';
 
-const iconVersion = 'ai-cas-v4';
+const iconVersion = 'vectis-v1';
 
 export const metadata: Metadata = {
-  title: 'AI-CAS',
-  description: 'Corrective Action System powered by Applied Intelligence Framework.',
+  title: 'Vectis',
+  description: 'Vectis — Let’s weld.',
   manifest: `/manifest.webmanifest?v=${iconVersion}`,
   icons: {
     icon: [
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'AI-CAS',
+    title: 'Vectis',
   },
 };
 

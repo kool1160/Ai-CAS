@@ -59,9 +59,9 @@ export function LoginScreen({
           <div className="hero">
             <span className="status-pill"><span className="status-dot" />APP LOCKED</span>
             <div className="brand-mark">
-              <h1 className="brand-title">AI-CAS</h1>
+              <h1 className="brand-title">Vectis</h1>
               <p className="brand-subtitle">Corrective Action System</p>
-              <p className="brand-subtitle">Powered by Applied Intelligence Framework</p>
+              <p className="brand-subtitle">Let’s weld.</p>
               <p className="brand-subtitle">App Access PIN</p>
             </div>
             <p className="helper-text">
@@ -74,14 +74,14 @@ export function LoginScreen({
           <article className="card">
             <div className="card-header">
               <div>
-                <h2>{isReturningUser ? 'Unlock AI-CAS' : 'First-Time Setup'}</h2>
+                <h2>{isReturningUser ? 'Unlock Vectis' : 'First-Time Setup'}</h2>
                 <p>
                   {isReturningUser
                     ? `Submitted By: ${savedUser?.displayName} (${savedUser?.emailOrEmployeeId})`
                     : 'This saved identity appears on reports as Submitted By.'}
                 </p>
               </div>
-              <span className="field-status">AI-CAS</span>
+              <span className="field-status">Vectis</span>
             </div>
 
             {!isReturningUser && (
@@ -128,7 +128,7 @@ export function LoginScreen({
 
             <div className="action-row">
               <button className="button primary full-width" type="button" disabled={appUnlockPin.length !== 4} onClick={handleAccessAction}>
-                {isReturningUser ? 'Unlock AI-CAS' : 'Save User + Unlock'}
+                {isReturningUser ? 'Unlock Vectis' : 'Save User + Unlock'}
               </button>
             </div>
 

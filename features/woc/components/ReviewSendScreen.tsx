@@ -150,7 +150,7 @@ function buildSafePdfFilename(generatedPackage: GeneratedCorrectionPackage) {
   const fallbackDate = new Date().toISOString().slice(0, 10);
   const suffix = workOrder && workOrder !== 'not-captured' ? workOrder : fallbackDate;
 
-  return `ai-cas-corrective-action-${suffix}.pdf`;
+  return `vectis-corrective-action-${suffix}.pdf`;
 }
 
 function DraftSectionCard({ label, value }: { label: string; value: string }) {
@@ -608,7 +608,7 @@ export function ReviewSendScreen({
           </p>
         )}
 
-        {isGeneratingAiDraft && <p className="field-help">AI-CAS is drafting corrective-action language from the Simple Mode issue description and confirmed job context...</p>}
+        {isGeneratingAiDraft && <p className="field-help">Vectis is drafting corrective-action language from the Simple Mode issue description and confirmed job context...</p>}
 
         <div className="preview-box">{enhancedReportPreview}</div>
       </article>

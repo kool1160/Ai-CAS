@@ -141,7 +141,7 @@ export async function POST(request: Request) {
     );
   }
 
-  console.info('[AI-CAS Vision] OpenAI Vision extraction request started', {
+  console.info('[Vectis Vision] OpenAI Vision extraction request started', {
     fileType: file.type,
     fileSize: file.size,
     model: process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini',
@@ -180,7 +180,7 @@ export async function POST(request: Request) {
   });
 
   const responseBody = await openAiResponse.json();
-  console.info('[AI-CAS Vision] OpenAI Vision backend response received', { ok: openAiResponse.ok, status: openAiResponse.status });
+  console.info('[Vectis Vision] OpenAI Vision backend response received', { ok: openAiResponse.ok, status: openAiResponse.status });
 
   if (!openAiResponse.ok) {
     const errorMessage =
@@ -211,7 +211,7 @@ export async function POST(request: Request) {
       .map(([key]) => key);
     const missingExpectedFields = getMissingExpectedFields(extracted);
 
-    console.info('[AI-CAS Vision] OpenAI Vision extracted keys returned', {
+    console.info('[Vectis Vision] OpenAI Vision extracted keys returned', {
       extractedKeys,
       missingExpectedFields,
       fieldSourceNotes: extracted.fieldSourceNotes,

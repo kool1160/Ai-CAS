@@ -244,7 +244,7 @@ export function buildEmailSubject(data: WocCorrectionData) {
 
 export function buildEngineeringReport(
   data: WocCorrectionData,
-  submittedBy = 'Shop-floor correction request submitted through AI-CAS — Corrective Action System.',
+  submittedBy = 'Shop-floor correction request submitted through Vectis — Corrective Action System.',
 ) {
   return buildStandardCorrectiveActionReportText({
     ...data,
@@ -253,7 +253,7 @@ export function buildEngineeringReport(
   });
 }
 
-export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'AI-CAS — Corrective Action System') {
+export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'Vectis — Corrective Action System') {
   return buildStandardCorrectiveActionEmailText({
     ...data,
     submittedBy,

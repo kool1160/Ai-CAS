@@ -217,7 +217,7 @@ export function CaptureScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Capture Router</h1>
-        <p>Upload or photograph the router/work order. AI-CAS extracts the job context before you confirm it.</p>
+        <p>Upload or photograph the router/work order. Vectis extracts the job context before you confirm it.</p>
       </div>
 
       <article className="card">

@@ -42,19 +42,19 @@ export default function PrintReportPage() {
     try {
       const raw = window.sessionStorage.getItem(PRINT_REPORT_STORAGE_KEY);
       if (!raw) {
-        setLoadError('No report data was found. Return to AI-CAS and choose Export / Print Report again.');
+        setLoadError('No report data was found. Return to Vectis and choose Export / Print Report again.');
         return;
       }
 
       const parsed = JSON.parse(raw);
       if (!isPrintPayload(parsed)) {
-        setLoadError('Saved print report data is invalid. Return to AI-CAS and export the report again.');
+        setLoadError('Saved print report data is invalid. Return to Vectis and export the report again.');
         return;
       }
 
       setReport(parsed);
     } catch {
-      setLoadError('Unable to load the print report. Return to AI-CAS and export the report again.');
+      setLoadError('Unable to load the print report. Return to Vectis and export the report again.');
     }
   }, []);
 
@@ -164,11 +164,16 @@ export default function PrintReportPage() {
 
         .ai-print-logo {
           flex: 0 0 auto;
-          width: 124px;
-          max-width: 33%;
-          height: auto;
-          display: block;
-          object-fit: contain;
+          width: 72px;
+          height: 72px;
+          display: grid;
+          place-items: center;
+          border: 2px solid #111827;
+          border-radius: 18px;
+          color: #111827;
+          font-size: 40px;
+          font-weight: 900;
+          line-height: 1;
         }
 
         .kicker {
@@ -284,8 +289,9 @@ export default function PrintReportPage() {
           }
 
           .ai-print-logo {
-            width: 104px;
-            max-width: 38%;
+            width: 60px;
+            height: 60px;
+            font-size: 34px;
           }
         }
 
@@ -358,8 +364,9 @@ export default function PrintReportPage() {
           }
 
           .ai-print-logo {
-            width: 112px !important;
-            max-width: 31% !important;
+            width: 58px !important;
+            height: 58px !important;
+            font-size: 32px !important;
           }
 
           .report-box {
@@ -375,18 +382,14 @@ export default function PrintReportPage() {
 
       {report ? (
         <article className="report-page">
-          <div className="brand-bar"><span>AI-CAS</span><span>Corrective Action System</span></div>
+          <div className="brand-bar"><span>Vectis</span><span>Corrective Action System</span></div>
           <header className="header">
             <div className="header-title-block">
               <div className="kicker">Corrective Action System</div>
               <h1>Corrective Action Report</h1>
-              <p className="subtitle">Powered by Applied Intelligence Framework · AI-CAS Controlled Corrective Action Document</p>
+              <p className="subtitle">Let’s weld. · Vectis Controlled Corrective Action Document</p>
             </div>
-            <img
-              className="ai-print-logo"
-              src="/assets/applied-intelligence-logo.png"
-              alt="Applied Intelligence"
-            />
+            <div className="ai-print-logo" aria-label="Vectis logo">V</div>
           </header>
 
           <table>

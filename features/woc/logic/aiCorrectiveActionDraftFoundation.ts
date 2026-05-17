@@ -173,7 +173,7 @@ export function buildAiCorrectiveActionDraftFoundation(
   input: AiCorrectiveActionDraftInput,
 ): AiCorrectiveActionDraftFoundation {
   return {
-    foundationName: 'AI-CAS Corrective Action Drafting Foundation',
+    foundationName: 'Vectis Corrective Action Drafting Foundation',
     version: 'V4-M13A-structured-foundation',
     purpose:
       'Prepare confirmed router/work-order data, plain shop-floor issue notes, and evidence label context for future AI-generated engineered corrective-action draft language.',

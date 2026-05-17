@@ -22,11 +22,11 @@ export function LaunchSplash({ children }: LaunchSplashProps) {
   if (!showSplash) return <>{children}</>;
 
   return (
-    <main className="launch-splash" aria-label="AI-CAS launch screen">
+    <main className="launch-splash" aria-label="Vectis launch screen">
       <section className="launch-splash-card">
-        <span className="launch-splash-kicker">AI-CAS</span>
+        <span className="launch-splash-kicker">Vectis</span>
         <h1>Corrective Action System</h1>
-        <p>Powered by Applied Intelligence Framework</p>
+        <p>Let’s weld.</p>
         <div className="launch-splash-status" aria-live="polite">
           <span className="status-dot" />
           Initializing secure workflow...

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const DEFAULT_RESEND_FROM = 'AI-CAS <onboarding@resend.dev>';
+const DEFAULT_RESEND_FROM = 'Vectis <onboarding@resend.dev>';
 
 type SendCorrectionRequest = {
   subjectLine?: string;
@@ -39,7 +39,7 @@ function resolveSender() {
 }
 
 function normalizePdfFileName(value: string) {
-  const fallback = 'ai-cas-corrective-action.pdf';
+  const fallback = 'vectis-corrective-action.pdf';
   const normalized = value
     .trim()
     .replace(/[^a-zA-Z0-9._-]+/g, '-')
@@ -86,7 +86,7 @@ function buildEmailBody(payload: SendCorrectionRequest) {
 
   return `Engineering Team,
 
-A work order correction has been submitted through AI-CAS.
+A work order correction has been submitted through Vectis.
 
 Work Order: ${workOrderNumber}
 Part Number: ${partNumber}
@@ -96,7 +96,7 @@ Affected Area: ${affectedArea}${affectedOperationEquipment ? `\nAffected Operati
 Please review the Corrective Action Report for the full issue summary and requested Engineering action.
 
 Thank you,
-AI-CAS`;
+Vectis`;
 }
 
 export async function POST(request: Request) {

@@ -1,7 +1,7 @@
 import type { StructuredCorrectiveActionDraft } from './aiCorrectiveActionDraftFoundation';
 import {
-  buildAiCasProfessionalSummary,
-  buildAiCasRequiredAction,
+  buildVectisProfessionalSummary,
+  buildVectisRequiredAction,
   buildStandardEvidenceRows,
   getOperatorStatement,
   type StandardEvidenceItem,
@@ -81,7 +81,7 @@ export type ControlledCorrectiveActionPdfTemplate = {
   sections: ControlledPdfTemplateSection[];
 };
 
-const DEFAULT_SUBMITTED_BY = 'AI-CAS — Corrective Action System';
+const DEFAULT_SUBMITTED_BY = 'Vectis — Corrective Action System';
 const DEFAULT_DATE_CAPTURED = 'Pending final review date';
 
 function valueOrNotConfirmed(value?: string) {
@@ -126,9 +126,9 @@ export function buildControlledCorrectiveActionPdfTemplate(
   const reviewGateStatus = humanConfirmed ? 'Confirmed by final human review.' : 'Pending final human review.';
 
   return {
-    templateName: 'AI-CAS CORRECTIVE ACTION REPORT',
+    templateName: 'VECTIS CORRECTIVE ACTION REPORT',
     templateVersion: 'V8-M2B-standard-report',
-    modelSource: 'Corrective Action System | Capture. Confirm. Correct. | Applied Intelligence | Standardize to Optimize',
+    modelSource: 'Vectis | Let’s weld. | Capture. Confirm. Correct.',
     status: humanConfirmed ? 'locked-until-controlled-release' : 'foundation-only',
     releaseGate: 'Draft first. Confirm accuracy. Then send/export/print.',
     layoutNotes: data.evidenceItems?.length
@@ -175,8 +175,8 @@ export function buildControlledCorrectiveActionPdfTemplate(
             required: true,
           },
           {
-            label: 'AI-CAS Corrective Action Summary',
-            value: buildAiCasProfessionalSummary(data),
+            label: 'Vectis Corrective Action Summary',
+            value: buildVectisProfessionalSummary(data),
             required: true,
           },
         ],
@@ -196,7 +196,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
         title: '4. REQUIRED CORRECTION / ACTION',
         layoutHint: 'full-width-text',
         fields: [
-          { label: 'AI-Written Corrective Action', value: buildAiCasRequiredAction(data), required: true },
+          { label: 'AI-Written Corrective Action', value: buildVectisRequiredAction(data), required: true },
           ...optionalField('Containment / Immediate Check', firstFilled(data.structuredDraft?.sections.containmentAction?.draftText, data.immediateContainment)),
           ...optionalField('Inspection / Verification', firstFilled(data.structuredDraft?.sections.inspectionVerificationRequirement?.draftText, data.inspectionVerificationRequirement)),
           ...optionalField('Standard Work / Prevention Update', firstFilled(data.structuredDraft?.sections.standardWorkRequirement?.draftText, data.preventionStandardWorkUpdate)),

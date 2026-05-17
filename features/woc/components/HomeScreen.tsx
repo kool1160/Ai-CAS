@@ -9,13 +9,13 @@ export function HomeScreen({ workflow, onStartCapture }: HomeScreenProps) {
   return (
     <section className="stack home-screen">
       <div className="hero">
-        <span className="status-pill"><span className="status-dot" />AI-CAS Active</span>
+        <span className="status-pill"><span className="status-dot" />Vectis Active</span>
         <div className="brand-mark">
-          <h1 className="brand-title">AI-CAS Active</h1>
+          <h1 className="brand-title">Vectis</h1>
           <p className="brand-subtitle">Corrective Action System</p>
-          <p className="brand-subtitle">Powered by Applied Intelligence Framework</p>
+          <p className="brand-subtitle">Let’s weld.</p>
         </div>
-        <p className="helper-text">Clear. Guided. Fast.</p>
+        <p className="helper-text">Let’s weld.</p>
         <button className="button primary full-width" type="button" onClick={onStartCapture}>Start Correction</button>
       </div>
 

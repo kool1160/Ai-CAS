@@ -48,7 +48,7 @@ export type StandardEvidenceRow = {
   notes: string;
 };
 
-const DEFAULT_SUBMITTED_BY = 'AI-CAS — Corrective Action System';
+const DEFAULT_SUBMITTED_BY = 'Vectis — Corrective Action System';
 const DEFAULT_DATE_CAPTURED = 'Pending final review date';
 const DEFAULT_PRIORITY = 'Standard review';
 const OTHER_VALUES = new Set(['other', 'other / needs review']);
@@ -126,7 +126,7 @@ function getStructuredDraftText(input: StandardCorrectiveActionReportInput, sect
   return input.structuredDraft?.sections[section]?.draftText.trim() ?? '';
 }
 
-export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionReportInput) {
+export function buildVectisProfessionalSummary(input: StandardCorrectiveActionReportInput) {
   const structuredSummary = getStructuredDraftText(input, 'issueSummary');
   if (structuredSummary) return structuredSummary;
 
@@ -142,10 +142,10 @@ export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionRep
     return `Operator reported a run-rate/runtime mismatch in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. The current expected output and observed capacity must be verified because the discrepancy may affect production flow, scheduling, and repeat performance if the router or process standard remains uncorrected.`;
   }
 
-  return `Operator reported a shop-floor issue in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. AI-CAS converted the operator statement into a draft corrective-action summary for Engineering, Quality, and Production review before release.`;
+  return `Operator reported a shop-floor issue in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. Vectis converted the operator statement into a draft corrective-action summary for Engineering, Quality, and Production review before release.`;
 }
 
-export function buildAiCasRequiredAction(input: StandardCorrectiveActionReportInput) {
+export function buildVectisRequiredAction(input: StandardCorrectiveActionReportInput) {
   const structuredAction = firstFilled(
     getStructuredDraftText(input, 'correctiveActionRequired'),
     getStructuredDraftText(input, 'responsibilityByOperation'),
@@ -172,7 +172,7 @@ export function buildStandardEmailSubject(input: StandardCorrectiveActionReportI
   const partNumber = standardValue(input.partNumber);
 
   if (isOtherOrBlank(input.correctionType)) {
-    return `[AI-CAS] Corrective Action Draft — WO ${workOrder} / Part ${partNumber}`;
+    return `[Vectis] Corrective Action Draft — WO ${workOrder} / Part ${partNumber}`;
   }
 
   return `[${normalize(input.correctionType)}] Corrective Action Draft — WO ${workOrder} / Part ${partNumber}`;
@@ -201,8 +201,8 @@ export function buildStandardEvidenceRows(input: StandardCorrectiveActionReportI
 
 export function buildStandardCorrectiveActionReportText(input: StandardCorrectiveActionReportInput) {
   const operatorStatement = getOperatorStatement(input);
-  const summary = buildAiCasProfessionalSummary(input);
-  const requiredAction = buildAiCasRequiredAction(input);
+  const summary = buildVectisProfessionalSummary(input);
+  const requiredAction = buildVectisRequiredAction(input);
   const owner = getOwnerDepartment(input);
   const productionImpact = getProductionImpact(input);
   const evidenceRows = buildStandardEvidenceRows(input);
@@ -213,10 +213,9 @@ export function buildStandardCorrectiveActionReportText(input: StandardCorrectiv
   const outputApproved = input.finalReviewConfirmed ? 'Approved for controlled PDF/email action.' : 'Pending final human review.';
   const approvedBy = input.finalReviewConfirmed ? submittedBy : 'Pending human approval';
 
-  return `# AI-CAS CORRECTIVE ACTION REPORT
-Corrective Action System | Capture. Confirm. Correct.
-Applied Intelligence
-Standardize to Optimize
+  return `# VECTIS CORRECTIVE ACTION REPORT
+Vectis | Let’s weld.
+Capture. Confirm. Correct.
 
 Purpose:
 Convert shop-floor issue capture into clear, professional corrective-action language for review, routing, and controlled documentation.
@@ -234,7 +233,7 @@ Priority: ${priority}
 Operator / Shop-Floor Issue Statement:
 ${operatorStatement}
 
-AI-CAS Corrective Action Summary:
+Vectis Corrective Action Summary:
 ${summary}
 
 ## 3. EVIDENCE AND VERIFICATION
@@ -259,10 +258,10 @@ export function buildStandardCorrectiveActionEmailText(input: StandardCorrective
 
 Engineering Team,
 
-Please review the AI-CAS corrective action draft below. The operator statement is preserved separately from the AI-CAS professional corrective-action language, and final human review remains required before send/export/print.
+Please review the Vectis corrective action draft below. The operator statement is preserved separately from the Vectis professional corrective-action language, and final human review remains required before send/export/print.
 
 ${buildStandardCorrectiveActionReportText(input)}
 
 Thank you,
-AI-CAS`;
+Vectis`;
 }

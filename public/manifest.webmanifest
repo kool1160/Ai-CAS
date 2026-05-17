@@ -1,7 +1,7 @@
 {
-  "name": "AI-CAS",
-  "short_name": "AI-CAS",
-  "description": "Corrective Action System powered by Applied Intelligence Framework",
+  "name": "Vectis",
+  "short_name": "Vectis",
+  "description": "Vectis — Let’s weld.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

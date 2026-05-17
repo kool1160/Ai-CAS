@@ -762,7 +762,7 @@ export function WocApp() {
     <main className="app-shell">
       <div className="app-frame">
         <div className="screen-title">
-          <span className="step-pill">AI-CAS · {stepLabels[activeScreen]}</span>
+          <span className="step-pill">Vectis · {stepLabels[activeScreen]}</span>
         </div>
 
         {activeScreen === 'home' && <HomeScreen workflow={workflow} onStartCapture={() => setActiveScreen('capture')} />}

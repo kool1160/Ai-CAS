@@ -86,7 +86,7 @@ export function ConfirmScreen({
     <section className="stack">
       <div className="screen-title">
         <h1>Confirm Job Context</h1>
-        <p>Review the key fields AI-CAS extracted from the router/work order, confirm the job, then continue.</p>
+        <p>Review the key fields Vectis extracted from the router/work order, confirm the job, then continue.</p>
       </div>
 
       <article className="card">
