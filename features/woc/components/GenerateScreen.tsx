@@ -78,7 +78,6 @@ export function GenerateScreen({
           <RouterContextItem label="Part Number" value={wocData.partNumber} />
           <RouterContextItem label="Customer / Job" value={wocData.customerOrJob} />
           <RouterContextItem label="Quantity" value={wocData.quantityAffected || wocData.quantity} />
-          <RouterContextItem label="Uploaded Router Step / Operation" value={wocData.routerStepOperation} />
           <RouterContextItem label="Due Date / Ship Date" value={wocData.dueDateShipDate} />
           {wocData.material.trim() && <RouterContextItem label="Material" value={wocData.material} />}
         </div>
@@ -113,17 +112,15 @@ export function GenerateScreen({
             Type or use your phone’s voice dictation. Include what is wrong, what department or process it affects, and what needs to be corrected. Rough shop-floor wording is fine — AI-CAS will clean it up for review.
           </p>
 
-          <details className="placeholder-item" style={{ marginTop: 4 }}>
-            <summary>
-              <strong>Optional context</strong>
-              <p className="field-help">
-                Select the affected department and operation/equipment if it helps AI-CAS draft the correction. You can also include this in the issue description.
-              </p>
-            </summary>
+          <div className="placeholder-item" style={{ marginTop: 4 }}>
+            <strong>Correction Context</strong>
+            <p className="field-help">
+              Select the correction type, affected department, and operation/equipment so AI-CAS routes and drafts the correction correctly.
+            </p>
 
             <div className="form-grid" style={{ marginTop: 12 }}>
               <label>
-                Correction Type (optional)
+                Correction Type
                 <select value={wocData.correctionType} onChange={(event) => onUpdateField('correctionType', event.target.value)}>
                   {correctionTypeOptions.map((option) => (
                     <option key={option}>{option}</option>
@@ -142,7 +139,7 @@ export function GenerateScreen({
               />
 
               <OperationEquipmentDropdown
-                label="Operation / Equipment (optional)"
+                label="Operation / Equipment"
                 value={wocData.affectedOperationEquipment}
                 onChange={(value) => onUpdateField('affectedOperationEquipment', value)}
               />
@@ -159,7 +156,7 @@ export function GenerateScreen({
                 </label>
               )}
             </div>
-          </details>
+          </div>
         </div>
 
         <div className="action-row">
@@ -169,7 +166,7 @@ export function GenerateScreen({
         </div>
 
         {!generateReady && (
-          <p className="field-help">Confirm the Work Order and Part Number, then describe the issue in Simple Mode.</p>
+          <p className="field-help">Confirm the Work Order and Part Number, describe the issue, and select Correction Context before drafting.</p>
         )}
       </article>
 
@@ -197,11 +194,6 @@ export function GenerateScreen({
           <label>
             Operation Number
             <input type="text" value={wocData.operationNumber} onChange={(event) => onUpdateField('operationNumber', event.target.value)} />
-          </label>
-
-          <label>
-            Uploaded Router Step / Operation
-            <input type="text" value={wocData.routerStepOperation} onChange={(event) => onUpdateField('routerStepOperation', event.target.value)} />
           </label>
 
           <label>
