@@ -48,8 +48,6 @@ export function buildAiCorrectiveActionDraftInputFromWocData(data: WocCorrection
     partNumber: data.partNumber,
     partDescription: data.partDescription,
     customerOrJob: data.customerOrJob,
-    operationNumber: data.operationNumber,
-    routerStepOperation: data.routerStepOperation,
     affectedOperationEquipment: getEffectiveAffectedOperationEquipment(data),
     quantityAffected: firstFilled(data.quantityAffected, data.quantity),
     correctionType: data.correctionType,
