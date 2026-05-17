@@ -62,24 +62,23 @@ function fieldLines(field: ControlledPdfTemplateField): CorrectiveActionPdfLine[
 function sectionLines(section: ControlledPdfTemplateSection): CorrectiveActionPdfLine[] {
   return [
     { text: section.title, variant: 'section' },
-    { text: `Layout: ${section.layoutHint}`, variant: 'subtitle' },
     ...section.fields.flatMap(fieldLines),
   ];
 }
 
 export function CorrectiveActionPdfDocument({ template }: CorrectiveActionPdfDocumentProps): CorrectiveActionPdfLine[] {
   return [
-    { text: 'Controlled corrective action PDF - foundation', variant: 'subtitle' },
     { text: template.templateName, variant: 'title' },
-    { text: `${template.modelSource} - ${template.templateVersion} - ${template.status}`, variant: 'subtitle' },
-    { text: `Release gate: ${template.releaseGate}`, variant: 'gate' },
+    { text: template.modelSource, variant: 'subtitle' },
+    { text: `Template: ${template.templateVersion} - Status: ${template.status}`, variant: 'subtitle' },
+    { text: `Review gate: ${template.releaseGate}`, variant: 'gate' },
     ...template.sections.flatMap(sectionLines),
     {
-      text: 'Text-only evidence references. No photo images are embedded. Review export/send/print UI remains unwired.',
+      text: 'Text-only evidence metadata. No photo images are embedded in this PDF.',
       variant: 'footer',
     },
     ...(template.layoutNotes.length
-      ? [{ text: `Foundation notes: ${template.layoutNotes.join(' ')}`, variant: 'footer' } satisfies CorrectiveActionPdfLine]
+      ? [{ text: `Appendix note: ${template.layoutNotes.join(' ')}`, variant: 'footer' } satisfies CorrectiveActionPdfLine]
       : []),
   ];
 }

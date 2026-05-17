@@ -11,6 +11,10 @@ import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/
 import { loadSetupConfigFromStorage } from '../logic/setupConfigStorage';
 import type { ActionFeedback } from '../types/wocSessionTypes';
 import { ControlledPdfPreviewRenderer } from './ControlledPdfPreviewRenderer';
+import {
+  buildStandardCorrectiveActionEmailText,
+  buildStandardCorrectiveActionReportText,
+} from '../logic/standardCorrectiveActionReport';
 
 type ReviewSendScreenProps = {
   generatedPackage: GeneratedCorrectionPackage;
@@ -81,35 +85,6 @@ function extractPreviewLine(text: string | undefined, label: string) {
   const lines = text?.split('\n') ?? [];
   const line = lines.find((entry) => entry.trim().startsWith(`${label}:`));
   return line?.replace(`${label}:`, '').trim() || 'Not captured';
-}
-
-function buildReviewEvidenceSummary(photoEvidenceItems: ReviewPhotoEvidence[]) {
-  if (!photoEvidenceItems.length) {
-    return [
-      'Photo Evidence Attached: No Review-step photo evidence attached.',
-      'Photo Evidence Note: Images are local/session-only when added. Email attachments, PDF export, and print are not active.',
-    ].join('\n');
-  }
-
-  return [
-    `Photo Evidence Attached: Yes — ${photoEvidenceItems.length} Review-step photo(s).`,
-    'Photo Evidence Boundary: Images are local/session-only previews. Images are not attached to email, exported to PDF, printed, or released.',
-    ...photoEvidenceItems.map((item, index) => [
-      `Evidence ${index + 1}:`,
-      `- File Name: ${item.fileName || '[No file name available]'}`,
-      `- Evidence Label: ${item.label || '[Manual review needed: Evidence Label]'}`,
-      `- Caption / Note: ${item.caption || '[Manual review needed: Caption / Note]'}`,
-      `- File Type: ${item.fileType || 'Unknown type'}`,
-      `- File Size: ${formatFileSize(item.fileSize)}`,
-    ].join('\n')),
-  ].join('\n');
-}
-
-function appendReviewEvidenceToOutput(baseText: string | undefined, photoEvidenceItems: ReviewPhotoEvidence[], outputType: 'report' | 'email') {
-  const base = baseText?.trim() || 'Generate a correction package before final review.';
-  const heading = outputType === 'email' ? 'Review Photo Evidence Context' : 'Review Photo Evidence Metadata';
-
-  return `${base}\n\n${heading}\n${buildReviewEvidenceSummary(photoEvidenceItems)}`;
 }
 
 function appendLine(value: string, line: string) {
@@ -201,29 +176,36 @@ export function ReviewSendScreen({
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isSendingEmailWithPdf, setIsSendingEmailWithPdf] = useState(false);
   const aiDraftFoundation = generatedPackage?.aiDraftFoundation ?? null;
+  const standardReportInput = useMemo(() => {
+    if (!generatedPackage) return null;
+
+    return {
+      ...generatedPackage.aiDraftFoundation.input,
+      correctionType: generatedPackage.aiDraftFoundation.input.correctionType,
+      submittedBy,
+      dateCaptured: generatedPackage.generatedAt,
+      structuredDraft,
+      evidenceItems: getPdfEvidenceItems(photoEvidenceItems),
+      finalReviewConfirmed: confirmations.finalReviewConfirmed,
+    };
+  }, [confirmations.finalReviewConfirmed, generatedPackage, photoEvidenceItems, structuredDraft, submittedBy]);
+
   const enhancedReportPreview = useMemo(
-    () => appendReviewEvidenceToOutput(generatedPackage?.reportPreview, photoEvidenceItems, 'report'),
-    [generatedPackage?.reportPreview, photoEvidenceItems],
+    () => (standardReportInput ? buildStandardCorrectiveActionReportText(standardReportInput) : 'Generate a correction package before final review.'),
+    [standardReportInput],
   );
   const enhancedEmailPreview = useMemo(
-    () => appendReviewEvidenceToOutput(generatedPackage?.emailPreview, photoEvidenceItems, 'email'),
-    [generatedPackage?.emailPreview, photoEvidenceItems],
+    () => (standardReportInput ? buildStandardCorrectiveActionEmailText(standardReportInput) : 'Generate a correction package before final review.'),
+    [standardReportInput],
   );
-  const controlledPdfPreview = generatedPackage
+  const controlledPdfPreview = standardReportInput
     ? buildControlledCorrectiveActionPdfTemplate(
         {
-          ...generatedPackage.aiDraftFoundation.input,
-          correctionType: generatedPackage.subjectLine,
-          shortIssueDescription: enhancedReportPreview,
-          requiredCorrection: enhancedEmailPreview,
+          ...standardReportInput,
           aiExtractedDataConfirmation: 'Pending human confirmation review',
           humanReleaseConfirmation: confirmations.finalReviewConfirmed
             ? 'Human final review confirmed'
             : 'Human final review not confirmed',
-          routerWorkOrderPhotoPlaceholder: 'Router/work-order evidence placeholder',
-          partDefectPhotoPlaceholder: 'Part/defect evidence placeholder',
-          structuredDraft,
-          evidenceItems: getPdfEvidenceItems(photoEvidenceItems),
         },
         {
           finalReviewConfirmed: confirmations.finalReviewConfirmed,
@@ -566,9 +548,7 @@ export function ReviewSendScreen({
     setReviewOutputFeedback(null);
   };
 
-  const jobContextPreview = generatedPackage?.reportPreview;
-  const displayedStructuredDraft = structuredDraft;
-
+  const jobContextPreview = enhancedReportPreview;
   return (
     <section className="stack review-panel-screen">
       <div className="screen-title">
@@ -587,9 +567,9 @@ export function ReviewSendScreen({
         <div className="placeholder-list">
           <DraftSectionCard label="Work Order" value={extractPreviewLine(jobContextPreview, 'Work Order')} />
           <DraftSectionCard label="Part Number" value={extractPreviewLine(jobContextPreview, 'Part Number')} />
-          <DraftSectionCard label="Customer / Job" value={extractPreviewLine(jobContextPreview, 'Customer / Job Name')} />
+          <DraftSectionCard label="Customer / Job" value={extractPreviewLine(jobContextPreview, 'Customer / Job')} />
           <DraftSectionCard label="Router Step / Operation" value={extractPreviewLine(jobContextPreview, 'Router Step / Operation')} />
-          <DraftSectionCard label="Quantity" value={extractPreviewLine(jobContextPreview, 'Quantity Affected')} />
+          <DraftSectionCard label="Quantity" value={extractPreviewLine(jobContextPreview, 'Quantity')} />
         </div>
       </article>
 
@@ -615,28 +595,7 @@ export function ReviewSendScreen({
 
         {isGeneratingAiDraft && <p className="field-help">AI-CAS is drafting corrective-action language from the Simple Mode issue description and confirmed job context...</p>}
 
-        {displayedStructuredDraft ? (
-          <div className="placeholder-list" style={{ marginTop: 14 }}>
-            {aiDraftDisplaySections.map((section) => {
-              const structuredSection = displayedStructuredDraft.sections[section.key];
-              return (
-                <DraftSectionCard
-                  key={section.key}
-                  label={structuredSection?.title || section.label}
-                  value={structuredSection?.draftText || ''}
-                />
-              );
-            })}
-          </div>
-        ) : aiCorrectiveActionDraft ? (
-          <div className="placeholder-list" style={{ marginTop: 14 }}>
-            {aiDraftDisplaySections.map((section) => (
-              <DraftSectionCard key={section.key} label={section.label} value={aiCorrectiveActionDraft[section.key] || ''} />
-            ))}
-          </div>
-        ) : (
-          <div className="preview-box">{enhancedReportPreview}</div>
-        )}
+        <div className="preview-box">{enhancedReportPreview}</div>
       </article>
 
       <article className="card review-photo-evidence-panel">
@@ -735,7 +694,7 @@ export function ReviewSendScreen({
           <p className="field-help">{reviewOutputFeedback.tone === 'success' ? 'Review output: ' : 'Review output error: '}{reviewOutputFeedback.message}</p>
         )}
         {saveFeedback && <p className="field-help">{saveFeedback.tone === 'success' ? 'Saved: ' : 'Save error: '}{saveFeedback.message}</p>}
-        {sendFeedback && <p className="field-help">{sendFeedback.tone === 'success' ? 'Send placeholder: ' : 'Send placeholder error: '}{sendFeedback.message}</p>}
+        {sendFeedback && <p className="field-help">{sendFeedback.tone === 'success' ? 'Send status: ' : 'Send error: '}{sendFeedback.message}</p>}
 
         <p className="field-help">Submitted By: {submittedBy}</p>
       </article>
@@ -743,7 +702,7 @@ export function ReviewSendScreen({
       <details className="card">
         <summary>
           <strong>Advanced Editing / Evidence Tools</strong>
-          <p className="field-help">AI drafting inputs, photo labeling, row/bullet controls, raw preview, and release placeholders stay available but collapsed.</p>
+          <p className="field-help">AI drafting inputs, photo labeling, row/bullet controls, and raw preview stay available but collapsed.</p>
         </summary>
 
         <div className="action-row" style={{ marginTop: 14 }}>
