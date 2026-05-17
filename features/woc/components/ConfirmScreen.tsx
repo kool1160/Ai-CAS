@@ -20,8 +20,6 @@ const primaryConfirmFields: Array<{ key: keyof WocCorrectionData; label: string;
 const secondaryConfirmFields: Array<{ key: keyof WocCorrectionData; label: string }> = [
   { key: 'revision', label: 'Revision' },
   { key: 'partDescription', label: 'Part Description' },
-  { key: 'operationNumber', label: 'Operation Number' },
-  { key: 'routerStepOperation', label: 'Uploaded Router Step / Operation (supporting document context)' },
   { key: 'quantity', label: 'Original Quantity' },
   { key: 'material', label: 'Material' },
   { key: 'nextOperation', label: 'Next Operation' },
@@ -122,8 +120,8 @@ export function ConfirmScreen({
 
       <details className="card">
         <summary>
-          <strong>Secondary Extracted Fields</strong>
-          <p className="field-help">Optional extracted values remain editable without making Confirm feel like a full re-entry form.</p>
+          <strong>Secondary Extracted Job Fields</strong>
+          <p className="field-help">Optional job values remain editable without making Confirm feel like a full re-entry form.</p>
         </summary>
         <div className="field-list" style={{ marginTop: 14 }}>
           {secondaryConfirmFields.map((field) => (
@@ -138,6 +136,29 @@ export function ConfirmScreen({
           ))}
         </div>
       </details>
+
+      {(wocData.operationNumber.trim() || wocData.routerStepOperation.trim()) && (
+        <details className="card">
+          <summary>
+            <strong>Uploaded Router Context</strong>
+            <p className="field-help">Read-only supporting document context. This is not a confirmed affected operation.</p>
+          </summary>
+          <div className="field-list" style={{ marginTop: 14 }}>
+            {wocData.operationNumber.trim() && (
+              <div className="field-row">
+                <strong>Uploaded Operation Number</strong>
+                <p className="field-help">{wocData.operationNumber}</p>
+              </div>
+            )}
+            {wocData.routerStepOperation.trim() && (
+              <div className="field-row">
+                <strong>Uploaded Router Operation</strong>
+                <p className="field-help">{wocData.routerStepOperation}</p>
+              </div>
+            )}
+          </div>
+        </details>
+      )}
 
     </section>
   );

@@ -121,8 +121,6 @@ Work Order: ${manualBlank('Work Order', input.workOrderNumber)}
 Part Number: ${manualBlank('Part Number', input.partNumber)}
 Part Description: ${manualBlank('Part Description', input.partDescription)}
 Customer / Job Name: ${manualBlank('Customer / Job Name', input.customerOrJob)}
-Operation Number: ${manualBlank('Operation Number', input.operationNumber)}
-Uploaded Router Step / Operation (uploaded router context only): ${manualBlank('Uploaded Router Step / Operation', input.routerStepOperation)}
 Affected Operation / Equipment: ${manualBlank('Affected Operation / Equipment', input.affectedOperationEquipment)}
 Quantity Affected: ${manualBlank('Quantity Affected', input.quantityAffected)}
 Correction Type: ${manualBlank('Correction Type', input.correctionType)}

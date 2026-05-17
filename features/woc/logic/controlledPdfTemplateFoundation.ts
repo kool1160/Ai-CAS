@@ -158,7 +158,6 @@ export function buildControlledCorrectiveActionPdfTemplate(
           ...optionalField('Quantity', firstFilled(data.quantityAffected, data.quantity)),
           { label: 'Affected Department / Area', value: valueOrNotConfirmed(getAffectedArea(data)), required: true },
           { label: 'Affected Operation / Equipment', value: valueOrNotConfirmed(getAffectedOperationEquipment(data)), required: true },
-          ...optionalField('Uploaded Router Step / Operation (uploaded router context)', firstFilled(data.routerStepOperation, data.operationNumber)),
           { label: 'Date Captured', value: dateCaptured, required: true },
           { label: 'Submitted By', value: submittedBy, required: true },
           { label: 'Priority', value: data.priority?.trim() || 'Standard review', required: true },

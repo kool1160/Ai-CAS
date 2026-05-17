@@ -572,7 +572,6 @@ export function ReviewSendScreen({
           <DraftSectionCard label="Customer / Job" value={extractPreviewLine(jobContextPreview, 'Customer / Job')} />
           <DraftSectionCard label="Affected Department / Area" value={extractPreviewLine(jobContextPreview, 'Affected Department / Area')} />
           <DraftSectionCard label="Affected Operation / Equipment" value={extractPreviewLine(jobContextPreview, 'Affected Operation / Equipment')} />
-          <DraftSectionCard label="Uploaded Router Step / Operation (uploaded router context)" value={extractPreviewLine(jobContextPreview, 'Uploaded Router Step / Operation (uploaded router context)')} />
           <DraftSectionCard label="Quantity" value={extractPreviewLine(jobContextPreview, 'Quantity')} />
         </div>
       </article>

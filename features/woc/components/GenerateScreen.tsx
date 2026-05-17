@@ -200,11 +200,6 @@ export function GenerateScreen({
           </label>
 
           <label>
-            Operation Number
-            <input type="text" value={wocData.operationNumber} onChange={(event) => onUpdateField('operationNumber', event.target.value)} />
-          </label>
-
-          <label>
             Quantity Affected
             <input type="text" value={wocData.quantityAffected} onChange={(event) => onUpdateField('quantityAffected', event.target.value)} />
           </label>
