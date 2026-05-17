@@ -174,9 +174,9 @@ export const defaultWocCorrectionData: WocCorrectionData = {
 export const defaultWocConfirmations: WocConfirmationState = {
   workOrderDataConfirmed: false,
   partNumberConfirmed: false,
-  correctionTypeSelected: true,
+  correctionTypeSelected: false,
   issueDetailsEntered: false,
-  requestedActionEntered: true,
+  requestedActionEntered: false,
   finalReviewConfirmed: false,
 };
 
