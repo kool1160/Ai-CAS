@@ -13,6 +13,7 @@ export type AiCorrectiveActionDraftInput = {
   customerOrJob?: string;
   operationNumber?: string;
   routerStepOperation?: string;
+  affectedOperationEquipment?: string;
   quantityAffected?: string;
   correctionType?: string;
   affectedArea?: string;
@@ -121,7 +122,8 @@ Part Number: ${manualBlank('Part Number', input.partNumber)}
 Part Description: ${manualBlank('Part Description', input.partDescription)}
 Customer / Job Name: ${manualBlank('Customer / Job Name', input.customerOrJob)}
 Operation Number: ${manualBlank('Operation Number', input.operationNumber)}
-Router Step / Operation: ${manualBlank('Router Step / Operation', input.routerStepOperation)}
+Router Step / Operation (uploaded router context only): ${manualBlank('Router Step / Operation', input.routerStepOperation)}
+Affected Operation / Equipment: ${manualBlank('Affected Operation / Equipment', input.affectedOperationEquipment)}
 Quantity Affected: ${manualBlank('Quantity Affected', input.quantityAffected)}
 Correction Type: ${manualBlank('Correction Type', input.correctionType)}
 Affected Area: ${manualBlank('Affected Area', input.affectedArea)}
@@ -157,7 +159,7 @@ Structured section guidance:
 
 Tone and style:
 - Treat the rough operator issue description as the primary problem statement.
-- Use correction type, affected area, department, router/job context, and evidence metadata as supporting context.
+- Use the user-selected affected area/department and affected operation/equipment as report context. Treat uploaded router operation as supporting context only; do not assume the first router operation is the affected process.
 - Professional shop-floor corrective-action language
 - Clear enough for Engineering, Quality, and Production
 - No blame language

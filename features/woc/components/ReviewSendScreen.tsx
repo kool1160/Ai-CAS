@@ -131,6 +131,18 @@ function blobToBase64(blob: Blob) {
   });
 }
 
+
+function getReviewAffectedProcess(input: { affectedArea?: string; foundAtDepartment?: string; affectedOperationEquipment?: string }) {
+  const department = input.foundAtDepartment?.trim() || input.affectedArea?.trim() || '';
+  const operationEquipment = input.affectedOperationEquipment?.trim() || (department === 'Welding' ? 'Welding' : 'Operation needs confirmation');
+
+  if (!department) return operationEquipment === 'Operation needs confirmation' ? 'Affected operation not confirmed' : operationEquipment;
+  if (!operationEquipment || operationEquipment === 'Operation needs confirmation') return `${department} — Operation needs confirmation`;
+  if (department === operationEquipment) return operationEquipment;
+
+  return `${department} — ${operationEquipment}`;
+}
+
 function buildSafePdfFilename(generatedPackage: GeneratedCorrectionPackage) {
   const workOrder = sanitizeFilenameSegment(
     generatedPackage?.aiDraftFoundation.input.workOrderNumber || extractPreviewLine(generatedPackage?.reportPreview, 'Work Order'),
@@ -326,8 +338,9 @@ export function ReviewSendScreen({
           emailDraftText: enhancedEmailPreview,
           workOrderNumber: input.workOrderNumber,
           partNumber: input.partNumber,
-          affectedArea: input.foundAtDepartment,
-          correctionType: generatedPackage.subjectLine,
+          affectedArea: getReviewAffectedProcess(input),
+          affectedOperationEquipment: input.affectedOperationEquipment,
+          correctionType: input.correctionType,
           sendPin,
           recipientEmail: setupConfig.engineeringRecipientEmail,
           senderDisplayName: setupConfig.senderDisplayName,
@@ -568,7 +581,9 @@ export function ReviewSendScreen({
           <DraftSectionCard label="Work Order" value={extractPreviewLine(jobContextPreview, 'Work Order')} />
           <DraftSectionCard label="Part Number" value={extractPreviewLine(jobContextPreview, 'Part Number')} />
           <DraftSectionCard label="Customer / Job" value={extractPreviewLine(jobContextPreview, 'Customer / Job')} />
-          <DraftSectionCard label="Router Step / Operation" value={extractPreviewLine(jobContextPreview, 'Router Step / Operation')} />
+          <DraftSectionCard label="Affected Department / Area" value={extractPreviewLine(jobContextPreview, 'Affected Department / Area')} />
+          <DraftSectionCard label="Affected Operation / Equipment" value={extractPreviewLine(jobContextPreview, 'Affected Operation / Equipment')} />
+          <DraftSectionCard label="Router Step / Operation (uploaded router context)" value={extractPreviewLine(jobContextPreview, 'Router Step / Operation (uploaded router context)')} />
           <DraftSectionCard label="Quantity" value={extractPreviewLine(jobContextPreview, 'Quantity')} />
         </div>
       </article>

@@ -23,6 +23,7 @@ export type WocCorrectionData = {
   customerOrJob: string;
   operationNumber: string;
   routerStepOperation: string;
+  affectedOperationEquipment: string;
   quantity: string;
   quantityAffected: string;
   dueDateShipDate: string;
@@ -106,14 +107,30 @@ export const departmentOptions = [
   'Welding',
   'Machining',
   'Assembly',
-  'PEM Cert',
-  'Audit',
-  'Shipping',
+  'PEM / Hardware',
   'Powder Coat',
+  'Quality / Inspection',
+  'Purchasing / Material',
+  'Engineering / Router',
+  'Shipping',
   otherAffectedAreaOption,
 ];
 
 export const affectedAreaOptions = departmentOptions;
+
+export const operationEquipmentOptions = [
+  'Welding',
+  '4K Mazak Laser',
+  'Bystronic Laser',
+  'Forming / Brake Press',
+  'Machining',
+  'PEM / Hardware',
+  'Powder Coat',
+  'Quality / Inspection',
+  'Purchasing / Material',
+  'Engineering / Router',
+  otherAffectedAreaOption,
+];
 
 export const defaultWocCorrectionData: WocCorrectionData = {
   workOrderNumber: '042631-001',
@@ -123,6 +140,7 @@ export const defaultWocCorrectionData: WocCorrectionData = {
   customerOrJob: 'ENWORK',
   operationNumber: '',
   routerStepOperation: '',
+  affectedOperationEquipment: 'Welding',
   quantity: '35 EA',
   quantityAffected: '35 EA',
   dueDateShipDate: '',
@@ -183,6 +201,33 @@ export function getEffectiveAffectedArea(data: WocCorrectionData) {
   }
 
   return data.foundAtDepartment.trim() || data.affectedArea.trim();
+}
+
+export function getEffectiveAffectedOperationEquipment(data: WocCorrectionData) {
+  const selectedOperation = data.affectedOperationEquipment.trim();
+
+  if (selectedOperation && selectedOperation !== otherAffectedAreaOption) {
+    return selectedOperation;
+  }
+
+  if (data.foundAtDepartment === 'Welding' || data.affectedArea === 'Welding') {
+    return 'Welding';
+  }
+
+  return 'Operation needs confirmation';
+}
+
+export function getEffectiveAffectedProcess(data: WocCorrectionData) {
+  const department = getEffectiveAffectedArea(data);
+  const operationEquipment = getEffectiveAffectedOperationEquipment(data);
+
+  if (!operationEquipment || operationEquipment === 'Operation needs confirmation') {
+    return department ? `${department} — Operation needs confirmation` : 'Affected operation not confirmed';
+  }
+
+  if (!department || department === operationEquipment) return operationEquipment;
+
+  return `${department} — ${operationEquipment}`;
 }
 
 function v4IssueSummary(data: WocCorrectionData) {

@@ -17,6 +17,7 @@ export type StandardCorrectiveActionReportInput = {
   quantityAffected?: string;
   routerStepOperation?: string;
   operationNumber?: string;
+  affectedOperationEquipment?: string;
   shortIssueDescription?: string;
   detailedIssueNotes?: string;
   issueDetails?: string;
@@ -86,7 +87,30 @@ function getOwnerDepartment(input: StandardCorrectiveActionReportInput) {
 }
 
 function getAffectedArea(input: StandardCorrectiveActionReportInput) {
-  return firstFilled(input.foundAtDepartment, input.affectedArea, 'affected operation');
+  return firstFilled(input.foundAtDepartment, input.affectedArea, 'affected department');
+}
+
+function getAffectedOperationEquipment(input: StandardCorrectiveActionReportInput) {
+  const selectedOperation = normalize(input.affectedOperationEquipment);
+  if (selectedOperation && !isOtherOrBlank(selectedOperation)) return selectedOperation;
+
+  const affectedArea = getAffectedArea(input);
+  if (affectedArea.toLowerCase() === 'welding') return 'Welding';
+
+  return 'Operation needs confirmation';
+}
+
+function getAffectedProcess(input: StandardCorrectiveActionReportInput) {
+  const affectedArea = getAffectedArea(input);
+  const operationEquipment = getAffectedOperationEquipment(input);
+
+  if (!operationEquipment || operationEquipment === 'Operation needs confirmation') {
+    return affectedArea ? `${affectedArea} — Operation needs confirmation` : 'Affected operation not confirmed';
+  }
+
+  if (!affectedArea || affectedArea === operationEquipment) return operationEquipment;
+
+  return `${affectedArea} — ${operationEquipment}`;
 }
 
 function getProductionImpact(input: StandardCorrectiveActionReportInput) {
@@ -109,7 +133,7 @@ export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionRep
   const operatorStatement = getOperatorStatement(input);
   const workOrder = normalize(input.workOrderNumber);
   const partNumber = normalize(input.partNumber);
-  const affectedArea = getAffectedArea(input);
+  const affectedArea = getAffectedProcess(input);
   const jobContext = [workOrder ? `WO ${workOrder}` : '', partNumber ? `Part ${partNumber}` : '']
     .filter(Boolean)
     .join(' / ');
@@ -133,7 +157,7 @@ export function buildAiCasRequiredAction(input: StandardCorrectiveActionReportIn
   if (requestedAction) return requestedAction;
 
   const owner = getOwnerDepartment(input);
-  const affectedArea = getAffectedArea(input);
+  const affectedArea = getAffectedProcess(input);
   const impact = getProductionImpact(input);
 
   if (/runtime|rate|per hour|time study|sustainable/i.test(operatorStatement)) {
@@ -200,7 +224,9 @@ Convert shop-floor issue capture into clear, professional corrective-action lang
 ## 1. JOB / WORK ORDER INFORMATION
 Work Order: ${standardValue(input.workOrderNumber)}
 Part Number: ${standardValue(input.partNumber)}
-${optionalReportLine('Customer / Job', input.customerOrJob)}${optionalReportLine('Quantity', firstFilled(input.quantityAffected, input.quantity))}${optionalReportLine('Router Step / Operation', firstFilled(input.routerStepOperation, input.operationNumber))}Date Captured: ${dateCaptured}
+${optionalReportLine('Customer / Job', input.customerOrJob)}${optionalReportLine('Quantity', firstFilled(input.quantityAffected, input.quantity))}Affected Department / Area: ${standardValue(getAffectedArea(input))}
+Affected Operation / Equipment: ${standardValue(getAffectedOperationEquipment(input))}
+${optionalReportLine('Router Step / Operation (uploaded router context)', firstFilled(input.routerStepOperation, input.operationNumber))}Date Captured: ${dateCaptured}
 Submitted By: ${submittedBy}
 Priority: ${priority}
 
