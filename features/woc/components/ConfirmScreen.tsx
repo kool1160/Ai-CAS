@@ -17,7 +17,7 @@ const primaryConfirmFields: Array<{ key: keyof WocCorrectionData; label: string;
   { key: 'partNumber', label: 'Part Number', required: true, confirmable: true },
   { key: 'customerOrJob', label: 'Customer / Job' },
   { key: 'quantityAffected', label: 'Quantity' },
-  { key: 'routerStepOperation', label: 'Router Step / Operation' },
+  { key: 'routerStepOperation', label: 'Uploaded Router Step / Operation' },
   { key: 'dueDateShipDate', label: 'Due Date' },
 ];
 
@@ -95,6 +95,7 @@ export function ConfirmScreen({
             <span className="step-pill">AI EXTRACTED · CONFIRM KEY FIELDS</span>
             <h2>Key Job Fields</h2>
             <p>Confirm the Work Order and Part Number. Edit any visible field that AI Vision missed or read incorrectly.</p>
+            <p className="field-help">This confirms what was extracted from the uploaded router. Select the affected department/operation on the next screen if the issue belongs somewhere else.</p>
           </div>
           <span className={confirmReady ? 'field-status confirmed' : 'field-status'}>{confirmReady ? 'Ready' : 'Needs Confirm'}</span>
         </div>
