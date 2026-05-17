@@ -344,8 +344,9 @@ export function WocApp() {
       dueDateShipDate: extracted.dueDateShipDate ?? '',
       foundAtDepartment: extracted.foundAtDepartment ?? current.foundAtDepartment,
       suspectedFailurePoint: extracted.suspectedFailurePoint ?? current.suspectedFailurePoint,
-      shortIssueDescription: extracted.shortIssueDescription ?? current.shortIssueDescription,
-      detailedIssueNotes: extracted.detailedIssueNotes ?? current.detailedIssueNotes,
+      // Uploaded router/work-order notes are supporting context only; never replace the Simple Mode operator statement.
+      shortIssueDescription: current.shortIssueDescription,
+      detailedIssueNotes: current.detailedIssueNotes,
     }));
     setConfirmations((current) => ({
       ...current,

@@ -3,6 +3,7 @@ import {
   buildAiCasProfessionalSummary,
   buildAiCasRequiredAction,
   buildStandardEvidenceRows,
+  getOperatorStatement,
   type StandardEvidenceItem,
 } from './standardCorrectiveActionReport';
 
@@ -149,7 +150,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
         fields: [
           {
             label: 'Operator / Shop-Floor Issue Statement',
-            value: firstFilled(data.detailedIssueNotes, data.issueDetails, data.shortIssueDescription, 'Operator issue statement not entered.'),
+            value: getOperatorStatement(data),
             required: true,
           },
           {
