@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { type WocCorrectionData } from '../state/wocDataModel';
 import type { ExtractionDebugMetadata } from '../types/wocSessionTypes';
 
@@ -82,6 +84,8 @@ export function ConfirmScreen({
   onConfirmRequired,
   onContinue,
 }: ConfirmScreenProps) {
+  const [debugOpen, setDebugOpen] = useState(false);
+
   return (
     <section className="stack">
       <div className="screen-title">
@@ -144,10 +148,10 @@ export function ConfirmScreen({
       </details>
 
       {extractionDebug && (
-        <details className="card">
+        <details className="card" open={debugOpen} onToggle={(event) => setDebugOpen(event.currentTarget.open)}>
           <summary>
             <strong>Extraction Debug</strong>
-            <p className="field-help">OpenAI Vision metadata is available for troubleshooting, but collapsed by default.</p>
+            <p className="field-help">Internal troubleshooting metadata only. Expand only when support asks for it.</p>
           </summary>
           <div className="field-list" style={{ marginTop: 14 }}>
             <div className="field-row">

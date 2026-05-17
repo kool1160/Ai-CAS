@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   clearCurrentUserFromStorage,
   createCurrentUser,
@@ -153,6 +153,7 @@ export function WocApp() {
   const [setupCodeInput, setSetupCodeInput] = useState('');
   const [setupUnlocked, setSetupUnlocked] = useState(false);
   const [setupFeedback, setSetupFeedback] = useState<ActionFeedback>(null);
+  const appFrameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -181,11 +182,22 @@ export function WocApp() {
     saveHistoryRecordsToStorage(historyRecords);
   }, [historyRecords, localRecordsLoaded]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
 
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    appFrameRef.current?.scrollIntoView({ block: 'start' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
     window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     });
   }, [activeScreen]);
 
@@ -732,7 +744,7 @@ export function WocApp() {
 
   return (
     <main className="app-shell">
-      <div className="app-frame">
+      <div className="app-frame" ref={appFrameRef}>
         <div className="screen-title">
           <span className="step-pill">AI-CAS · {stepLabels[activeScreen]}</span>
         </div>
