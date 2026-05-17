@@ -72,6 +72,58 @@ function buildPdfAttachment(payload: SendCorrectionRequest): ResendAttachment | 
   };
 }
 
+function sanitizeSubjectLine(value: string) {
+  return value.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 250);
+}
+
+function normalizeContentForComparison(value: string) {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function shouldAppendReportText(emailDraftText: string, reportText: string) {
+  if (!emailDraftText || !reportText) return false;
+
+  const normalizedEmailDraft = normalizeContentForComparison(emailDraftText);
+  const normalizedReport = normalizeContentForComparison(reportText);
+
+  if (!normalizedEmailDraft || !normalizedReport) return false;
+
+  return !normalizedEmailDraft.includes(normalizedReport) && !normalizedReport.includes(normalizedEmailDraft);
+}
+
+function buildCorrectiveActionEmailBody(payload: SendCorrectionRequest) {
+  const emailDraftText = cleanValue(payload.emailDraftText);
+  const reportText = cleanValue(payload.reportText);
+
+  if (emailDraftText) {
+    if (shouldAppendReportText(emailDraftText, reportText)) {
+      return `${emailDraftText}
+
+---
+
+Full AI-CAS Corrective Action Report:
+
+${reportText}`;
+    }
+
+    return emailDraftText;
+  }
+
+  const fallbackBody = buildEmailBody(payload);
+
+  if (reportText) {
+    return `${fallbackBody}
+
+---
+
+Full AI-CAS Corrective Action Report:
+
+${reportText}`;
+  }
+
+  return fallbackBody;
+}
+
 function buildEmailBody(payload: SendCorrectionRequest) {
   const workOrderNumber = cleanValue(payload.workOrderNumber) || 'Not provided';
   const partNumber = cleanValue(payload.partNumber) || 'Not provided';
@@ -131,7 +183,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Incorrect Send PIN. Email was not sent.' }, { status: 401 });
   }
 
-  const subjectLine = cleanValue(payload.subjectLine);
+  const subjectLine = sanitizeSubjectLine(cleanValue(payload.subjectLine));
   const reportText = cleanValue(payload.reportText);
   const emailDraftText = cleanValue(payload.emailDraftText);
   const recipient = resolveRecipient(payload);
@@ -155,7 +207,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!subjectLine || !reportText || !emailDraftText) {
+  if (!subjectLine || (!reportText && !emailDraftText)) {
     return NextResponse.json(
       { error: 'Missing generated report, email draft, or subject line.' },
       { status: 400 },
@@ -172,7 +224,7 @@ export async function POST(request: Request) {
       from,
       to: [recipient],
       subject: subjectLine,
-      text: buildEmailBody(payload),
+      text: buildCorrectiveActionEmailBody(payload),
       ...(pdfAttachment ? { attachments: [pdfAttachment] } : {}),
     }),
   });
