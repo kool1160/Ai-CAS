@@ -17,7 +17,6 @@ const primaryConfirmFields: Array<{ key: keyof WocCorrectionData; label: string;
   { key: 'partNumber', label: 'Part Number', required: true, confirmable: true },
   { key: 'customerOrJob', label: 'Customer / Job' },
   { key: 'quantityAffected', label: 'Quantity' },
-  { key: 'routerStepOperation', label: 'Uploaded Router Step / Operation' },
   { key: 'dueDateShipDate', label: 'Due Date' },
 ];
 
@@ -25,6 +24,7 @@ const secondaryConfirmFields: Array<{ key: keyof WocCorrectionData; label: strin
   { key: 'revision', label: 'Revision' },
   { key: 'partDescription', label: 'Part Description' },
   { key: 'operationNumber', label: 'Operation Number' },
+  { key: 'routerStepOperation', label: 'Uploaded Router Step / Operation (supporting document context)' },
   { key: 'quantity', label: 'Original Quantity' },
   { key: 'material', label: 'Material' },
   { key: 'nextOperation', label: 'Next Operation' },

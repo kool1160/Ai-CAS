@@ -186,7 +186,6 @@ export const confirmDataFields: WocDataField[] = [
   { key: 'partDescription', label: 'Part Description', required: false },
   { key: 'customerOrJob', label: 'Customer / Job Name', required: false },
   { key: 'operationNumber', label: 'Operation Number', required: false },
-  { key: 'routerStepOperation', label: 'Uploaded Router Step / Operation', required: false },
   { key: 'quantityAffected', label: 'Quantity Affected', required: false },
   { key: 'dueDateShipDate', label: 'Due Date / Ship Date', required: false },
 ];
@@ -283,10 +282,11 @@ export function getGateStatus(
   const partNumberReady = isFilled(data.partNumber) && confirmations.partNumberConfirmed;
   const confirmReady = workOrderReady && partNumberReady;
 
-  const correctionTypeReady = isFilled(data.correctionType) && confirmations.correctionTypeSelected;
+  const correctionTypeReady = isFilled(data.correctionType);
   const affectedAreaReady = isFilled(getEffectiveAffectedArea(data));
+  const affectedOperationEquipmentReady = isFilled(data.affectedOperationEquipment);
   const issueDetailsReady = isFilled(v4IssueSummary(data)) || isFilled(data.detailedIssueNotes);
-  const generateReady = confirmReady && issueDetailsReady;
+  const generateReady = confirmReady && correctionTypeReady && affectedAreaReady && affectedOperationEquipmentReady && issueDetailsReady;
 
   const reviewReady = Boolean(generatedPackage) && confirmations.finalReviewConfirmed;
   const sendReady = generateReady && reviewReady;
