@@ -74,8 +74,9 @@ function optionalReportLine(label: string, value?: string) {
   return normalized ? `${label}: ${normalized}\n` : '';
 }
 
-function getOperatorStatement(input: StandardCorrectiveActionReportInput) {
-  return firstFilled(input.detailedIssueNotes, input.issueDetails, input.shortIssueDescription, 'Operator issue statement not entered.');
+export function getOperatorStatement(input: Pick<StandardCorrectiveActionReportInput, 'shortIssueDescription'>) {
+  // V8-M2C boundary: only the user-entered Simple Mode issue text can become the operator statement.
+  return firstFilled(input.shortIssueDescription, 'Operator issue statement not entered.');
 }
 
 function getOwnerDepartment(input: StandardCorrectiveActionReportInput) {
