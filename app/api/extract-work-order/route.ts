@@ -23,6 +23,7 @@ type ExtractedWorkOrderData = {
 };
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const SUPPORTED_UPLOAD_MIME_PREFIX = 'image/';
 const EXPECTED_EXTRACTION_KEYS: Array<keyof ExtractedWorkOrderData> = [
   'workOrderNumber',
   'partNumber',
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No upload file was provided for OpenAI Vision extraction.' }, { status: 400 });
   }
 
-  if (!file.type.startsWith('image/')) {
+  if (!file.type.startsWith(SUPPORTED_UPLOAD_MIME_PREFIX)) {
     return NextResponse.json(
       { error: 'OpenAI Vision extraction currently supports uploaded image files only. Manual entry is still available.' },
       { status: 400 },
