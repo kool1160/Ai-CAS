@@ -27,6 +27,7 @@ export type ControlledPdfTemplateInput = {
   quantityAffected?: string;
   operationNumber?: string;
   routerStepOperation?: string;
+  affectedOperationEquipment?: string;
   correctionType?: string;
   affectedArea?: string;
   foundAtDepartment?: string;
@@ -96,6 +97,24 @@ function optionalField(label: string, value?: string): ControlledPdfTemplateFiel
   return normalized ? [{ label, value: normalized, required: false }] : [];
 }
 
+function isOtherOrBlank(value?: string) {
+  const normalized = value?.trim().toLowerCase() ?? '';
+  return !normalized || normalized === 'other' || normalized === 'other / needs review';
+}
+
+function getAffectedArea(data: ControlledPdfTemplateInput) {
+  return firstFilled(data.foundAtDepartment, data.affectedArea, 'affected department');
+}
+
+function getAffectedOperationEquipment(data: ControlledPdfTemplateInput) {
+  const selectedOperation = data.affectedOperationEquipment?.trim() ?? '';
+  if (selectedOperation && !isOtherOrBlank(selectedOperation)) return selectedOperation;
+
+  if (getAffectedArea(data).toLowerCase() === 'welding') return 'Welding';
+
+  return 'Operation needs confirmation';
+}
+
 export function buildControlledCorrectiveActionPdfTemplate(
   data: ControlledPdfTemplateInput,
   confirmations: ControlledPdfTemplateConfirmationInput = {},
@@ -137,7 +156,9 @@ export function buildControlledCorrectiveActionPdfTemplate(
           { label: 'Part Number', value: valueOrNotConfirmed(data.partNumber), required: true },
           ...optionalField('Customer / Job', data.customerOrJob),
           ...optionalField('Quantity', firstFilled(data.quantityAffected, data.quantity)),
-          ...optionalField('Router Step / Operation', firstFilled(data.routerStepOperation, data.operationNumber)),
+          { label: 'Affected Department / Area', value: valueOrNotConfirmed(getAffectedArea(data)), required: true },
+          { label: 'Affected Operation / Equipment', value: valueOrNotConfirmed(getAffectedOperationEquipment(data)), required: true },
+          ...optionalField('Router Step / Operation (uploaded router context)', firstFilled(data.routerStepOperation, data.operationNumber)),
           { label: 'Date Captured', value: dateCaptured, required: true },
           { label: 'Submitted By', value: submittedBy, required: true },
           { label: 'Priority', value: data.priority?.trim() || 'Standard review', required: true },

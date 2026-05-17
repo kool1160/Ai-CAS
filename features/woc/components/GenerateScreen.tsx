@@ -1,6 +1,7 @@
 import {
   correctionTypeOptions,
   departmentOptions,
+  operationEquipmentOptions,
   otherAffectedAreaOption,
   type WocCorrectionData,
 } from '../state/wocDataModel';
@@ -19,6 +20,20 @@ function DepartmentDropdown({ label, value, onChange }: { label: string; value: 
       {label}
       <select value={value} onChange={(event) => onChange(event.target.value)}>
         {departmentOptions.map((option) => (
+          <option key={option}>{option}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function OperationEquipmentDropdown({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label>
+      {label}
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">Operation needs confirmation</option>
+        {operationEquipmentOptions.map((option) => (
           <option key={option}>{option}</option>
         ))}
       </select>
@@ -102,7 +117,7 @@ export function GenerateScreen({
             <summary>
               <strong>Optional context</strong>
               <p className="field-help">
-                Add department or correction type if it helps AI-CAS draft the correction. You can also include this in the issue description.
+                Select the affected department and operation/equipment if it helps AI-CAS draft the correction. You can also include this in the issue description.
               </p>
             </summary>
 
@@ -117,12 +132,19 @@ export function GenerateScreen({
               </label>
 
               <DepartmentDropdown
-                label="Department / Affected Area (optional)"
+                label="Department / Affected Area"
                 value={wocData.foundAtDepartment}
                 onChange={(value) => {
                   onUpdateField('foundAtDepartment', value);
                   onUpdateAffectedArea(value);
+                  onUpdateField('affectedOperationEquipment', value === 'Welding' ? 'Welding' : '');
                 }}
+              />
+
+              <OperationEquipmentDropdown
+                label="Operation / Equipment (optional)"
+                value={wocData.affectedOperationEquipment}
+                onChange={(value) => onUpdateField('affectedOperationEquipment', value)}
               />
 
               {wocData.foundAtDepartment === otherAffectedAreaOption && (
@@ -203,7 +225,14 @@ export function GenerateScreen({
             onChange={(value) => {
               onUpdateField('foundAtDepartment', value);
               onUpdateAffectedArea(value);
+              onUpdateField('affectedOperationEquipment', value === 'Welding' ? 'Welding' : '');
             }}
+          />
+
+          <OperationEquipmentDropdown
+            label="Operation / Equipment"
+            value={wocData.affectedOperationEquipment}
+            onChange={(value) => onUpdateField('affectedOperationEquipment', value)}
           />
 
           <DepartmentDropdown

@@ -1,7 +1,7 @@
 import { loadPhotoEvidenceMetadataFromSession } from './evidenceAttachmentPreparation';
 import { CAPTURE_CONTEXT_STORAGE_KEY } from './wocStorageKeys';
 import type { AiCorrectiveActionDraftInput } from './aiCorrectiveActionDraftFoundation';
-import type { WocCorrectionData } from '../state/wocDataModel';
+import { getEffectiveAffectedOperationEquipment, type WocCorrectionData } from '../state/wocDataModel';
 
 
 type CaptureContext = {
@@ -50,6 +50,7 @@ export function buildAiCorrectiveActionDraftInputFromWocData(data: WocCorrection
     customerOrJob: data.customerOrJob,
     operationNumber: data.operationNumber,
     routerStepOperation: data.routerStepOperation,
+    affectedOperationEquipment: getEffectiveAffectedOperationEquipment(data),
     quantityAffected: firstFilled(data.quantityAffected, data.quantity),
     correctionType: data.correctionType,
     affectedArea: getSimpleModeAffectedArea(data),

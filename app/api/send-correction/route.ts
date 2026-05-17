@@ -10,6 +10,7 @@ type SendCorrectionRequest = {
   partNumber?: string;
   correctionType?: string;
   affectedArea?: string;
+  affectedOperationEquipment?: string;
   recipientEmail?: string;
   senderDisplayName?: string;
   submittedByName?: string;
@@ -76,6 +77,7 @@ function buildEmailBody(payload: SendCorrectionRequest) {
   const partNumber = cleanValue(payload.partNumber) || 'Not provided';
   const correctionType = cleanValue(payload.correctionType) || 'Not provided';
   const affectedArea = cleanValue(payload.affectedArea) || 'Not provided';
+  const affectedOperationEquipment = cleanValue(payload.affectedOperationEquipment);
   const companyName = cleanValue(payload.companyName);
   const submittedByName = cleanValue(payload.submittedByName);
   const submittedByEmail = cleanValue(payload.submittedByEmail);
@@ -89,7 +91,7 @@ A work order correction has been submitted through AI-CAS.
 Work Order: ${workOrderNumber}
 Part Number: ${partNumber}
 Correction Type: ${correctionType}
-Affected Area: ${affectedArea}${companyName ? `\nCompany: ${companyName}` : ''}${submittedBy ? `\nSubmitted By: ${submittedBy}` : ''}
+Affected Area: ${affectedArea}${affectedOperationEquipment ? `\nAffected Operation / Equipment: ${affectedOperationEquipment}` : ''}${companyName ? `\nCompany: ${companyName}` : ''}${submittedBy ? `\nSubmitted By: ${submittedBy}` : ''}
 
 Please review the Corrective Action Report for the full issue summary and requested Engineering action.
 
