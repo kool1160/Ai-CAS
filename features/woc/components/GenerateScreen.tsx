@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   correctionTypeOptions,
   departmentOptions,
@@ -57,6 +59,8 @@ export function GenerateScreen({
   onUpdateAffectedArea,
   onGenerateDraft,
 }: GenerateScreenProps) {
+  const [advancedControlsOpen, setAdvancedControlsOpen] = useState(false);
+
   return (
     <section className="stack">
       <div className="screen-title">
@@ -170,7 +174,11 @@ export function GenerateScreen({
         )}
       </article>
 
-      <details className="card">
+      <details
+        className="card"
+        open={advancedControlsOpen}
+        onToggle={(event) => setAdvancedControlsOpen(event.currentTarget.open)}
+      >
         <summary>
           <strong>Advanced / Manual Controls</strong>
           <p className="field-help">Optional controls remain available for review, but they are collapsed for Simple Mode.</p>
