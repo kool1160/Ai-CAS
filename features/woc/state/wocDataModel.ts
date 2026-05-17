@@ -9,6 +9,11 @@ import {
   type EvidenceAttachmentMetadata,
 } from '../logic/evidenceAttachmentPreparation';
 import { PHOTO_EVIDENCE_STORAGE_KEY } from '../logic/wocStorageKeys';
+import {
+  buildStandardCorrectiveActionEmailText,
+  buildStandardCorrectiveActionReportText,
+  buildStandardEmailSubject,
+} from '../logic/standardCorrectiveActionReport';
 
 export type WocCorrectionData = {
   workOrderNumber: string;
@@ -180,24 +185,8 @@ export function getEffectiveAffectedArea(data: WocCorrectionData) {
   return data.foundAtDepartment.trim() || data.affectedArea.trim();
 }
 
-function manualBlank(label: string, value: string) {
-  return isFilled(value) ? value.trim() : `[Manual entry needed: ${label}]`;
-}
-
-function optionalLine(label: string, value: string) {
-  return `${label}: ${manualBlank(label, value)}\n`;
-}
-
 function v4IssueSummary(data: WocCorrectionData) {
   return data.shortIssueDescription.trim() || data.issueDetails.trim();
-}
-
-function v4IssueDetails(data: WocCorrectionData) {
-  return data.detailedIssueNotes.trim() || data.issueDetails.trim() || data.shortIssueDescription.trim();
-}
-
-function v4RequiredCorrection(data: WocCorrectionData) {
-  return data.requiredCorrection.trim() || data.requestedEngineeringAction.trim() || 'AI-CAS should draft the required corrective action from confirmed router context and the operator exception note.';
 }
 
 export function getPhotoEvidenceStatusLine() {
@@ -205,142 +194,26 @@ export function getPhotoEvidenceStatusLine() {
 }
 
 export function buildEmailSubject(data: WocCorrectionData) {
-  return `[${manualBlank('Correction Type', data.correctionType)}] Corrective Action Draft — WO ${manualBlank('Work Order', data.workOrderNumber)} / Part ${manualBlank('Part Number', data.partNumber)}`;
+  return buildStandardEmailSubject(data);
 }
 
 export function buildEngineeringReport(
   data: WocCorrectionData,
-  submittedBy = 'Shop-floor correction request submitted through AI-CAS — Corrective Action System.\nPowered by Applied Intelligence Framework.',
+  submittedBy = 'Shop-floor correction request submitted through AI-CAS — Corrective Action System.',
 ) {
-  const affectedArea = getEffectiveAffectedArea(data);
-  const photoEvidenceStatus = getPhotoEvidenceStatusLine();
-
-  return `CORRECTIVE ACTION DRAFT
-Status: Draft / Editable / Unconfirmed
-Release Gate: Human confirmation required before release/PDF.
-
-1. Confirmed Router / Job Context
-Work Order: ${manualBlank('Work Order', data.workOrderNumber)}
-Part Number: ${manualBlank('Part Number', data.partNumber)}
-${optionalLine('Part Description', data.partDescription)}${optionalLine('Customer / Job Name', data.customerOrJob)}${optionalLine('Operation Number', data.operationNumber)}${optionalLine('Router Step / Operation', data.routerStepOperation)}${optionalLine('Quantity Affected', data.quantityAffected || data.quantity)}${optionalLine('Due Date / Ship Date', data.dueDateShipDate)}${optionalLine('Material', data.material)}${optionalLine('Next Operation', data.nextOperation)}${optionalLine('Inspection Operation', data.inspectionOperation)}
-2. Operator Exception Note
-What is wrong: ${manualBlank('What is wrong', v4IssueSummary(data))}
-Detailed Issue Notes: ${manualBlank('Detailed Issue Notes', v4IssueDetails(data))}
-Defect / Problem Type: ${manualBlank('Defect / Problem Type', data.defectProblemType)}
-Production Impact: ${manualBlank('Production Impact', data.productionImpact)}
-
-3. Department / Flow Control
-Found At Department: ${manualBlank('Found At Department', affectedArea)}
-Corrective Action Owner Department: ${manualBlank('Corrective Action Owner Department', data.correctiveActionOwnerDepartment)}
-Suspected Failure Point: ${manualBlank('Suspected Failure Point', data.suspectedFailurePoint)}
-Escaped Through Departments: ${manualBlank('Escaped Through Departments', data.escapedThroughDepartments)}
-
-4. Corrective Action Draft
-Problem Summary:
-${manualBlank('Problem Summary', v4IssueSummary(data))}
-
-Immediate Containment:
-${manualBlank('Immediate Containment', data.immediateContainment)}
-
-Required Correction:
-${manualBlank('Required Correction', v4RequiredCorrection(data))}
-
-Prevention / Standard Work Update:
-${manualBlank('Prevention / Standard Work Update', data.preventionStandardWorkUpdate)}
-
-Inspection / Verification Requirement:
-${manualBlank('Inspection / Verification Requirement', data.inspectionVerificationRequirement)}
-
-Release Approval Requirement:
-${manualBlank('Release Approval Requirement', data.releaseApprovalRequirement)}
-
-5. Evidence / Confirmation
-Router / Work Order Photo: ${manualBlank('Router / Work Order Photo Placeholder', data.routerWorkOrderPhotoPlaceholder)}
-Part / Defect Photo: ${manualBlank('Part / Defect Photo Placeholder', data.partDefectPhotoPlaceholder)}
-Photo Evidence Status: ${photoEvidenceStatus}
-AI Extracted Data Confirmation: ${manualBlank('AI Extracted Data Confirmation', data.aiExtractedDataConfirmation)}
-Human Release Confirmation: ${manualBlank('Human Release Confirmation', data.humanReleaseConfirmation)}
-
-6. Submitted By / Source
-${submittedBy}
-
-7. Gate Status
-Draft is editable and unconfirmed. Human confirmation is required before release/PDF.`;
+  return buildStandardCorrectiveActionReportText({
+    ...data,
+    submittedBy,
+    photoEvidenceStatus: getPhotoEvidenceStatusLine(),
+  });
 }
 
 export function buildEmailDraft(data: WocCorrectionData, submittedBy = 'AI-CAS — Corrective Action System') {
-  const subject = buildEmailSubject(data);
-  const affectedArea = getEffectiveAffectedArea(data);
-  const photoEvidenceStatus = getPhotoEvidenceStatusLine();
-
-  return `Subject: ${subject}
-
-Engineering Team,
-
-Please review the corrective action draft below. This draft is editable and remains unconfirmed until human release confirmation is completed.
-
-Work Order:
-${manualBlank('Work Order', data.workOrderNumber)}
-
-Part Number:
-${manualBlank('Part Number', data.partNumber)}
-
-Customer / Job:
-${manualBlank('Customer / Job Name', data.customerOrJob)}
-
-Quantity Affected:
-${manualBlank('Quantity Affected', data.quantityAffected || data.quantity)}
-
-Router / Operation Context:
-${manualBlank('Router Step / Operation', data.routerStepOperation)}
-
-Material:
-${manualBlank('Material', data.material)}
-
-Next Operation:
-${manualBlank('Next Operation', data.nextOperation)}
-
-Inspection Operation:
-${manualBlank('Inspection Operation', data.inspectionOperation)}
-
-Operator Exception Note:
-${manualBlank('What is wrong', v4IssueSummary(data))}
-
-Found At Department:
-${manualBlank('Found At Department', affectedArea)}
-
-Corrective Action Owner Department:
-${manualBlank('Corrective Action Owner Department', data.correctiveActionOwnerDepartment)}
-
-Suspected Failure Point:
-${manualBlank('Suspected Failure Point', data.suspectedFailurePoint)}
-
-Immediate Containment:
-${manualBlank('Immediate Containment', data.immediateContainment)}
-
-Required Correction:
-${manualBlank('Required Correction', v4RequiredCorrection(data))}
-
-Prevention / Standard Work Update:
-${manualBlank('Prevention / Standard Work Update', data.preventionStandardWorkUpdate)}
-
-Inspection / Verification Requirement:
-${manualBlank('Inspection / Verification Requirement', data.inspectionVerificationRequirement)}
-
-Release Approval Requirement:
-${manualBlank('Release Approval Requirement', data.releaseApprovalRequirement)}
-
-Photo Evidence:
-${photoEvidenceStatus}
-
-Release Note:
-Human confirmation is required before final release/PDF.
-
-Submitted By:
-${submittedBy}
-
-Thank you,
-AI-CAS`;
+  return buildStandardCorrectiveActionEmailText({
+    ...data,
+    submittedBy,
+    photoEvidenceStatus: getPhotoEvidenceStatusLine(),
+  });
 }
 
 export function createGeneratedPackage(data: WocCorrectionData, submittedBy?: string): GeneratedCorrectionPackage {

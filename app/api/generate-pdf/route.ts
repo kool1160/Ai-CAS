@@ -130,7 +130,7 @@ function renderPageContent(page: PdfPage, pageIndex: number, pageCount: number) 
     'BT',
     `/F1 8 Tf`,
     `${PAGE_MARGIN_X} 28 Td`,
-    `(AI-CAS controlled PDF foundation - Page ${pageIndex + 1} of ${pageCount}) Tj`,
+    `(AI-CAS Corrective Action Report - Page ${pageIndex + 1} of ${pageCount}) Tj`,
     'ET',
   ];
 
@@ -229,7 +229,7 @@ export async function POST(request: Request) {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': 'inline; filename="corrective-action-foundation.pdf"',
+      'Content-Disposition': 'inline; filename="ai-cas-corrective-action-report.pdf"',
       'Cache-Control': 'no-store',
     },
   });
