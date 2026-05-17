@@ -186,7 +186,7 @@ export const confirmDataFields: WocDataField[] = [
   { key: 'partDescription', label: 'Part Description', required: false },
   { key: 'customerOrJob', label: 'Customer / Job Name', required: false },
   { key: 'operationNumber', label: 'Operation Number', required: false },
-  { key: 'routerStepOperation', label: 'Router Step / Operation', required: false },
+  { key: 'routerStepOperation', label: 'Uploaded Router Step / Operation', required: false },
   { key: 'quantityAffected', label: 'Quantity Affected', required: false },
   { key: 'dueDateShipDate', label: 'Due Date / Ship Date', required: false },
 ];

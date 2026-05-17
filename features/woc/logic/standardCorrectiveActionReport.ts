@@ -226,7 +226,7 @@ Work Order: ${standardValue(input.workOrderNumber)}
 Part Number: ${standardValue(input.partNumber)}
 ${optionalReportLine('Customer / Job', input.customerOrJob)}${optionalReportLine('Quantity', firstFilled(input.quantityAffected, input.quantity))}Affected Department / Area: ${standardValue(getAffectedArea(input))}
 Affected Operation / Equipment: ${standardValue(getAffectedOperationEquipment(input))}
-${optionalReportLine('Router Step / Operation (uploaded router context)', firstFilled(input.routerStepOperation, input.operationNumber))}Date Captured: ${dateCaptured}
+${optionalReportLine('Uploaded Router Step / Operation (uploaded router context)', firstFilled(input.routerStepOperation, input.operationNumber))}Date Captured: ${dateCaptured}
 Submitted By: ${submittedBy}
 Priority: ${priority}
 

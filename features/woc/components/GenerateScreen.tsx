@@ -78,7 +78,7 @@ export function GenerateScreen({
           <RouterContextItem label="Part Number" value={wocData.partNumber} />
           <RouterContextItem label="Customer / Job" value={wocData.customerOrJob} />
           <RouterContextItem label="Quantity" value={wocData.quantityAffected || wocData.quantity} />
-          <RouterContextItem label="Router Step / Operation" value={wocData.routerStepOperation} />
+          <RouterContextItem label="Uploaded Router Step / Operation" value={wocData.routerStepOperation} />
           <RouterContextItem label="Due Date / Ship Date" value={wocData.dueDateShipDate} />
           {wocData.material.trim() && <RouterContextItem label="Material" value={wocData.material} />}
         </div>
@@ -200,7 +200,7 @@ export function GenerateScreen({
           </label>
 
           <label>
-            Router Step / Operation
+            Uploaded Router Step / Operation
             <input type="text" value={wocData.routerStepOperation} onChange={(event) => onUpdateField('routerStepOperation', event.target.value)} />
           </label>
 
