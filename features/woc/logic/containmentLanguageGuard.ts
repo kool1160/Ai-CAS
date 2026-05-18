@@ -14,13 +14,30 @@ export type ContainmentLanguageGuardInput = Pick<
   | 'foundAtDepartment'
   | 'affectedOperationEquipment'
   | 'correctiveActionOwnerDepartment'
+  | 'workOrderNumber'
+  | 'partNumber'
 >;
 
 const STRONG_CONTAINMENT_ACTION_PATTERN =
   /\b(?:production\s+halt(?:ed|ing)?|halt(?:ed|ing)?\s+(?:all\s+)?production|stop\s+production|stopping\s+production|job\s+hold|shipment\s+hold|hold\s+all\s+parts|quarantine(?:d|s|ing)?|scrap(?:ped|ping)?|rework(?:ed|ing)?|customer\s+notification|notif(?:y|ied|ying)\s+(?:the\s+)?customer|safety\s+escalation|stop[-\s]?ship(?:ment)?|pause(?:d|s|ing)?\s+(?:the\s+)?job)\b/i;
 
+const RATE_VALUE_PATTERN =
+  /\b(\d+(?:\.\d+)?)\s*(p\s*\.?\s*p\s*\.?\s*h|pieces?\s+per\s+hour|pcs\s*(?:\/|per)\s*hour|parts?\s*(?:\/|per)\s*hour)\b/gi;
+
+type TimeRateValue = {
+  value: string;
+  label: string;
+  index: number;
+};
+
+export type TimeRateMismatchDetails = {
+  expectedRate?: string;
+  observedRate?: string;
+  expectedRateSource?: 'work order' | 'router standard' | 'work order/router standard';
+};
+
 const TIME_RATE_ISSUE_PATTERN =
-  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|parts?\s*(?:\/|per)\s*hour|\d+\s*(?:parts?\s*)?(?:\/|per)\s*hour|hours?\s+per\s+part|minutes?\s+per\s+part|obtainable|router\s+(?:time|rate|standard))\b/i;
+  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|p\s*\.?\s*p\s*\.?\s*h\b|pieces?\s+per\s+hour|pcs\s*(?:\/|per)\s*hour|parts?\s*(?:\/|per)\s*hour|per\s+hour|\d+\s*(?:p\s*\.?\s*p\s*\.?\s*h|(?:parts?|pieces?|pcs)\s*(?:\/|per)\s*hour)|hours?\s+per\s+part|minutes?\s+per\s+part|cannot\s+obtain|not\s+obtainable|obtainable|baseline|work\s+order\s+is\s+off|router\s+is\s+off|router\s+(?:time|rate|standard))\b/i;
 
 function normalize(value?: string) {
   return value?.trim() ?? '';
@@ -40,6 +57,98 @@ function getAffectedProcess(input: ContainmentLanguageGuardInput) {
 
 function getOwnerDepartment(input: ContainmentLanguageGuardInput) {
   return resolveCorrectiveActionOwnerDepartment(input);
+}
+
+function getJobContext(input: ContainmentLanguageGuardInput) {
+  const workOrder = normalize(input.workOrderNumber);
+  const partNumber = normalize(input.partNumber);
+
+  return [workOrder ? `WO ${workOrder}` : '', partNumber ? `Part ${partNumber}` : ''].filter(Boolean).join(' / ');
+}
+
+function normalizeRateLabel(value: string, unit: string) {
+  const normalizedUnit = unit.toLowerCase().replace(/\s+/g, '');
+  if (/^p\.?p\.?h$/.test(normalizedUnit)) return `${value} PPH`;
+  if (normalizedUnit === 'pcs/hr') return `${value} pcs/hr`;
+  if (normalizedUnit === 'pcsperhour') return `${value} pcs per hour`;
+  if (normalizedUnit === 'parts/hr') return `${value} parts/hr`;
+  if (normalizedUnit === 'partperhour' || normalizedUnit === 'partsperhour') return `${value} parts per hour`;
+  if (normalizedUnit === 'pieceperhour' || normalizedUnit === 'piecesperhour') return `${value} pieces per hour`;
+
+  return `${value} ${unit.trim()}`;
+}
+
+function extractRateValues(text: string): TimeRateValue[] {
+  return Array.from(text.matchAll(RATE_VALUE_PATTERN)).map((match) => ({
+    value: match[1],
+    label: normalizeRateLabel(match[1], match[2]),
+    index: match.index ?? 0,
+  }));
+}
+
+function hasExpectedRateContext(contextBeforeRate: string) {
+  return /(?:work\s+order|wo|router|standard|baseline|listed?|set|current|target|expected|off)\b/i.test(contextBeforeRate);
+}
+
+function hasObservedRateContext(contextBeforeRate: string) {
+  return /(?:can\s+only|only|observed|actual|obtainable|cannot\s+obtain|not\s+obtainable|weld|make|run|output)\b/i.test(
+    contextBeforeRate,
+  );
+}
+
+export function extractTimeRateMismatchDetails(input: ContainmentLanguageGuardInput): TimeRateMismatchDetails {
+  const text = [input.shortIssueDescription, input.detailedIssueNotes].map(normalize).filter(Boolean).join('\n');
+  if (!text) return {};
+
+  const rates = extractRateValues(text);
+  if (!rates.length) return {};
+
+  let expectedRate = '';
+  let observedRate = '';
+
+  for (const rate of rates) {
+    const contextBeforeRate = text.slice(Math.max(0, rate.index - 80), rate.index);
+    if (!observedRate && hasObservedRateContext(contextBeforeRate)) observedRate = rate.label;
+    if (!expectedRate && hasExpectedRateContext(contextBeforeRate)) expectedRate = rate.label;
+  }
+
+  if (rates.length >= 2 && /(?:work\s+order|router)\s+is\s+off/i.test(text)) {
+    observedRate ||= rates[0].label;
+    expectedRate ||= rates[rates.length - 1].label;
+  }
+
+  const expectedRateSource = /work\s+order/i.test(text)
+    ? 'work order'
+    : /router/i.test(text)
+      ? 'router standard'
+      : 'work order/router standard';
+
+  return {
+    expectedRate: expectedRate || undefined,
+    observedRate: observedRate || undefined,
+    expectedRateSource,
+  };
+}
+
+export function buildTimeRateMismatchSummaryText(input: ContainmentLanguageGuardInput) {
+  const affectedProcess = getAffectedProcess(input);
+  const jobContext = getJobContext(input);
+  const { expectedRate, observedRate, expectedRateSource } = extractTimeRateMismatchDetails(input);
+  const contextSuffix = jobContext ? ` for ${jobContext}` : '';
+
+  if (expectedRate && observedRate) {
+    return `Operator reported a run-rate/runtime mismatch in ${affectedProcess}${contextSuffix}. The ${expectedRateSource} lists ${expectedRate}, while the observed obtainable rate is ${observedRate}. The router standard should be reviewed and updated if validated.`;
+  }
+
+  if (expectedRate) {
+    return `Operator reported a run-rate/runtime mismatch in ${affectedProcess}${contextSuffix}. The expected ${expectedRateSource} rate is ${expectedRate}, and the observed output baseline must be verified before any router update is approved.`;
+  }
+
+  if (observedRate) {
+    return `Operator reported a run-rate/runtime mismatch in ${affectedProcess}${contextSuffix}. The observed obtainable rate is ${observedRate}, and it must be compared with the expected work order/router baseline before any router update is approved.`;
+  }
+
+  return `Operator reported a run-rate/runtime mismatch in ${affectedProcess}${contextSuffix}. The expected work order/router baseline and observed output baseline must be compared, then the router standard should be reviewed and updated if validated.`;
 }
 
 export function containsStrongContainmentAction(text?: string) {
@@ -70,9 +179,7 @@ export function buildMildTimeRateCorrectiveActionText(input: ContainmentLanguage
 }
 
 function buildMildTimeRateSummaryText(input: ContainmentLanguageGuardInput) {
-  const affectedProcess = getAffectedProcess(input);
-
-  return `Operator reported an incorrect time/rate concern for ${affectedProcess}. AI-CAS preserved the operator statement separately and drafted a review-focused correction to verify actual output, confirm the realistic baseline, and update the router if validated.`;
+  return buildTimeRateMismatchSummaryText(input);
 }
 
 function buildMildTimeRateInspectionText(input: ContainmentLanguageGuardInput) {
@@ -111,6 +218,7 @@ export function sanitizeGeneratedContainmentLanguage(
 ) {
   const normalized = normalize(text);
   if (!normalized) return '';
+  if (section === 'issueSummary' && isIncorrectTimeRateIssue(input)) return replacementForSection(input, section);
   if (operatorExplicitlyRequestedStrongContainment(input)) return normalized;
   if (!containsStrongContainmentAction(normalized)) return normalized;
 
