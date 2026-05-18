@@ -2,6 +2,7 @@ import type { AiCorrectiveActionDraftSectionKey, StructuredCorrectiveActionDraft
 import {
   buildMildTimeRateContainmentText,
   buildMildTimeRateCorrectiveActionText,
+  buildMildTimeRateSummaryText,
   getGeneratedSectionText,
   isIncorrectTimeRateIssue,
 } from './containmentLanguageGuard';
@@ -146,7 +147,6 @@ export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionRep
   const structuredSummary = getStructuredDraftText(input, 'issueSummary');
   if (structuredSummary) return sanitizeFinalOutputText(input, structuredSummary);
 
-  const operatorStatement = getOperatorStatement(input);
   const workOrder = normalize(input.workOrderNumber);
   const partNumber = normalize(input.partNumber);
   const affectedArea = getAffectedProcess(input);
@@ -154,8 +154,12 @@ export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionRep
     .filter(Boolean)
     .join(' / ');
 
-  if (/runtime|rate|per hour|time study|sustainable/i.test(operatorStatement)) {
-    return sanitizeFinalOutputText(input, `Operator reported a run-rate/runtime mismatch in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. The current expected output and observed capacity must be verified because the discrepancy may affect production flow, scheduling, and repeat performance if the router or process standard remains uncorrected.`);
+  if (isIncorrectTimeRateIssue(input)) {
+    const summary = buildMildTimeRateSummaryText({
+      ...input,
+      affectedOperationEquipment: affectedArea,
+    });
+    return sanitizeFinalOutputText(input, `${summary}${jobContext ? ` Job context: ${jobContext}.` : ''}`);
   }
 
   return sanitizeFinalOutputText(input, `Operator reported a shop-floor issue in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. AI-CAS converted the operator statement into a draft corrective-action summary for Engineering, Quality, and Production review before release.`);

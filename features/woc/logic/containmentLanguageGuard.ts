@@ -20,7 +20,37 @@ const STRONG_CONTAINMENT_ACTION_PATTERN =
   /\b(?:production\s+halt(?:ed|ing)?|halt(?:ed|ing)?\s+(?:all\s+)?production|stop\s+production|stopping\s+production|job\s+hold|shipment\s+hold|hold\s+all\s+parts|quarantine(?:d|s|ing)?|scrap(?:ped|ping)?|rework(?:ed|ing)?|customer\s+notification|notif(?:y|ied|ying)\s+(?:the\s+)?customer|safety\s+escalation|stop[-\s]?ship(?:ment)?|pause(?:d|s|ing)?\s+(?:the\s+)?job)\b/i;
 
 const TIME_RATE_ISSUE_PATTERN =
-  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|parts?\s*(?:\/|per)\s*hour|\d+\s*(?:parts?\s*)?(?:\/|per)\s*hour|hours?\s+per\s+part|minutes?\s+per\s+part|obtainable|router\s+(?:time|rate|standard))\b/i;
+  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|p\.?p\.?h\.?|parts?\s*(?:\/|per)\s*hour|pieces?\s*(?:\/|per)\s*hour|\d+\s*(?:(?:parts?|pieces?|pcs)\s*)?(?:\/|per)\s*hour|\d+\s*\/\s*hr|\d+\s*pph|hours?\s+per\s+part|minutes?\s+per\s+part|obtainable|router\s+(?:time|rate|standard))\b/i;
+
+export type ExtractedRateValue = {
+  value: string;
+  context: 'expected' | 'observed' | 'unknown';
+};
+
+const RATE_VALUE_PATTERN =
+  /\b\d+(?:\.\d+)?\s*(?:(?:p\.?p\.?h\.?)|(?:(?:pcs|parts?|pieces?)\s*)?(?:\/\s*(?:hr|hour)|per\s+hour)|(?:\/\s*hr))\b/gi;
+
+const OBSERVED_RATE_CONTEXT_PATTERNS = [
+  /\bactual\b/gi,
+  /\bcan\s+only\b/gi,
+  /\bobserved\b/gi,
+  /\bobtainable\b/gi,
+  /\bbaseline\b/gi,
+  /\bable\s+to\b/gi,
+  /\bunable\s+to\b/gi,
+  /\bonly\b/gi,
+];
+
+const EXPECTED_RATE_CONTEXT_PATTERNS = [
+  /\brouter\b/gi,
+  /\bwork\s+order\b/gi,
+  /\bwork-order\b/gi,
+  /\bstandard\b/gi,
+  /\bexpected\b/gi,
+  /\blisted\b/gi,
+  /\btarget\b/gi,
+  /\bcurrent\b/gi,
+];
 
 function normalize(value?: string) {
   return value?.trim() ?? '';
@@ -28,6 +58,68 @@ function normalize(value?: string) {
 
 function firstFilled(...values: Array<string | undefined>) {
   return values.map(normalize).find(Boolean) ?? '';
+}
+
+function findNearestRateContext(text: string, rateStartIndex: number): ExtractedRateValue['context'] {
+  const contextStart = Math.max(0, rateStartIndex - 80);
+  const contextWindow = text.slice(contextStart, rateStartIndex);
+  const delimiterIndex = Math.max(
+    contextWindow.lastIndexOf(','),
+    contextWindow.lastIndexOf(';'),
+    contextWindow.lastIndexOf('.'),
+    contextWindow.lastIndexOf('\n'),
+  );
+  const localContext = contextWindow.slice(delimiterIndex + 1);
+  const contextOffset = contextStart + delimiterIndex + 1;
+
+  const findNearestCue = (patterns: RegExp[]) => {
+    let nearestEnd = -1;
+
+    patterns.forEach((pattern) => {
+      pattern.lastIndex = 0;
+      let match: RegExpExecArray | null;
+      while ((match = pattern.exec(localContext)) !== null) {
+        nearestEnd = Math.max(nearestEnd, contextOffset + match.index + match[0].length);
+      }
+    });
+
+    return nearestEnd;
+  };
+
+  const observedCueEnd = findNearestCue(OBSERVED_RATE_CONTEXT_PATTERNS);
+  const expectedCueEnd = findNearestCue(EXPECTED_RATE_CONTEXT_PATTERNS);
+
+  if (observedCueEnd === -1 && expectedCueEnd === -1) return 'unknown';
+  if (observedCueEnd > expectedCueEnd) return 'observed';
+  return 'expected';
+}
+
+export function extractRateValues(text?: string): ExtractedRateValue[] {
+  const normalized = normalize(text);
+  if (!normalized) return [];
+
+  RATE_VALUE_PATTERN.lastIndex = 0;
+  const values: ExtractedRateValue[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = RATE_VALUE_PATTERN.exec(normalized)) !== null) {
+    values.push({
+      value: match[0].trim(),
+      context: findNearestRateContext(normalized, match.index),
+    });
+  }
+
+  return values;
+}
+
+function getRateMismatchValues(input: ContainmentLanguageGuardInput) {
+  const extractedValues = extractRateValues(
+    [input.shortIssueDescription, input.detailedIssueNotes, input.correctionType].map(normalize).join('\n'),
+  );
+  const expected = extractedValues.find((rate) => rate.context === 'expected')?.value;
+  const observed = extractedValues.find((rate) => rate.context === 'observed')?.value;
+
+  return { expected, observed };
 }
 
 function getOperatorStatement(input: ContainmentLanguageGuardInput) {
@@ -69,8 +161,13 @@ export function buildMildTimeRateCorrectiveActionText(input: ContainmentLanguage
   return `${owner} should review and verify the actual output baseline for ${affectedProcess}, compare it with the current router standard, and update the router if validated. Confirm scheduling impact and document the approved production baseline after Engineering review.`;
 }
 
-function buildMildTimeRateSummaryText(input: ContainmentLanguageGuardInput) {
+export function buildMildTimeRateSummaryText(input: ContainmentLanguageGuardInput) {
   const affectedProcess = getAffectedProcess(input);
+  const { expected, observed } = getRateMismatchValues(input);
+
+  if (expected && observed) {
+    return `Operator reported a run-rate/runtime mismatch for ${affectedProcess}. Expected/router/work-order rate: ${expected}. Observed/actual rate: ${observed}. AI-CAS preserved the operator statement separately and drafted a review-focused correction to verify actual output, confirm the realistic baseline, and update the router if validated.`;
+  }
 
   return `Operator reported an incorrect time/rate concern for ${affectedProcess}. AI-CAS preserved the operator statement separately and drafted a review-focused correction to verify actual output, confirm the realistic baseline, and update the router if validated.`;
 }
