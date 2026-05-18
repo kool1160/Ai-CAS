@@ -1,4 +1,5 @@
 import type { StructuredCorrectiveActionDraft } from './aiCorrectiveActionDraftFoundation';
+import { removeUploadedRouterContextFromFinalText } from './finalOutputSanitizer';
 
 export type StandardEvidenceItem = {
   id?: string;
@@ -122,13 +123,22 @@ function getProductionImpact(input: StandardCorrectiveActionReportInput) {
   return 'quality risk, flow risk, and repeat issue risk until the correction is reviewed and confirmed';
 }
 
+function sanitizeFinalOutputText(input: StandardCorrectiveActionReportInput, text: string) {
+  return removeUploadedRouterContextFromFinalText(text, {
+    operationNumber: input.operationNumber,
+    routerStepOperation: input.routerStepOperation,
+    affectedOperationEquipment: getAffectedOperationEquipment(input),
+  });
+}
+
 function getStructuredDraftText(input: StandardCorrectiveActionReportInput, section: keyof StructuredCorrectiveActionDraft['sections']) {
-  return input.structuredDraft?.sections[section]?.draftText.trim() ?? '';
+  const draftText = input.structuredDraft?.sections[section]?.draftText.trim() ?? '';
+  return draftText ? sanitizeFinalOutputText(input, draftText) : '';
 }
 
 export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionReportInput) {
   const structuredSummary = getStructuredDraftText(input, 'issueSummary');
-  if (structuredSummary) return structuredSummary;
+  if (structuredSummary) return sanitizeFinalOutputText(input, structuredSummary);
 
   const operatorStatement = getOperatorStatement(input);
   const workOrder = normalize(input.workOrderNumber);
@@ -139,10 +149,10 @@ export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionRep
     .join(' / ');
 
   if (/runtime|rate|per hour|time study|sustainable/i.test(operatorStatement)) {
-    return `Operator reported a run-rate/runtime mismatch in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. The current expected output and observed capacity must be verified because the discrepancy may affect production flow, scheduling, and repeat performance if the router or process standard remains uncorrected.`;
+    return sanitizeFinalOutputText(input, `Operator reported a run-rate/runtime mismatch in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. The current expected output and observed capacity must be verified because the discrepancy may affect production flow, scheduling, and repeat performance if the router or process standard remains uncorrected.`);
   }
 
-  return `Operator reported a shop-floor issue in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. AI-CAS converted the operator statement into a draft corrective-action summary for Engineering, Quality, and Production review before release.`;
+  return sanitizeFinalOutputText(input, `Operator reported a shop-floor issue in ${affectedArea}${jobContext ? ` for ${jobContext}` : ''}. AI-CAS converted the operator statement into a draft corrective-action summary for Engineering, Quality, and Production review before release.`);
 }
 
 export function buildAiCasRequiredAction(input: StandardCorrectiveActionReportInput) {
@@ -150,21 +160,21 @@ export function buildAiCasRequiredAction(input: StandardCorrectiveActionReportIn
     getStructuredDraftText(input, 'correctiveActionRequired'),
     getStructuredDraftText(input, 'responsibilityByOperation'),
   );
-  if (structuredAction) return structuredAction;
+  if (structuredAction) return sanitizeFinalOutputText(input, structuredAction);
 
   const operatorStatement = getOperatorStatement(input);
   const requestedAction = firstFilled(input.requiredCorrection, input.requestedEngineeringAction);
-  if (requestedAction) return requestedAction;
+  if (requestedAction) return sanitizeFinalOutputText(input, requestedAction);
 
   const owner = getOwnerDepartment(input);
   const affectedArea = getAffectedProcess(input);
   const impact = getProductionImpact(input);
 
   if (/runtime|rate|per hour|time study|sustainable/i.test(operatorStatement)) {
-    return `${owner} must perform and document a time study or equivalent router/runtime review for the ${affectedArea} operation, compare the confirmed actual rate against the current planned standard, and update the router, work instructions, staffing/process plan, or quoted production expectation as required. Production should not treat the current mismatch as acceptable without review because it creates ${impact}.`;
+    return sanitizeFinalOutputText(input, `${owner} must perform and document a time study or equivalent router/runtime review for the ${affectedArea} operation, compare the confirmed actual rate against the current planned standard, and update the router, work instructions, staffing/process plan, or quoted production expectation as required. Production should not treat the current mismatch as acceptable without review because it creates ${impact}.`);
   }
 
-  return `${owner} must review the confirmed issue, determine the required correction for the ${affectedArea} operation, update or clarify the router/work instructions as needed, and verify the correction before the job proceeds. Production impact to monitor: ${impact}.`;
+  return sanitizeFinalOutputText(input, `${owner} must review the confirmed issue, determine the required correction for the ${affectedArea} operation, update or clarify the router/work instructions as needed, and verify the correction before the job proceeds. Production impact to monitor: ${impact}.`);
 }
 
 export function buildStandardEmailSubject(input: StandardCorrectiveActionReportInput) {
@@ -213,7 +223,7 @@ export function buildStandardCorrectiveActionReportText(input: StandardCorrectiv
   const outputApproved = input.finalReviewConfirmed ? 'Approved for controlled PDF/email action.' : 'Pending final human review.';
   const approvedBy = input.finalReviewConfirmed ? submittedBy : 'Pending human approval';
 
-  return `# AI-CAS CORRECTIVE ACTION REPORT
+  const reportText = `# AI-CAS CORRECTIVE ACTION REPORT
 Corrective Action System | Capture. Confirm. Correct.
 Applied Intelligence
 Standardize to Optimize
@@ -252,10 +262,12 @@ Output Approved: ${outputApproved}
 Approved By: ${approvedBy}
 Date: ${dateCaptured}
 Rule: Draft first. Confirm accuracy. Then send/export/print.`;
+
+  return sanitizeFinalOutputText(input, reportText);
 }
 
 export function buildStandardCorrectiveActionEmailText(input: StandardCorrectiveActionReportInput) {
-  return `Subject: ${buildStandardEmailSubject(input)}
+  const emailText = `Subject: ${buildStandardEmailSubject(input)}
 
 Engineering Team,
 
@@ -265,4 +277,6 @@ ${buildStandardCorrectiveActionReportText(input)}
 
 Thank you,
 AI-CAS`;
+
+  return sanitizeFinalOutputText(input, emailText);
 }

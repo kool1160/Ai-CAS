@@ -10,6 +10,7 @@ import type {
 import type { GeneratedCorrectionPackage, WocConfirmationState } from '../state/wocDataModel';
 import { loadSetupConfigFromStorage } from '../logic/setupConfigStorage';
 import type { ActionFeedback } from '../types/wocSessionTypes';
+import { removeUploadedRouterContextFromFinalText } from '../logic/finalOutputSanitizer';
 import { ControlledPdfPreviewRenderer } from './ControlledPdfPreviewRenderer';
 import {
   buildStandardCorrectiveActionEmailText,
@@ -139,6 +140,40 @@ function getReviewAffectedProcess(input: { affectedArea?: string; foundAtDepartm
   if (department === operationEquipment) return operationEquipment;
 
   return `${department} — ${operationEquipment}`;
+}
+
+
+function sanitizeReviewText(
+  input: { operationNumber?: string; routerStepOperation?: string; affectedOperationEquipment?: string },
+  value: string,
+) {
+  return removeUploadedRouterContextFromFinalText(value, {
+    operationNumber: input.operationNumber,
+    routerStepOperation: input.routerStepOperation,
+    affectedOperationEquipment: input.affectedOperationEquipment,
+  });
+}
+
+function sanitizeStructuredDraftForFinalOutput(
+  input: { operationNumber?: string; routerStepOperation?: string; affectedOperationEquipment?: string },
+  draft: StructuredCorrectiveActionDraft | null,
+) {
+  if (!draft) return null;
+
+  return {
+    ...draft,
+    sections: Object.fromEntries(
+      Object.entries(draft.sections).map(([key, section]) => [
+        key,
+        {
+          ...section,
+          draftText: sanitizeReviewText(input, section.draftText),
+          sourceContext: sanitizeReviewText(input, section.sourceContext),
+          requiresHumanReview: true,
+        },
+      ]),
+    ) as StructuredCorrectiveActionDraft['sections'],
+  };
 }
 
 function buildSafePdfFilename(generatedPackage: GeneratedCorrectionPackage) {
@@ -406,7 +441,7 @@ export function ReviewSendScreen({
         return;
       }
 
-      setStructuredDraft(getStructuredDraftFromPayload(payload));
+      setStructuredDraft(sanitizeStructuredDraftForFinalOutput(aiDraftFoundation.input, getStructuredDraftFromPayload(payload)));
       setAiCorrectiveActionDraft(payload.draft as AiCorrectiveActionDraftResult);
       setAiDraftFeedback({ tone: 'success', message: 'AI corrective-action draft generated. Review and edit before any future release/PDF.' });
     } catch {
