@@ -1,4 +1,10 @@
-import type { StructuredCorrectiveActionDraft } from './aiCorrectiveActionDraftFoundation';
+import type { AiCorrectiveActionDraftSectionKey, StructuredCorrectiveActionDraft } from './aiCorrectiveActionDraftFoundation';
+import {
+  buildMildTimeRateContainmentText,
+  buildMildTimeRateCorrectiveActionText,
+  getGeneratedSectionText,
+  isIncorrectTimeRateIssue,
+} from './containmentLanguageGuard';
 import { removeUploadedRouterContextFromFinalText } from './finalOutputSanitizer';
 
 export type StandardEvidenceItem = {
@@ -115,9 +121,8 @@ function getAffectedProcess(input: StandardCorrectiveActionReportInput) {
 }
 
 function getProductionImpact(input: StandardCorrectiveActionReportInput) {
-  const operatorStatement = getOperatorStatement(input).toLowerCase();
   if (normalize(input.productionImpact)) return normalize(input.productionImpact);
-  if (/runtime|rate|per hour|time study|sustainable/.test(operatorStatement)) {
+  if (isIncorrectTimeRateIssue(input)) {
     return 'flow risk, schedule risk, and repeat issue risk until the standard and actual run rate are reconciled';
   }
   return 'quality risk, flow risk, and repeat issue risk until the correction is reviewed and confirmed';
@@ -131,8 +136,8 @@ function sanitizeFinalOutputText(input: StandardCorrectiveActionReportInput, tex
   });
 }
 
-function getStructuredDraftText(input: StandardCorrectiveActionReportInput, section: keyof StructuredCorrectiveActionDraft['sections']) {
-  const draftText = input.structuredDraft?.sections[section]?.draftText.trim() ?? '';
+function getStructuredDraftText(input: StandardCorrectiveActionReportInput, section: AiCorrectiveActionDraftSectionKey) {
+  const draftText = getGeneratedSectionText(input, section, input.structuredDraft);
   return draftText ? sanitizeFinalOutputText(input, draftText) : '';
 }
 
@@ -162,7 +167,6 @@ export function buildAiCasRequiredAction(input: StandardCorrectiveActionReportIn
   );
   if (structuredAction) return sanitizeFinalOutputText(input, structuredAction);
 
-  const operatorStatement = getOperatorStatement(input);
   const requestedAction = firstFilled(input.requiredCorrection, input.requestedEngineeringAction);
   if (requestedAction) return sanitizeFinalOutputText(input, requestedAction);
 
@@ -170,11 +174,11 @@ export function buildAiCasRequiredAction(input: StandardCorrectiveActionReportIn
   const affectedArea = getAffectedProcess(input);
   const impact = getProductionImpact(input);
 
-  if (/runtime|rate|per hour|time study|sustainable/i.test(operatorStatement)) {
-    return sanitizeFinalOutputText(input, `${owner} must perform and document a time study or equivalent router/runtime review for the ${affectedArea} operation, compare the confirmed actual rate against the current planned standard, and update the router, work instructions, staffing/process plan, or quoted production expectation as required. Production should not treat the current mismatch as acceptable without review because it creates ${impact}.`);
+  if (isIncorrectTimeRateIssue(input)) {
+    return sanitizeFinalOutputText(input, `${buildMildTimeRateCorrectiveActionText(input)} Production impact to monitor: ${impact}.`);
   }
 
-  return sanitizeFinalOutputText(input, `${owner} must review the confirmed issue, determine the required correction for the ${affectedArea} operation, update or clarify the router/work instructions as needed, and verify the correction before the job proceeds. Production impact to monitor: ${impact}.`);
+  return sanitizeFinalOutputText(input, `${owner} must review the confirmed issue, determine the required correction for the ${affectedArea} operation, update or clarify the router/work instructions as needed, and verify the correction before the correction is closed. Production impact to monitor: ${impact}.`);
 }
 
 export function buildStandardEmailSubject(input: StandardCorrectiveActionReportInput) {
@@ -222,6 +226,11 @@ export function buildStandardCorrectiveActionReportText(input: StandardCorrectiv
   const dataConfirmed = input.finalReviewConfirmed ? 'Confirmed by final human review.' : 'Draft data pending final human review.';
   const outputApproved = input.finalReviewConfirmed ? 'Approved for controlled PDF/email action.' : 'Pending final human review.';
   const approvedBy = input.finalReviewConfirmed ? submittedBy : 'Pending human approval';
+  const containmentCheck = firstFilled(
+    getStructuredDraftText(input, 'containmentAction'),
+    input.immediateContainment,
+    isIncorrectTimeRateIssue(input) ? buildMildTimeRateContainmentText(input) : '',
+  );
 
   const reportText = `# AI-CAS CORRECTIVE ACTION REPORT
 Corrective Action System | Capture. Confirm. Correct.
@@ -255,7 +264,7 @@ ${requiredAction}
 
 Owner / Responsible Department: ${owner}
 Production Impact: ${productionImpact}
-${optionalReportLine('Containment / Immediate Check', firstFilled(getStructuredDraftText(input, 'containmentAction'), input.immediateContainment))}${optionalReportLine('Inspection / Verification', firstFilled(getStructuredDraftText(input, 'inspectionVerificationRequirement'), input.inspectionVerificationRequirement))}${optionalReportLine('Standard Work / Prevention Update', firstFilled(getStructuredDraftText(input, 'standardWorkRequirement'), input.preventionStandardWorkUpdate))}
+${optionalReportLine('Containment / Immediate Check', containmentCheck)}${optionalReportLine('Inspection / Verification', firstFilled(getStructuredDraftText(input, 'inspectionVerificationRequirement'), input.inspectionVerificationRequirement))}${optionalReportLine('Standard Work / Prevention Update', firstFilled(getStructuredDraftText(input, 'standardWorkRequirement'), input.preventionStandardWorkUpdate))}
 ## 5. REVIEW GATE
 Data Confirmed: ${dataConfirmed}
 Output Approved: ${outputApproved}

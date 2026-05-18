@@ -8,6 +8,7 @@ import {
   type AiCorrectiveActionDraftSectionKey,
   type StructuredCorrectiveActionDraft,
 } from '../../../features/woc/logic/aiCorrectiveActionDraftFoundation';
+import { sanitizeStructuredDraftContainmentLanguage } from '../../../features/woc/logic/containmentLanguageGuard';
 
 type DraftRequestBody = {
   aiDraftFoundation?: AiCorrectiveActionDraftFoundation;
@@ -189,7 +190,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const structuredDraft = parseStructuredDraftJson(outputText);
+    const structuredDraft = sanitizeStructuredDraftContainmentLanguage(
+      aiDraftFoundation.input,
+      parseStructuredDraftJson(outputText),
+    );
     const draft = flattenStructuredDraft(structuredDraft);
     const missingDraftSections = getMissingDraftSections(structuredDraft);
 
