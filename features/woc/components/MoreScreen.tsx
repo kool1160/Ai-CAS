@@ -1,6 +1,26 @@
 import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
+const betaIssueEmailBody = `Hi Chris,
+
+I found something during AI-CAS beta testing.
+
+Company:
+Name:
+Device:
+Browser:
+Screen / area:
+What happened:
+What I expected:
+Steps to repeat:
+Screenshot attached:
+Urgency:
+Additional notes:
+
+Thank you.`;
+
+const betaIssueMailtoHref = `mailto:Chris@appliedintelco.com?subject=${encodeURIComponent('AI-CAS Beta Feedback')}&body=${encodeURIComponent(betaIssueEmailBody)}`;
+
 type MoreScreenProps = {
   currentUser: CurrentUser;
   draftCount?: number;
@@ -75,6 +95,12 @@ export function MoreScreen({
               <span>AI-CAS corrective action workflow active.</span>
             </div>
           </div>
+        </article>
+
+        <article className="card more-beta-feedback-panel">
+          <h2>Beta Feedback / Report Issue</h2>
+          <p>Use this during beta testing to report bugs, confusing screens, extraction problems, or AI-CAS output issues.</p>
+          <a className="button primary full-width" href={betaIssueMailtoHref}>Report Beta Issue</a>
         </article>
       </div>
 
