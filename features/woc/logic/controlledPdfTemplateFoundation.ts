@@ -1,4 +1,9 @@
 import type { StructuredCorrectiveActionDraft } from './aiCorrectiveActionDraftFoundation';
+import {
+  buildMildTimeRateContainmentText,
+  getGeneratedSectionText,
+  isIncorrectTimeRateIssue,
+} from './containmentLanguageGuard';
 import { removeUploadedRouterContextFromFinalText } from './finalOutputSanitizer';
 import {
   buildAiCasProfessionalSummary,
@@ -149,6 +154,11 @@ export function buildControlledCorrectiveActionPdfTemplate(
   const submittedBy = valueOrNotConfirmed(data.submittedBy ?? DEFAULT_SUBMITTED_BY);
   const evidenceRows = buildStandardEvidenceRows(data);
   const reviewGateStatus = humanConfirmed ? 'Confirmed by final human review.' : 'Pending final human review.';
+  const containmentCheck = firstFilled(
+    getGeneratedSectionText(data, 'containmentAction', data.structuredDraft),
+    data.immediateContainment,
+    isIncorrectTimeRateIssue(data) ? buildMildTimeRateContainmentText(data) : '',
+  );
 
   const template: ControlledCorrectiveActionPdfTemplate = {
     templateName: 'AI-CAS CORRECTIVE ACTION REPORT',
@@ -221,9 +231,9 @@ export function buildControlledCorrectiveActionPdfTemplate(
         layoutHint: 'full-width-text',
         fields: [
           { label: 'AI-Written Corrective Action', value: buildAiCasRequiredAction(data), required: true },
-          ...optionalField('Containment / Immediate Check', firstFilled(data.structuredDraft?.sections.containmentAction?.draftText, data.immediateContainment)),
-          ...optionalField('Inspection / Verification', firstFilled(data.structuredDraft?.sections.inspectionVerificationRequirement?.draftText, data.inspectionVerificationRequirement)),
-          ...optionalField('Standard Work / Prevention Update', firstFilled(data.structuredDraft?.sections.standardWorkRequirement?.draftText, data.preventionStandardWorkUpdate)),
+          ...optionalField('Containment / Immediate Check', containmentCheck),
+          ...optionalField('Inspection / Verification', firstFilled(getGeneratedSectionText(data, 'inspectionVerificationRequirement', data.structuredDraft), data.inspectionVerificationRequirement)),
+          ...optionalField('Standard Work / Prevention Update', firstFilled(getGeneratedSectionText(data, 'standardWorkRequirement', data.structuredDraft), data.preventionStandardWorkUpdate)),
         ],
       },
       {
