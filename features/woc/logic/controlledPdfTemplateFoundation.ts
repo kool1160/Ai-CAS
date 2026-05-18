@@ -1,4 +1,5 @@
 import type { StructuredCorrectiveActionDraft } from './aiCorrectiveActionDraftFoundation';
+import { removeUploadedRouterContextFromFinalText } from './finalOutputSanitizer';
 import {
   buildAiCasProfessionalSummary,
   buildAiCasRequiredAction,
@@ -115,6 +116,30 @@ function getAffectedOperationEquipment(data: ControlledPdfTemplateInput) {
   return 'Operation needs confirmation';
 }
 
+function sanitizePdfFieldValue(data: ControlledPdfTemplateInput, value: string) {
+  return removeUploadedRouterContextFromFinalText(value, {
+    operationNumber: data.operationNumber,
+    routerStepOperation: data.routerStepOperation,
+    affectedOperationEquipment: getAffectedOperationEquipment(data),
+  });
+}
+
+function sanitizePdfTemplate(
+  data: ControlledPdfTemplateInput,
+  template: ControlledCorrectiveActionPdfTemplate,
+): ControlledCorrectiveActionPdfTemplate {
+  return {
+    ...template,
+    sections: template.sections.map((section) => ({
+      ...section,
+      fields: section.fields.map((field) => ({
+        ...field,
+        value: sanitizePdfFieldValue(data, field.value),
+      })),
+    })),
+  };
+}
+
 export function buildControlledCorrectiveActionPdfTemplate(
   data: ControlledPdfTemplateInput,
   confirmations: ControlledPdfTemplateConfirmationInput = {},
@@ -125,7 +150,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
   const evidenceRows = buildStandardEvidenceRows(data);
   const reviewGateStatus = humanConfirmed ? 'Confirmed by final human review.' : 'Pending final human review.';
 
-  return {
+  const template: ControlledCorrectiveActionPdfTemplate = {
     templateName: 'AI-CAS CORRECTIVE ACTION REPORT',
     templateVersion: 'V8-M2B-standard-report',
     modelSource: 'Corrective Action System | Capture. Confirm. Correct. | Applied Intelligence | Standardize to Optimize',
@@ -215,4 +240,6 @@ export function buildControlledCorrectiveActionPdfTemplate(
       },
     ],
   };
+
+  return sanitizePdfTemplate(data, template);
 }
