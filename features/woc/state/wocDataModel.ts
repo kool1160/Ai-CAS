@@ -14,6 +14,7 @@ import {
   buildStandardCorrectiveActionReportText,
   buildStandardEmailSubject,
 } from '../logic/standardCorrectiveActionReport';
+import { DEFAULT_BETA_COMPANY_SETUP_PROFILE } from '../logic/betaCompanySetupProfile';
 
 export type WocCorrectionData = {
   workOrderNumber: string;
@@ -101,36 +102,17 @@ export const correctionTypeOptions = [
   'Other',
 ];
 
+// V8-M9: department options come from the preconfigured beta company setup profile.
+// For beta this is code-configured per company; future Beta 1/post-beta can make this admin editable.
 export const departmentOptions = [
-  'Laser',
-  'Forming',
-  'Welding',
-  'Machining',
-  'Assembly',
-  'PEM / Hardware',
-  'Powder Coat',
-  'Quality / Inspection',
-  'Purchasing / Material',
-  'Engineering / Router',
-  'Shipping',
+  ...DEFAULT_BETA_COMPANY_SETUP_PROFILE.departmentOptions,
   otherAffectedAreaOption,
 ];
 
 export const affectedAreaOptions = departmentOptions;
 
-export const operationEquipmentOptions = [
-  'Welding',
-  '4K Mazak Laser',
-  'Bystronic Laser',
-  'Forming / Brake Press',
-  'Machining',
-  'PEM / Hardware',
-  'Powder Coat',
-  'Quality / Inspection',
-  'Purchasing / Material',
-  'Engineering / Router',
-  otherAffectedAreaOption,
-];
+// V8-M9: operation/equipment options also come from the preconfigured beta setup profile.
+export const operationEquipmentOptions = DEFAULT_BETA_COMPANY_SETUP_PROFILE.operationEquipmentOptions;
 
 export const defaultWocCorrectionData: WocCorrectionData = {
   workOrderNumber: '',

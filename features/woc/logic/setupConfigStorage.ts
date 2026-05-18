@@ -1,10 +1,12 @@
 import type { SetupConfig } from '../types/wocSessionTypes';
+import { DEFAULT_BETA_COMPANY_SETUP_PROFILE } from './betaCompanySetupProfile';
 
 export const SETUP_CONFIG_STORAGE_KEY = 'refab-connect-setup-config';
 
 export const defaultSetupConfig: SetupConfig = {
-  companyName: '',
-  engineeringRecipientEmail: '',
+  // Beta setup is preconfigured per company in code for now.
+  companyName: DEFAULT_BETA_COMPANY_SETUP_PROFILE.companyName,
+  engineeringRecipientEmail: DEFAULT_BETA_COMPANY_SETUP_PROFILE.engineeringRoutingEmail,
   senderDisplayName: 'AI-CAS',
   defaultSubmittedByName: '',
   defaultSubmittedByEmail: '',
