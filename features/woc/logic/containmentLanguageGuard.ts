@@ -22,7 +22,7 @@ const STRONG_CONTAINMENT_ACTION_PATTERN =
   /\b(?:production\s+halt(?:ed|ing)?|halt(?:ed|ing)?\s+(?:all\s+)?production|stop\s+production|stopping\s+production|job\s+hold|shipment\s+hold|hold\s+all\s+parts|quarantine(?:d|s|ing)?|scrap(?:ped|ping)?|rework(?:ed|ing)?|customer\s+notification|notif(?:y|ied|ying)\s+(?:the\s+)?customer|safety\s+escalation|stop[-\s]?ship(?:ment)?|pause(?:d|s|ing)?\s+(?:the\s+)?job)\b/i;
 
 const RATE_VALUE_PATTERN =
-  /\b(\d+(?:\.\d+)?)\s*(p\s*\.?\s*p\s*\.?\s*h|pieces?\s+per\s+hour|pcs\s*(?:\/|per)\s*hour|parts?\s*(?:\/|per)\s*hour)\b/gi;
+  /\b(\d+(?:\.\d+)?)\s*(p\s*\.?\s*p\s*\.?\s*h|pieces?\s+per\s+hour|pcs\s*(?:\/|per)\s*hour|parts?\s*(?:\/|per)\s*hour|per\s+hour|\/\s*hour|\/hr|hr)\b/gi;
 
 type TimeRateValue = {
   value: string;
@@ -37,7 +37,7 @@ export type TimeRateMismatchDetails = {
 };
 
 const TIME_RATE_ISSUE_PATTERN =
-  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|p\s*\.?\s*p\s*\.?\s*h\b|pieces?\s+per\s+hour|pcs\s*(?:\/|per)\s*hour|parts?\s*(?:\/|per)\s*hour|per\s+hour|\d+\s*(?:p\s*\.?\s*p\s*\.?\s*h|(?:parts?|pieces?|pcs)\s*(?:\/|per)\s*hour)|hours?\s+per\s+part|minutes?\s+per\s+part|cannot\s+obtain|not\s+obtainable|obtainable|baseline|work\s+order\s+is\s+off|router\s+is\s+off|router\s+(?:time|rate|standard))\b/i;
+  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|p\s*\.?\s*p\s*\.?\s*h\b|pieces?\s+per\s+hour|pcs\s*(?:\/|per)\s*hour|parts?\s*(?:\/|per)\s*hour|per\s+hour|\d+\s*(?:p\s*\.?\s*p\s*\.?\s*h|(?:parts?|pieces?|pcs)\s*(?:\/|per)\s*hour|(?:\/\s*hour|\/hr|hr)|per\s+hour)|hours?\s+per\s+part|minutes?\s+per\s+part|cannot\s+obtain|not\s+obtainable|obtainable|baseline|work\s+order\s+is\s+off|router\s+is\s+off|router\s+(?:time|rate|standard))\b/i;
 
 function normalize(value?: string) {
   return value?.trim() ?? '';
@@ -74,6 +74,10 @@ function normalizeRateLabel(value: string, unit: string) {
   if (normalizedUnit === 'parts/hr') return `${value} parts/hr`;
   if (normalizedUnit === 'partperhour' || normalizedUnit === 'partsperhour') return `${value} parts per hour`;
   if (normalizedUnit === 'pieceperhour' || normalizedUnit === 'piecesperhour') return `${value} pieces per hour`;
+  if (normalizedUnit === 'perhour') return `${value} per hour`;
+  if (normalizedUnit === '/hour') return `${value} / hour`;
+  if (normalizedUnit === '/hr') return `${value}/hr`;
+  if (normalizedUnit === 'hr') return `${value}/hr`;
 
   return `${value} ${unit.trim()}`;
 }
@@ -91,7 +95,7 @@ function hasExpectedRateContext(contextBeforeRate: string) {
 }
 
 function hasObservedRateContext(contextBeforeRate: string) {
-  return /(?:can\s+only|only|observed|actual|obtainable|cannot\s+obtain|not\s+obtainable|weld|make|run|output)\b/i.test(
+  return /(?:can\s+only|only|observed|actual|obtainable|cannot\s+obtain|not\s+obtainable|able\s+to|unable\s+to|weld|make|output)\b/i.test(
     contextBeforeRate,
   );
 }
@@ -108,13 +112,27 @@ export function extractTimeRateMismatchDetails(input: ContainmentLanguageGuardIn
 
   for (const rate of rates) {
     const contextBeforeRate = text.slice(Math.max(0, rate.index - 80), rate.index);
-    if (!observedRate && hasObservedRateContext(contextBeforeRate)) observedRate = rate.label;
-    if (!expectedRate && hasExpectedRateContext(contextBeforeRate)) expectedRate = rate.label;
+    const expectedContext = hasExpectedRateContext(contextBeforeRate);
+    const observedContext = hasObservedRateContext(contextBeforeRate);
+
+    if (!observedRate && observedContext && !expectedContext) observedRate = rate.label;
+    if (!expectedRate && expectedContext) expectedRate = rate.label;
+    if (!observedRate && observedContext) observedRate = rate.label;
   }
 
   if (rates.length >= 2 && /(?:work\s+order|router)\s+is\s+off/i.test(text)) {
     observedRate ||= rates[0].label;
     expectedRate ||= rates[rates.length - 1].label;
+  }
+
+  if (rates.length >= 2 && expectedRate && observedRate && expectedRate === observedRate) {
+    const expectedIndex = rates.findIndex((rate) => rate.label === expectedRate);
+    const nextObservedRate = rates.slice(expectedIndex + 1).find((rate) => {
+      const contextBeforeRate = text.slice(Math.max(0, rate.index - 80), rate.index);
+      return hasObservedRateContext(contextBeforeRate);
+    });
+
+    if (nextObservedRate) observedRate = nextObservedRate.label;
   }
 
   const expectedRateSource = /work\s+order/i.test(text)
