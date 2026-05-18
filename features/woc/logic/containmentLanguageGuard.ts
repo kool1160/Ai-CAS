@@ -20,7 +20,7 @@ const STRONG_CONTAINMENT_ACTION_PATTERN =
   /\b(?:production\s+halt(?:ed|ing)?|halt(?:ed|ing)?\s+(?:all\s+)?production|stop\s+production|stopping\s+production|job\s+hold|shipment\s+hold|hold\s+all\s+parts|quarantine(?:d|s|ing)?|scrap(?:ped|ping)?|rework(?:ed|ing)?|customer\s+notification|notif(?:y|ied|ying)\s+(?:the\s+)?customer|safety\s+escalation|stop[-\s]?ship(?:ment)?|pause(?:d|s|ing)?\s+(?:the\s+)?job)\b/i;
 
 const TIME_RATE_ISSUE_PATTERN =
-  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|p\.?p\.?h\.?|parts?\s*(?:\/|per)\s*hour|pieces?\s*(?:\/|per)\s*hour|\d+\s*(?:(?:parts?|pieces?|pcs)\s*)?(?:\/|per)\s*hour|\d+\s*\/\s*hr|\d+\s*pph|hours?\s+per\s+part|minutes?\s+per\s+part|obtainable|router\s+(?:time|rate|standard))\b/i;
+  /\b(?:incorrect\s+(?:time|rate)|run[-\s]?rate|runtime|cycle\s*time|time\s*study|standard\s+(?:time|hours?)|p\.?p\.?h\.?|(?:pcs|parts?|pieces?)\s*(?:\/\s*(?:hr|hour)|per\s+hour)|\d+\s*(?:(?:parts?|pieces?|pcs)\s*)?(?:\/\s*(?:hr|hour)|per\s+hour)|\d+\s*pph|hours?\s+per\s+part|minutes?\s+per\s+part|obtainable|router\s+(?:time|rate|standard))\b/i;
 
 export type ExtractedRateValue = {
   value: string;
@@ -28,7 +28,7 @@ export type ExtractedRateValue = {
 };
 
 const RATE_VALUE_PATTERN =
-  /\b\d+(?:\.\d+)?\s*(?:(?:p\.?p\.?h\.?)|(?:(?:pcs|parts?|pieces?)\s*)?(?:\/\s*(?:hr|hour)|per\s+hour)|(?:\/\s*hr))\b/gi;
+  /\b\d+(?:\.\d+)?\s*(?:(?:p\.?p\.?h\.?)|(?:(?:pcs|parts?|pieces?)\s*)?(?:\/\s*(?:hr|hour)|per\s+hour))\b/gi;
 
 const OBSERVED_RATE_CONTEXT_PATTERNS = [
   /\bactual\b/gi,
