@@ -1,3 +1,5 @@
+import { DEFAULT_BETA_COMPANY_SETUP_PROFILE } from './betaCompanySetupProfile';
+
 export type CorrectiveActionOwnerInput = {
   correctiveActionOwnerDepartment?: string;
   correctionType?: string;
@@ -12,10 +14,11 @@ export type CorrectiveActionOwnerInput = {
   routerStepOperation?: string;
 };
 
-const ENGINEERING_CORRECTION_ORDER = 'Engineering Correction Order';
-const PURCHASING_CORRECTION_ORDER = 'Purchasing Correction Order';
-const SUPERVISOR_PRODUCTION_CORRECTION_ORDER = 'Supervisor / Production Correction Order';
-const QUALITY_CORRECTION_ORDER = 'Quality Correction Order';
+const ENGINEERING_CORRECTION_ORDER = DEFAULT_BETA_COMPANY_SETUP_PROFILE.correctionOrderBucketLabels.engineering;
+const PURCHASING_CORRECTION_ORDER = DEFAULT_BETA_COMPANY_SETUP_PROFILE.correctionOrderBucketLabels.purchasing;
+const SUPERVISOR_PRODUCTION_CORRECTION_ORDER =
+  DEFAULT_BETA_COMPANY_SETUP_PROFILE.correctionOrderBucketLabels.supervisorProduction;
+const QUALITY_CORRECTION_ORDER = DEFAULT_BETA_COMPANY_SETUP_PROFILE.correctionOrderBucketLabels.quality;
 
 const UNRESOLVED_OWNER_VALUES = new Set(['other', 'other / needs review', 'needs review', 'not confirmed']);
 
