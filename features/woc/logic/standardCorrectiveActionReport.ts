@@ -6,6 +6,11 @@ import {
   isIncorrectTimeRateIssue,
 } from './containmentLanguageGuard';
 import { removeUploadedRouterContextFromFinalText } from './finalOutputSanitizer';
+import {
+  alignActionSubjectWithResolvedOwner,
+  isUnresolvedCorrectiveActionOwner,
+  resolveCorrectiveActionOwnerDepartment,
+} from './correctiveActionOwnerResolver';
 
 export type StandardEvidenceItem = {
   id?: string;
@@ -58,7 +63,6 @@ export type StandardEvidenceRow = {
 const DEFAULT_SUBMITTED_BY = 'AI-CAS — Corrective Action System';
 const DEFAULT_DATE_CAPTURED = 'Pending final review date';
 const DEFAULT_PRIORITY = 'Standard review';
-const OTHER_VALUES = new Set(['other', 'other / needs review']);
 
 function normalize(value?: string) {
   return value?.trim() ?? '';
@@ -69,8 +73,7 @@ function firstFilled(...values: Array<string | undefined>) {
 }
 
 function isOtherOrBlank(value?: string) {
-  const normalized = normalize(value).toLowerCase();
-  return !normalized || OTHER_VALUES.has(normalized);
+  return isUnresolvedCorrectiveActionOwner(value);
 }
 
 function standardValue(value?: string) {
@@ -88,9 +91,7 @@ export function getOperatorStatement(input: Pick<StandardCorrectiveActionReportI
 }
 
 function getOwnerDepartment(input: StandardCorrectiveActionReportInput) {
-  return isOtherOrBlank(input.correctiveActionOwnerDepartment)
-    ? 'Manufacturing Engineering / Production'
-    : normalize(input.correctiveActionOwnerDepartment);
+  return resolveCorrectiveActionOwnerDepartment(input);
 }
 
 function getAffectedArea(input: StandardCorrectiveActionReportInput) {
@@ -161,16 +162,16 @@ export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionRep
 }
 
 export function buildAiCasRequiredAction(input: StandardCorrectiveActionReportInput) {
+  const owner = getOwnerDepartment(input);
   const structuredAction = firstFilled(
     getStructuredDraftText(input, 'correctiveActionRequired'),
     getStructuredDraftText(input, 'responsibilityByOperation'),
   );
-  if (structuredAction) return sanitizeFinalOutputText(input, structuredAction);
+  if (structuredAction) return sanitizeFinalOutputText(input, alignActionSubjectWithResolvedOwner(structuredAction, owner));
 
   const requestedAction = firstFilled(input.requiredCorrection, input.requestedEngineeringAction);
-  if (requestedAction) return sanitizeFinalOutputText(input, requestedAction);
+  if (requestedAction) return sanitizeFinalOutputText(input, alignActionSubjectWithResolvedOwner(requestedAction, owner));
 
-  const owner = getOwnerDepartment(input);
   const affectedArea = getAffectedProcess(input);
   const impact = getProductionImpact(input);
 

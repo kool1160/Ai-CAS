@@ -3,6 +3,7 @@ import type {
   AiCorrectiveActionDraftSectionKey,
   StructuredCorrectiveActionDraft,
 } from './aiCorrectiveActionDraftFoundation';
+import { resolveCorrectiveActionOwnerDepartment } from './correctiveActionOwnerResolver';
 
 export type ContainmentLanguageGuardInput = Pick<
   AiCorrectiveActionDraftInput,
@@ -38,7 +39,7 @@ function getAffectedProcess(input: ContainmentLanguageGuardInput) {
 }
 
 function getOwnerDepartment(input: ContainmentLanguageGuardInput) {
-  return firstFilled(input.correctiveActionOwnerDepartment, 'Manufacturing Engineering / Production');
+  return resolveCorrectiveActionOwnerDepartment(input);
 }
 
 export function containsStrongContainmentAction(text?: string) {
