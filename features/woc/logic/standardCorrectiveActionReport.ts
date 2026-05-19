@@ -138,6 +138,45 @@ function sanitizeFinalOutputText(input: StandardCorrectiveActionReportInput, tex
   });
 }
 
+
+function toSentenceCase(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+function normalizeOperatorWording(text: string) {
+  return text
+    .replace(/\bpph\b/gi, 'PPH')
+    .replace(/\bpcs\/?hr\b/gi, 'PPH')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildProfessionalIssueStatement(input: StandardCorrectiveActionReportInput) {
+  const operatorStatement = normalizeOperatorWording(getOperatorStatement(input));
+  if (!operatorStatement || operatorStatement === 'Operator issue statement not entered.') {
+    return 'The current issue requires confirmation from the operator statement before final review.';
+  }
+
+  const lowered = operatorStatement.toLowerCase();
+  const hasRateLanguage = /runtime|run rate|cycle\s*-?time|rate|pph|per hour/.test(lowered);
+  const targetRate = operatorStatement.match(/(\d+(?:\.\d+)?)\s*PPH/i);
+  const rateValues = [...operatorStatement.matchAll(/\b(\d+(?:\.\d+)?)\s*PPH\b/gi)].map((m) => m[1]);
+
+  if (hasRateLanguage && rateValues.length >= 2) {
+    const requested = rateValues[0];
+    const current = rateValues[1];
+    return `The current runtime expectation appears to be too high. The operator is requesting review of the standard from ${current} PPH to ${requested} PPH based on observed production conditions.`;
+  }
+
+  if (hasRateLanguage && targetRate) {
+    return `A runtime/rate mismatch has been reported. The operator is requesting verification of the production standard against observed output conditions${targetRate ? `, including review of the ${targetRate[1]} PPH reference` : ''}.`;
+  }
+
+  return `The operator reported a production issue that requires review and confirmation: ${toSentenceCase(operatorStatement)}.`;
+}
+
 function getStructuredDraftText(input: StandardCorrectiveActionReportInput, section: AiCorrectiveActionDraftSectionKey) {
   const draftText = getGeneratedSectionText(input, section, input.structuredDraft);
   return draftText ? sanitizeFinalOutputText(input, draftText) : '';
@@ -149,7 +188,12 @@ export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionRep
   }
 
   const structuredSummary = getStructuredDraftText(input, 'issueSummary');
-  if (structuredSummary) return sanitizeFinalOutputText(input, structuredSummary);
+  if (structuredSummary && structuredSummary.toLowerCase() !== getOperatorStatement(input).toLowerCase()) {
+    return sanitizeFinalOutputText(input, structuredSummary);
+  }
+
+  const professionalizedFromOperator = buildProfessionalIssueStatement(input);
+  if (professionalizedFromOperator) return sanitizeFinalOutputText(input, professionalizedFromOperator);
 
   const affectedArea = getAffectedProcess(input);
   const workOrder = normalize(input.workOrderNumber);
