@@ -61,6 +61,18 @@ export type StandardEvidenceRow = {
   notes: string;
 };
 
+const VISUAL_ISSUE_KEYWORDS = [
+  'scratch',
+  'dent',
+  'wrong part condition',
+  'missing feature',
+  'bad weld',
+  'surface defect',
+  'wrong material condition',
+  'damage',
+  'fit-up issue',
+];
+
 const DEFAULT_SUBMITTED_BY = 'AI-CAS — Corrective Action System';
 const DEFAULT_DATE_CAPTURED = 'Pending final review date';
 const DEFAULT_PRIORITY = 'Standard review';
@@ -182,6 +194,27 @@ function getStructuredDraftText(input: StandardCorrectiveActionReportInput, sect
   return draftText ? sanitizeFinalOutputText(input, draftText) : '';
 }
 
+function hasEvidenceAttachment(input: StandardCorrectiveActionReportInput) {
+  return Boolean((input.evidenceItems ?? []).some((item) => normalize(item.fileName) || normalize(item.caption)))
+    || /attached/i.test(normalize(input.photoEvidenceStatus));
+}
+
+function shouldIncludePhotoEvidenceSection(input: StandardCorrectiveActionReportInput) {
+  const issueContext = [
+    normalize(input.correctionType),
+    normalize(input.shortIssueDescription),
+    normalize(input.detailedIssueNotes),
+    normalize(input.issueDetails),
+  ].join(' ').toLowerCase();
+
+  const isVisualIssue = VISUAL_ISSUE_KEYWORDS.some((keyword) => issueContext.includes(keyword));
+  const includesRoutingDataIssue = /router|routing|work order|documentation|data/i.test(issueContext);
+
+  if (isVisualIssue) return hasEvidenceAttachment(input);
+  if (includesRoutingDataIssue) return hasEvidenceAttachment(input);
+  return false;
+}
+
 export function buildAiCasProfessionalSummary(input: StandardCorrectiveActionReportInput) {
   if (isIncorrectTimeRateIssue(input)) {
     return sanitizeFinalOutputText(input, buildTimeRateMismatchSummaryText(input));
@@ -265,6 +298,7 @@ export function buildStandardCorrectiveActionReportText(input: StandardCorrectiv
   const owner = getOwnerDepartment(input);
   const productionImpact = getProductionImpact(input);
   const evidenceRows = buildStandardEvidenceRows(input);
+  const includeEvidenceSection = shouldIncludePhotoEvidenceSection(input);
   const dateCaptured = standardValue(input.dateCaptured ?? DEFAULT_DATE_CAPTURED);
   const submittedBy = standardValue(input.submittedBy ?? DEFAULT_SUBMITTED_BY);
   const priority = normalize(input.priority) || DEFAULT_PRIORITY;
@@ -277,45 +311,70 @@ export function buildStandardCorrectiveActionReportText(input: StandardCorrectiv
     isIncorrectTimeRateIssue(input) ? buildMildTimeRateContainmentText(input) : '',
   );
 
-  const reportText = `# AI-CAS CORRECTIVE ACTION REPORT
+  const reportText = `AI-CAS | Corrective Action Sheet
 Corrective Action System | Capture. Confirm. Correct.
-Applied Intelligence
-Standardize to Optimize
 
-Purpose:
-Convert shop-floor issue capture into clear, professional corrective-action language for review, routing, and controlled documentation.
+Header: ${standardValue(input.partNumber)} | WO ${standardValue(input.workOrderNumber)} | ${standardValue(input.correctionType)}
 
-## 1. JOB / WORK ORDER INFORMATION
+## 1. METADATA BLOCK
 Work Order: ${standardValue(input.workOrderNumber)}
 Part Number: ${standardValue(input.partNumber)}
-${optionalReportLine('Customer / Job', input.customerOrJob)}${optionalReportLine('Quantity', firstFilled(input.quantityAffected, input.quantity))}Affected Department / Area: ${standardValue(getAffectedArea(input))}
-Affected Operation / Equipment: ${standardValue(getAffectedOperationEquipment(input))}
-Date Captured: ${dateCaptured}
-Submitted By: ${submittedBy}
+Revision: ${standardValue(input.routerStepOperation)}
+Customer: ${standardValue(input.customerOrJob)}
+Quantity: ${standardValue(firstFilled(input.quantityAffected, input.quantity))}
+Part Description: ${standardValue(input.affectedArea)}
+Affected Operation: ${standardValue(getAffectedOperationEquipment(input))}
+Previous Operation: ${standardValue(input.operationNumber)}
+Inspection / Quality Operation: ${standardValue(input.inspectionVerificationRequirement)}
+Reported By: ${submittedBy}
+Date: ${dateCaptured}
 Priority: ${priority}
 
-## 2. CONFIRMED ISSUE SUMMARY
-Operator / Shop-Floor Issue Statement:
+## 2. ISSUE SUMMARY
+Operator Statement:
 ${operatorStatement}
 
-AI-CAS Corrective Action Summary:
+Professional Summary:
 ${summary}
 
-## 3. EVIDENCE AND VERIFICATION
-${evidenceRows.map((row) => `${row.slot}\nType / Label: ${row.typeLabel}\nStatus: ${row.status}\nNotes: ${row.notes}`).join('\n\n')}
+## 3. CORRECTIVE ACTION REQUIREMENTS
+Requirement: ${requiredAction}
+Required Standard: Update router/work instruction clarity and verify operator understanding before release.
+Acceptance / Verification: ${firstFilled(getStructuredDraftText(input, 'inspectionVerificationRequirement'), input.inspectionVerificationRequirement, 'Owner and Quality verify correction outcome before release.')}
 
-## 4. REQUIRED CORRECTION / ACTION
-${requiredAction}
+## 4. CONTAINMENT ACTION
+${firstFilled(containmentCheck, 'Place affected work on hold, review impacted quantity, verify operation status, and notify responsible owner before release.')}
 
-Owner / Responsible Department: ${owner}
-Production Impact: ${productionImpact}
-${optionalReportLine('Containment / Immediate Check', containmentCheck)}${optionalReportLine('Inspection / Verification', firstFilled(getStructuredDraftText(input, 'inspectionVerificationRequirement'), input.inspectionVerificationRequirement))}${optionalReportLine('Standard Work / Prevention Update', firstFilled(getStructuredDraftText(input, 'standardWorkRequirement'), input.preventionStandardWorkUpdate))}
-## 5. REVIEW GATE
+## 5. RESPONSIBILITY MATRIX
+Role / Operation: ${owner} | ${standardValue(getAffectedOperationEquipment(input))}
+Responsibility: Review issue, apply correction, verify outcome, and document closeout.
+
+## 6. PASS / FAIL CONDITION
+PASS: Correction is implemented, verification is complete, and required approvals are recorded.
+FAIL: Any required correction, verification, or approval remains incomplete.
+
+${includeEvidenceSection ? `## 7. OPTIONAL PHOTO EVIDENCE
+${evidenceRows.map((row) => `${row.slot}\nType / Label: ${row.typeLabel}\nStatus: ${row.status}\nCaption / Notes: ${row.notes}`).join('\n\n')}
+
+` : ''}## 8. CORRECTIVE ACTION CLOSEOUT
+- Confirm root issue is addressed at source.
+- Confirm affected quantity disposition is complete.
+- Confirm standard work/router updates are complete when required.
+- Confirm recurrence prevention owner and follow-up date are assigned.
+
+## 9. RELEASE APPROVAL
+Welding / Production: ____________________
+Supervisor: ____________________
+Quality: ____________________
+Engineering / Purchasing (if applicable): ____________________
+
+Review Gate:
 Data Confirmed: ${dataConfirmed}
 Output Approved: ${outputApproved}
 Approved By: ${approvedBy}
 Date: ${dateCaptured}
-Rule: Draft first. Confirm accuracy. Then send/export/print.`;
+Rule: Draft first. Confirm accuracy. Then send/export/print.
+Production Impact: ${productionImpact}`;
 
   return sanitizeFinalOutputText(input, reportText);
 }

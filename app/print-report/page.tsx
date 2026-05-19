@@ -136,8 +136,8 @@ export default function PrintReportPage() {
           align-items: center;
           justify-content: space-between;
           border: 1px solid #111827;
-          background: #ffffff;
-          color: #000000;
+          background: #111827;
+          color: #ffffff;
           padding: 5px 8px;
           margin-bottom: 6px;
           font-size: 8.5px;
@@ -152,7 +152,7 @@ export default function PrintReportPage() {
           justify-content: space-between;
           gap: 12px;
           border: 1px solid #111827;
-          border-left: 6px solid #111827;
+          border-left: 1px solid #111827;
           padding: 6px 9px;
           margin-bottom: 7px;
           background: #ffffff;
@@ -172,7 +172,7 @@ export default function PrintReportPage() {
         }
 
         .kicker {
-          color: #374151;
+          color: #111827;
           font-size: 9px;
           font-weight: 700;
           letter-spacing: 0.07em;
@@ -233,10 +233,12 @@ export default function PrintReportPage() {
 
         .callout h2 {
           margin: 0 0 3px;
-          color: #111827;
+          background: #111827;
+          color: #ffffff;
           font-size: 10px;
           text-transform: uppercase;
           letter-spacing: 0.035em;
+          padding: 4px 6px;
         }
 
         .callout p {
@@ -247,9 +249,9 @@ export default function PrintReportPage() {
 
         .section-title {
           margin: 7px 0 4px;
-          border-bottom: 1px solid #111827;
-          padding-bottom: 3px;
-          color: #111827;
+          padding: 5px 6px;
+          background: #111827;
+          color: #ffffff;
           font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 0.035em;
@@ -379,7 +381,7 @@ export default function PrintReportPage() {
           <header className="header">
             <div className="header-title-block">
               <div className="kicker">Corrective Action System</div>
-              <h1>Corrective Action Report</h1>
+              <h1>Corrective Action Sheet</h1>
               <p className="subtitle">Powered by Applied Intelligence Framework · AI-CAS Controlled Corrective Action Document</p>
             </div>
             <img
