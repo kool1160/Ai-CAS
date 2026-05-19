@@ -2,6 +2,8 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import type { ActionFeedback, UploadedFileInfo } from '../types/wocSessionTypes';
 import { CAPTURE_CONTEXT_STORAGE_KEY, PHOTO_EVIDENCE_STORAGE_KEY } from '../logic/wocStorageKeys';
 
+const IMAGE_UPLOAD_ACCEPT = 'image/*';
+
 const evidenceLabelOptions = [
   'Correct condition',
   'Incorrect condition',
@@ -232,9 +234,9 @@ export function CaptureScreen({
 
         <div className="action-row">
           <label className="button primary" htmlFor="router-camera-input">Take Photo</label>
-          <input accept="image/*" capture="environment" hidden id="router-camera-input" onChange={handleFileChange} type="file" />
+          <input accept={IMAGE_UPLOAD_ACCEPT} capture="environment" hidden id="router-camera-input" onChange={handleFileChange} type="file" />
           <label className="button primary" htmlFor="router-upload-input">Upload Image</label>
-          <input accept="image/*" hidden id="router-upload-input" onChange={handleFileChange} type="file" />
+          <input accept={IMAGE_UPLOAD_ACCEPT} hidden id="router-upload-input" onChange={handleFileChange} type="file" />
           <button className="button primary full-width" type="button" disabled={!uploadedFile || !uploadedFile.isImage || isExtracting} onClick={onExtractData}>
             {isExtracting ? 'Extracting...' : 'Extract with AI Vision'}
           </button>
@@ -296,9 +298,9 @@ export function CaptureScreen({
         </div>
         <div className="action-row">
           <label className="button secondary" htmlFor="evidence-camera-input">Take Evidence Photo</label>
-          <input accept="image/*" capture="environment" hidden id="evidence-camera-input" onChange={handlePhotoEvidenceChange} type="file" />
+          <input accept={IMAGE_UPLOAD_ACCEPT} capture="environment" hidden id="evidence-camera-input" onChange={handlePhotoEvidenceChange} type="file" />
           <label className="button secondary" htmlFor="evidence-upload-input">Upload Evidence Photo</label>
-          <input accept="image/*" hidden id="evidence-upload-input" onChange={handlePhotoEvidenceChange} type="file" />
+          <input accept={IMAGE_UPLOAD_ACCEPT} hidden id="evidence-upload-input" onChange={handlePhotoEvidenceChange} type="file" />
           <button className="button secondary" type="button" disabled={!photoEvidence} onClick={clearPhotoEvidence}>Clear Evidence</button>
         </div>
         {photoEvidenceFeedback && <p className="field-help">{photoEvidenceFeedback}</p>}
