@@ -10,10 +10,11 @@ type CorrectiveActionPdfDocumentProps = {
 
 export type CorrectiveActionPdfLine = {
   text: string;
-  variant: 'title' | 'subtitle' | 'section' | 'label' | 'body' | 'gate' | 'footer';
+  variant: 'title' | 'subtitle' | 'section' | 'label' | 'body' | 'gate' | 'footer' | 'tableRow' | 'bodyBox' | 'spacer';
+  label?: string;
+  value?: string;
+  required?: boolean;
 };
-
-const MAX_TEXT_LINE_LENGTH = 92;
 
 function normalizeText(value: string) {
   return value
@@ -23,60 +24,51 @@ function normalizeText(value: string) {
     .trim();
 }
 
-function wrapText(value: string, maxLineLength = MAX_TEXT_LINE_LENGTH) {
-  const normalized = normalizeText(value);
-  if (!normalized) return [''];
-
-  return normalized.split('\n').flatMap((paragraph) => {
-    const words = paragraph.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    words.forEach((word) => {
-      const candidate = currentLine ? `${currentLine} ${word}` : word;
-
-      if (candidate.length <= maxLineLength) {
-        currentLine = candidate;
-        return;
-      }
-
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    });
-
-    if (currentLine) lines.push(currentLine);
-    return lines.length ? lines : [''];
-  });
-}
-
-function fieldLines(field: ControlledPdfTemplateField): CorrectiveActionPdfLine[] {
+function fieldLine(field: ControlledPdfTemplateField, section: ControlledPdfTemplateSection): CorrectiveActionPdfLine {
   const label = `${field.label}${field.required ? ' *' : ''}`;
-  const bodyLines = wrapText(field.value);
+  const value = normalizeText(field.value);
+  const fullWidthLayouts = new Set(['full-width-text', 'photo-evidence-grid']);
 
-  return [
-    { text: label, variant: 'label' },
-    ...bodyLines.map((text) => ({ text, variant: 'body' }) satisfies CorrectiveActionPdfLine),
-  ];
+  if (fullWidthLayouts.has(section.layoutHint)) {
+    return {
+      text: `${label}: ${value}`,
+      variant: 'bodyBox',
+      label,
+      value,
+      required: field.required,
+    };
+  }
+
+  return {
+    text: `${label}: ${value}`,
+    variant: 'tableRow',
+    label,
+    value,
+    required: field.required,
+  };
 }
 
 function sectionLines(section: ControlledPdfTemplateSection): CorrectiveActionPdfLine[] {
   return [
     { text: section.title, variant: 'section' },
-    ...section.fields.flatMap(fieldLines),
+    ...section.fields.map((field) => fieldLine(field, section)),
+    { text: '', variant: 'spacer' },
   ];
 }
 
 export function CorrectiveActionPdfDocument({ template }: CorrectiveActionPdfDocumentProps): CorrectiveActionPdfLine[] {
+  const hasEvidenceSection = template.sections.some((section) => section.sectionId === 'evidence-and-verification');
+
   return [
-    { text: template.templateName, variant: 'title' },
+    { text: 'AI-CAS Corrective Action Sheet', variant: 'title' },
     { text: template.modelSource, variant: 'subtitle' },
     { text: `Template: ${template.templateVersion} - Status: ${template.status}`, variant: 'subtitle' },
     { text: `Review gate: ${template.releaseGate}`, variant: 'gate' },
+    { text: '', variant: 'spacer' },
     ...template.sections.flatMap(sectionLines),
-    {
-      text: 'Text-only evidence metadata. No photo images are embedded in this PDF.',
-      variant: 'footer',
-    },
+    ...(hasEvidenceSection
+      ? [{ text: 'Evidence metadata only. Photo images are not embedded in this PDF.', variant: 'footer' } satisfies CorrectiveActionPdfLine]
+      : []),
     ...(template.layoutNotes.length
       ? [{ text: `Appendix note: ${template.layoutNotes.join(' ')}`, variant: 'footer' } satisfies CorrectiveActionPdfLine]
       : []),

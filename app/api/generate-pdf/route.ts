@@ -16,12 +16,14 @@ type PdfPage = CorrectiveActionPdfLine[];
 
 const PAGE_HEIGHT = 792;
 const PAGE_WIDTH = 612;
-const PAGE_MARGIN_X = 48;
+const PAGE_MARGIN_X = 40;
 const PAGE_START_Y = 744;
 const PAGE_BOTTOM_Y = 48;
-const LINE_HEIGHT = 14;
-const TITLE_LINE_HEIGHT = 22;
-const SECTION_LINE_HEIGHT = 18;
+const LINE_HEIGHT = 16;
+const TITLE_LINE_HEIGHT = 28;
+const SECTION_LINE_HEIGHT = 24;
+const TABLE_ROW_HEIGHT = 28;
+const BODY_BOX_HEIGHT = 42;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -75,6 +77,9 @@ function getHumanConfirmation(body: GeneratePdfRequestBody) {
 function lineHeight(line: CorrectiveActionPdfLine) {
   if (line.variant === 'title') return TITLE_LINE_HEIGHT;
   if (line.variant === 'section') return SECTION_LINE_HEIGHT;
+  if (line.variant === 'tableRow') return TABLE_ROW_HEIGHT;
+  if (line.variant === 'bodyBox') return BODY_BOX_HEIGHT;
+  if (line.variant === 'spacer') return 10;
   return LINE_HEIGHT;
 }
 
@@ -108,39 +113,64 @@ function escapePdfText(value: string) {
     .replace(/[^\x09\x0a\x0d\x20-\x7e]/g, ' ');
 }
 
-function fontSize(line: CorrectiveActionPdfLine) {
-  if (line.variant === 'title') return 18;
-  if (line.variant === 'section') return 13;
-  if (line.variant === 'label') return 10;
-  if (line.variant === 'footer' || line.variant === 'subtitle') return 8;
-  return 9;
-}
-
-function fontName(line: CorrectiveActionPdfLine) {
-  if (line.variant === 'title' || line.variant === 'section' || line.variant === 'label' || line.variant === 'gate') {
-    return 'F2';
-  }
-
-  return 'F1';
+function renderText(x: number, y: number, size: number, font: 'F1' | 'F2', text: string) {
+  return [
+    'BT',
+    `/${font} ${size} Tf`,
+    `${x} ${y} Td`,
+    `(${escapePdfText(text)}) Tj`,
+    'ET',
+  ].join('\n');
 }
 
 function renderPageContent(page: PdfPage, pageIndex: number, pageCount: number) {
   let cursorY = PAGE_START_Y;
-  const operations = [
-    'BT',
-    `/F1 8 Tf`,
-    `${PAGE_MARGIN_X} 28 Td`,
-    `(AI-CAS Corrective Action Report - Page ${pageIndex + 1} of ${pageCount}) Tj`,
-    'ET',
-  ];
+  const operations: string[] = [];
+
+  operations.push(renderText(PAGE_MARGIN_X, 28, 8, 'F1', `AI-CAS Corrective Action Sheet - Page ${pageIndex + 1} of ${pageCount}`));
 
   page.forEach((line) => {
-    const size = fontSize(line);
-    operations.push('BT');
-    operations.push(`/${fontName(line)} ${size} Tf`);
-    operations.push(`${PAGE_MARGIN_X} ${cursorY} Td`);
-    operations.push(`(${escapePdfText(line.text)}) Tj`);
-    operations.push('ET');
+    if (line.variant === 'spacer') {
+      cursorY -= lineHeight(line);
+      return;
+    }
+
+    if (line.variant === 'title') {
+      operations.push(renderText(PAGE_MARGIN_X, cursorY, 20, 'F2', line.text));
+      cursorY -= lineHeight(line);
+      return;
+    }
+
+    if (line.variant === 'section') {
+      operations.push(`0 0 0 rg`);
+      operations.push(`${PAGE_MARGIN_X} ${cursorY - 16} ${PAGE_WIDTH - (PAGE_MARGIN_X * 2)} 20 re f`);
+      operations.push(`1 1 1 rg`);
+      operations.push(renderText(PAGE_MARGIN_X + 8, cursorY - 11, 11, 'F2', line.text));
+      operations.push(`0 0 0 rg`);
+      cursorY -= lineHeight(line);
+      return;
+    }
+
+    if (line.variant === 'tableRow') {
+      operations.push(`${PAGE_MARGIN_X} ${cursorY - 24} ${PAGE_WIDTH - (PAGE_MARGIN_X * 2)} 24 re S`);
+      operations.push(`${PAGE_MARGIN_X + 170} ${cursorY - 24} 0 24 re S`);
+
+      operations.push(renderText(PAGE_MARGIN_X + 6, cursorY - 16, 9, 'F2', line.label ?? '')); 
+      operations.push(renderText(PAGE_MARGIN_X + 180, cursorY - 16, 9, 'F1', line.value ?? ''));
+
+      cursorY -= lineHeight(line);
+      return;
+    }
+
+    if (line.variant === 'bodyBox') {
+      operations.push(`${PAGE_MARGIN_X} ${cursorY - 38} ${PAGE_WIDTH - (PAGE_MARGIN_X * 2)} 38 re S`);
+      operations.push(renderText(PAGE_MARGIN_X + 6, cursorY - 14, 9, 'F2', line.label ?? ''));
+      operations.push(renderText(PAGE_MARGIN_X + 6, cursorY - 28, 9, 'F1', line.value ?? ''));
+      cursorY -= lineHeight(line);
+      return;
+    }
+
+    operations.push(renderText(PAGE_MARGIN_X, cursorY, 9, line.variant === 'label' || line.variant === 'gate' ? 'F2' : 'F1', line.text));
     cursorY -= lineHeight(line);
   });
 
@@ -229,7 +259,7 @@ export async function POST(request: Request) {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': 'inline; filename="ai-cas-corrective-action-report.pdf"',
+      'Content-Disposition': 'inline; filename="ai-cas-corrective-action-sheet.pdf"',
       'Cache-Control': 'no-store',
     },
   });
