@@ -186,7 +186,6 @@ export function buildControlledCorrectiveActionPdfTemplate(
           { label: 'Work Order', value: valueOrNotConfirmed(data.workOrderNumber), required: true },
           { label: 'Part Number', value: valueOrNotConfirmed(data.partNumber), required: true },
           ...optionalField('Part Description', data.partDescription),
-          ...optionalField('Revision', data.routerStepOperation),
           ...optionalField('Customer / Job', data.customerOrJob),
           ...optionalField('Quantity', firstFilled(data.quantityAffected, data.quantity)),
           { label: 'Affected Department / Area', value: valueOrNotConfirmed(getAffectedArea(data)), required: true },
@@ -215,7 +214,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
         layoutHint: 'two-column-table',
         fields: [
           { label: 'Requirement', value: buildAiCasRequiredAction(data), required: true },
-          { label: 'Required Standard', value: 'Update router/work instruction clarity and verify operator understanding before release.', required: true },
+          { label: 'Required Standard', value: firstFilled(getGeneratedSectionText(data, 'standardWorkRequirement', data.structuredDraft), data.preventionStandardWorkUpdate, 'Update router/work instruction clarity and verify operator understanding before release.'), required: true },
           { label: 'Acceptance / Verification', value: firstFilled(getGeneratedSectionText(data, 'inspectionVerificationRequirement', data.structuredDraft), data.inspectionVerificationRequirement, 'Owner and Quality verify correction outcome before release.'), required: true },
         ],
       },
@@ -252,7 +251,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
         fields: [
           { label: 'Checklist 1', value: 'Confirm root issue is addressed at source.', required: true },
           { label: 'Checklist 2', value: 'Confirm affected quantity disposition is complete.', required: true },
-          { label: 'Checklist 3', value: 'Confirm standard work/router updates are complete when required.', required: true },
+          { label: 'Checklist 3', value: firstFilled(getGeneratedSectionText(data, 'standardWorkRequirement', data.structuredDraft), data.preventionStandardWorkUpdate, 'Confirm standard work/router updates are complete when required.'), required: true },
           { label: 'Checklist 4', value: 'Confirm recurrence prevention owner and follow-up date are assigned.', required: true },
         ],
       },
