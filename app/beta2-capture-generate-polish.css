@@ -1,0 +1,256 @@
+/*
+  AI-CAS Beta 2 Capture + Generate Visual Hierarchy Polish
+  Visual-only spacing and readability pass.
+  Preserves workflow, AI Vision extraction, manual fallback, correction context requirements, gates, PDF/email behavior, and generated content.
+*/
+
+/* Capture */
+.stack:has(> .screen-title h1:first-child:nth-last-child(n)) .screen-title {
+  scroll-margin-top: 24px;
+}
+
+.stack .screen-title h1:where(:not(:empty)) {
+  text-wrap: balance;
+}
+
+.stack:has(.card .step-pill) > .screen-title {
+  margin-bottom: 20px;
+}
+
+/* Scope polish to Capture screen by stable screen title + existing cards. */
+.stack:has(.card label[for="router-camera-input"]) {
+  gap: 18px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) > .card {
+  border-radius: 28px;
+  padding: 20px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) > .card:first-of-type {
+  border-color: rgba(31, 140, 255, 0.28);
+  background:
+    linear-gradient(180deg, rgba(31, 140, 255, 0.09), rgba(255, 255, 255, 0.018)),
+    var(--panel);
+}
+
+.stack:has(.card label[for="router-camera-input"]) .card-header {
+  margin-bottom: 16px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) .card-header h2 {
+  font-size: 21px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) .action-row {
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) .button.primary {
+  min-height: 56px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) .button.secondary {
+  min-height: 50px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) textarea {
+  min-height: 132px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) details.card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.046), rgba(255, 255, 255, 0.016)),
+    rgba(8, 17, 29, 0.88);
+}
+
+.stack:has(.card label[for="router-camera-input"]) details.card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.stack:has(.card label[for="router-camera-input"]) details.card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.stack:has(.card label[for="router-camera-input"]) details.card > summary strong {
+  display: block;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.stack:has(.card label[for="router-camera-input"]) details.card > summary::after {
+  content: "Optional";
+  display: inline-flex;
+  margin-top: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stack:has(.card label[for="router-camera-input"]) details.card[open] > summary::after {
+  content: "Optional tools open";
+}
+
+.stack:has(.card label[for="router-camera-input"]) .upload-preview {
+  max-height: 250px;
+  margin-top: 4px;
+}
+
+/* Generate / Correction Context */
+.stack:has(textarea[placeholder^="Example: Welding router says"]) {
+  gap: 18px;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) > .card {
+  border-radius: 28px;
+  padding: 20px;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) > .card:nth-of-type(2) {
+  border-color: rgba(31, 140, 255, 0.28);
+  background:
+    linear-gradient(180deg, rgba(31, 140, 255, 0.085), rgba(255, 255, 255, 0.018)),
+    var(--panel);
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .placeholder-list {
+  gap: 12px;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .placeholder-item {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) textarea[placeholder^="Example: Welding router says"] {
+  min-height: 210px;
+  border-color: rgba(88, 170, 255, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.038)),
+    rgba(0, 0, 0, 0.08);
+  line-height: 1.55;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .form-grid {
+  gap: 16px;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .placeholder-item:has(.form-grid) {
+  border-color: rgba(31, 140, 255, 0.19);
+  background:
+    linear-gradient(180deg, rgba(31, 140, 255, 0.06), rgba(255, 255, 255, 0.028)),
+    rgba(255, 255, 255, 0.03);
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .action-row {
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .button.primary.full-width {
+  min-height: 58px;
+  border: 1px solid rgba(88, 170, 255, 0.44);
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) details.card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.046), rgba(255, 255, 255, 0.016)),
+    rgba(8, 17, 29, 0.88);
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) details.card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) details.card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) details.card > summary strong {
+  display: block;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) details.card > summary::after {
+  content: "Advanced optional";
+  display: inline-flex;
+  margin-top: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) details.card[open] > summary::after {
+  content: "Advanced tools open";
+}
+
+@media (max-width: 767px) {
+  .stack:has(.card label[for="router-camera-input"]),
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) {
+    gap: 16px;
+  }
+
+  .stack:has(.card label[for="router-camera-input"]) > .card,
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) > .card {
+    border-radius: 24px;
+    padding: 17px;
+  }
+
+  .stack:has(.card label[for="router-camera-input"]) .action-row,
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) .action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .stack:has(.card label[for="router-camera-input"]) .button,
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) .button {
+    width: 100%;
+  }
+
+  .stack:has(.card label[for="router-camera-input"]) .button.primary,
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) .button.primary {
+    min-height: 56px;
+  }
+
+  .stack:has(.card label[for="router-camera-input"]) .button.secondary,
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) .button.secondary {
+    min-height: 50px;
+  }
+
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) textarea[placeholder^="Example: Welding router says"] {
+    min-height: 190px;
+  }
+
+  .stack:has(.card label[for="router-camera-input"]) .upload-preview {
+    max-height: 230px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .stack:has(.card label[for="router-camera-input"]),
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) {
+    gap: 22px;
+  }
+
+  .stack:has(.card label[for="router-camera-input"]) > .card:first-of-type,
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) > .card:nth-of-type(2) {
+    align-self: start;
+  }
+}
