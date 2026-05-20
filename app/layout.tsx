@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './beta2-button-hierarchy.css';
 import './v2-more-admin-layout.css';
 import './v2-tablet-polish.css';
 
