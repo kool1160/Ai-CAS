@@ -1,0 +1,273 @@
+/*
+  AI-CAS Beta 2 Review / Send Visual Hierarchy Polish
+  Visual-only spacing, hierarchy, and readability pass.
+  Preserves workflow, gates, PDF/email behavior, evidence behavior, and generated content.
+*/
+
+.review-panel-screen {
+  gap: 18px;
+}
+
+.review-panel-screen > .screen-title {
+  margin-bottom: 20px;
+}
+
+.review-panel-screen > .screen-title h1 {
+  letter-spacing: -0.045em;
+}
+
+.review-panel-screen > .card {
+  border-radius: 28px;
+  padding: 20px;
+}
+
+.review-panel-screen .card-header {
+  margin-bottom: 16px;
+}
+
+.review-panel-screen .card-header h2 {
+  font-size: 21px;
+  line-height: 1.05;
+}
+
+.review-panel-screen .card-header p {
+  max-width: 62ch;
+}
+
+.review-panel-screen .placeholder-list {
+  gap: 12px;
+}
+
+.review-panel-screen .placeholder-item {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.review-report-panel {
+  border-color: rgba(31, 140, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(31, 140, 255, 0.09), rgba(255, 255, 255, 0.018)),
+    var(--panel);
+}
+
+.review-report-panel .preview-box {
+  min-height: 220px;
+  border-style: solid;
+  border-color: rgba(88, 170, 255, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.032)),
+    rgba(0, 0, 0, 0.1);
+  color: var(--muted-strong);
+  font-size: 14px;
+  line-height: 1.62;
+  padding: 18px;
+}
+
+.review-photo-evidence-panel {
+  border-color: rgba(53, 208, 127, 0.18);
+}
+
+.review-photo-evidence-panel .placeholder-list {
+  gap: 14px;
+}
+
+.review-photo-evidence-panel .upload-preview {
+  max-height: 240px;
+}
+
+.review-action-panel {
+  border-color: rgba(53, 208, 127, 0.26);
+  background:
+    linear-gradient(180deg, rgba(53, 208, 127, 0.075), rgba(255, 255, 255, 0.018)),
+    var(--panel);
+}
+
+.review-action-panel label:has(input[type="checkbox"]) {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  border: 1px solid rgba(53, 208, 127, 0.24);
+  border-radius: 18px;
+  background: rgba(53, 208, 127, 0.06);
+  padding: 14px 15px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.review-action-panel label:has(input[type="checkbox"]:checked) {
+  border-color: rgba(53, 208, 127, 0.46);
+  background: rgba(53, 208, 127, 0.105);
+  box-shadow: 0 0 28px rgba(53, 208, 127, 0.1);
+}
+
+.review-action-panel .action-row {
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.review-action-panel .action-row:first-of-type {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.032);
+  padding: 12px;
+}
+
+.review-action-panel .action-row:last-of-type {
+  border: 1px solid rgba(31, 140, 255, 0.22);
+  border-radius: 22px;
+  background: rgba(31, 140, 255, 0.065);
+  padding: 12px;
+}
+
+.review-action-panel .field-help {
+  margin-top: 12px;
+  border-left: 3px solid rgba(88, 170, 255, 0.34);
+  padding: 9px 0 9px 12px;
+  color: var(--muted-strong);
+}
+
+.review-action-panel .field-help:empty {
+  display: none;
+}
+
+.review-action-panel .button,
+.review-report-panel .button,
+.review-photo-evidence-panel .button {
+  min-height: 52px;
+}
+
+.review-action-panel .button.primary,
+.review-action-panel .button.danger:not(:disabled) {
+  min-height: 58px;
+}
+
+.review-panel-screen details.card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.046), rgba(255, 255, 255, 0.016)),
+    rgba(8, 17, 29, 0.88);
+}
+
+.review-panel-screen details.card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.review-panel-screen details.card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-panel-screen details.card > summary strong {
+  display: block;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.review-panel-screen details.card > summary::after {
+  content: "Open tools";
+  display: inline-flex;
+  margin-top: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.review-panel-screen details.card[open] > summary::after {
+  content: "Tools open";
+}
+
+.review-panel-screen details.card[open] {
+  padding-bottom: 22px;
+}
+
+.review-panel-screen details.card .preview-box {
+  margin-top: 10px;
+}
+
+.review-panel-screen .review-badge-row {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.review-panel-screen .field-status.confirmed {
+  border-color: rgba(53, 208, 127, 0.44);
+  background: rgba(53, 208, 127, 0.115);
+}
+
+.review-panel-screen .step-pill {
+  border-color: rgba(88, 170, 255, 0.26);
+  background: rgba(31, 140, 255, 0.07);
+  color: var(--blue-strong);
+}
+
+@media (max-width: 767px) {
+  .review-panel-screen {
+    gap: 16px;
+  }
+
+  .review-panel-screen > .card {
+    border-radius: 24px;
+    padding: 17px;
+  }
+
+  .review-report-panel .preview-box,
+  .record-detail-panel .preview-box {
+    max-height: none;
+    min-height: 190px;
+    font-size: 13px;
+    line-height: 1.58;
+    padding: 15px;
+  }
+
+  .review-action-panel label:has(input[type="checkbox"]) {
+    min-height: 58px;
+    padding: 15px;
+  }
+
+  .review-action-panel .action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .review-action-panel .button,
+  .review-report-panel .button,
+  .review-photo-evidence-panel .button {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .review-action-panel .button.primary,
+  .review-action-panel .button.danger:not(:disabled) {
+    min-height: 58px;
+  }
+
+  .review-panel-screen .placeholder-item {
+    padding: 13px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .review-panel-screen {
+    gap: 22px;
+  }
+
+  .review-report-panel {
+    grid-row: span 2;
+  }
+
+  .review-action-panel {
+    align-self: start;
+  }
+
+  .review-action-panel .button.secondary {
+    flex: 1 1 calc(50% - 8px);
+  }
+}
