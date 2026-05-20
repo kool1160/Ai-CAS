@@ -160,35 +160,33 @@ export function buildControlledCorrectiveActionPdfTemplate(
     isIncorrectTimeRateIssue(data) ? buildMildTimeRateContainmentText(data) : '',
   );
 
+  const hasUsefulEvidence = evidenceRows.some((row) => {
+    const status = row.status.trim().toLowerCase();
+    const notes = row.notes.trim().toLowerCase();
+    return !status.includes('no evidence attached')
+      && !notes.includes('no photo images are embedded')
+      && !notes.includes('review-step evidence metadata captured');
+  });
+
   const template: ControlledCorrectiveActionPdfTemplate = {
-    templateName: 'AI-CAS CORRECTIVE ACTION REPORT',
-    templateVersion: 'V8-M2B-standard-report',
+    templateName: 'AI-CAS Corrective Action Sheet',
+    templateVersion: 'V8-B1-M8B-corrective-action-sheet',
     modelSource: 'Corrective Action System | Capture. Confirm. Correct. | Applied Intelligence | Standardize to Optimize',
     status: humanConfirmed ? 'locked-until-controlled-release' : 'foundation-only',
     releaseGate: 'Draft first. Confirm accuracy. Then send/export/print.',
-    layoutNotes: data.evidenceItems?.length
-      ? ['Optional appendix contains evidence metadata only. Photo images are not embedded in this PDF.']
+    layoutNotes: hasUsefulEvidence
+      ? ['Evidence metadata is included only when useful evidence exists. Photo images are not embedded in this PDF.']
       : [],
     sections: [
       {
-        sectionId: 'purpose',
-        title: 'Purpose',
-        layoutHint: 'header',
-        fields: [
-          {
-            label: 'Purpose',
-            value: 'Convert shop-floor issue capture into clear, professional corrective-action language for review, routing, and controlled documentation.',
-            required: true,
-          },
-        ],
-      },
-      {
-        sectionId: 'job-work-order-information',
-        title: '1. JOB / WORK ORDER INFORMATION',
+        sectionId: 'metadata-block',
+        title: 'METADATA BLOCK',
         layoutHint: 'two-column-table',
         fields: [
           { label: 'Work Order', value: valueOrNotConfirmed(data.workOrderNumber), required: true },
           { label: 'Part Number', value: valueOrNotConfirmed(data.partNumber), required: true },
+          ...optionalField('Part Description', data.partDescription),
+          ...optionalField('Revision', data.routerStepOperation),
           ...optionalField('Customer / Job', data.customerOrJob),
           ...optionalField('Quantity', firstFilled(data.quantityAffected, data.quantity)),
           { label: 'Affected Department / Area', value: valueOrNotConfirmed(getAffectedArea(data)), required: true },
@@ -199,8 +197,8 @@ export function buildControlledCorrectiveActionPdfTemplate(
         ],
       },
       {
-        sectionId: 'confirmed-issue-summary',
-        title: '2. CONFIRMED ISSUE SUMMARY',
+        sectionId: 'issue-summary',
+        title: 'ISSUE SUMMARY',
         layoutHint: 'full-width-text',
         fields: [
           {
@@ -208,35 +206,65 @@ export function buildControlledCorrectiveActionPdfTemplate(
             value: buildAiCasProfessionalSummary(data),
             required: true,
           },
-          ...optionalField('Original Operator Note', getOriginalOperatorNote(data)),
+          ...optionalField('Original Operator Note (source reference)', getOriginalOperatorNote(data)),
         ],
       },
       {
-        sectionId: 'evidence-and-verification',
-        title: '3. EVIDENCE AND VERIFICATION',
-        layoutHint: 'photo-evidence-grid',
-        fields: evidenceRows.map((row) => ({
-          label: row.slot,
-          value: `Type / Label: ${row.typeLabel}\nStatus: ${row.status}\nNotes: ${row.notes}`,
-          required: false,
-        })),
+        sectionId: 'corrective-action-requirements',
+        title: 'CORRECTIVE ACTION REQUIREMENTS',
+        layoutHint: 'two-column-table',
+        fields: [
+          { label: 'Requirement', value: buildAiCasRequiredAction(data), required: true },
+          { label: 'Required Standard', value: 'Update router/work instruction clarity and verify operator understanding before release.', required: true },
+          { label: 'Acceptance / Verification', value: firstFilled(getGeneratedSectionText(data, 'inspectionVerificationRequirement', data.structuredDraft), data.inspectionVerificationRequirement, 'Owner and Quality verify correction outcome before release.'), required: true },
+        ],
       },
       {
-        sectionId: 'required-correction-action',
-        title: '4. REQUIRED CORRECTION / ACTION',
+        sectionId: 'containment-action',
+        title: 'CONTAINMENT ACTION',
         layoutHint: 'full-width-text',
         fields: [
-          { label: 'AI-Written Corrective Action', value: buildAiCasRequiredAction(data), required: true },
-          ...optionalField('Containment / Immediate Check', containmentCheck),
-          ...optionalField('Inspection / Verification', firstFilled(getGeneratedSectionText(data, 'inspectionVerificationRequirement', data.structuredDraft), data.inspectionVerificationRequirement)),
-          ...optionalField('Standard Work / Prevention Update', firstFilled(getGeneratedSectionText(data, 'standardWorkRequirement', data.structuredDraft), data.preventionStandardWorkUpdate)),
+          { label: 'Containment', value: firstFilled(containmentCheck, 'Place affected work on hold, review impacted quantity, verify operation status, and notify responsible owner before release.'), required: true },
         ],
       },
       {
-        sectionId: 'review-gate',
-        title: '5. REVIEW GATE',
+        sectionId: 'responsibility-matrix',
+        title: 'RESPONSIBILITY MATRIX',
+        layoutHint: 'two-column-table',
+        fields: [
+          { label: 'Role / Operation', value: `${valueOrNotConfirmed(data.correctiveActionOwnerDepartment)} | ${valueOrNotConfirmed(getAffectedOperationEquipment(data))}`, required: true },
+          { label: 'Responsibility', value: 'Review issue, apply correction, verify outcome, and document closeout.', required: true },
+        ],
+      },
+      {
+        sectionId: 'pass-fail-condition',
+        title: 'PASS / FAIL CONDITION',
+        layoutHint: 'full-width-text',
+        fields: [
+          { label: 'PASS', value: 'Correction is implemented, verification is complete, and required approvals are recorded.', required: true },
+          { label: 'FAIL', value: 'Any required correction, verification, or approval remains incomplete.', required: true },
+        ],
+      },
+      {
+        sectionId: 'corrective-action-closeout',
+        title: 'CORRECTIVE ACTION CLOSEOUT CHECKLIST',
+        layoutHint: 'full-width-text',
+        fields: [
+          { label: 'Checklist 1', value: 'Confirm root issue is addressed at source.', required: true },
+          { label: 'Checklist 2', value: 'Confirm affected quantity disposition is complete.', required: true },
+          { label: 'Checklist 3', value: 'Confirm standard work/router updates are complete when required.', required: true },
+          { label: 'Checklist 4', value: 'Confirm recurrence prevention owner and follow-up date are assigned.', required: true },
+        ],
+      },
+      {
+        sectionId: 'release-approval-signoff',
+        title: 'RELEASE APPROVAL / SIGNOFF',
         layoutHint: 'approval-status',
         fields: [
+          { label: 'Welding / Production', value: '____________________', required: true },
+          { label: 'Supervisor', value: '____________________', required: true },
+          { label: 'Quality', value: '____________________', required: true },
+          { label: 'Engineering / Purchasing (if applicable)', value: '____________________', required: false },
           { label: 'Data Confirmed', value: reviewGateStatus, required: true },
           { label: 'Output Approved', value: humanConfirmed ? 'Approved for controlled PDF/email action.' : 'Pending final human review.', required: true },
           { label: 'Approved By', value: humanConfirmed ? submittedBy : 'Pending human approval', required: true },
@@ -244,6 +272,20 @@ export function buildControlledCorrectiveActionPdfTemplate(
           { label: 'Rule', value: 'Draft first. Confirm accuracy. Then send/export/print.', required: true },
         ],
       },
+      ...(hasUsefulEvidence
+        ? [{
+          sectionId: 'evidence-and-verification',
+          title: 'EVIDENCE',
+          layoutHint: 'photo-evidence-grid' as const,
+          fields: evidenceRows.map((row) => ({
+            label: row.slot,
+            value: `Type / Label: ${row.typeLabel}
+Status: ${row.status}
+Notes: ${row.notes}`,
+            required: false,
+          })),
+        }]
+        : []),
     ],
   };
 
