@@ -1,0 +1,86 @@
+/*
+  AI-CAS Beta 2 Button Hierarchy Foundation
+  Visual-only overrides based on docs/beta-2/B2-M2_DESIGN_TOKENS_TYPE_SCALE_FOUNDATION.md.
+  This file keeps controlled send/release actions visually primary while reserving red danger styling for destructive actions.
+*/
+
+:root {
+  --button-primary-bg: linear-gradient(135deg, #2a96ff, #0b5bc5);
+  --button-primary-shadow: 0 16px 36px rgba(31, 140, 255, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --button-secondary-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+  --button-danger-bg: linear-gradient(135deg, var(--red-strong), #b91f1b);
+}
+
+.button {
+  min-height: 49px;
+}
+
+.button.primary,
+.button.success,
+.review-action-panel .button.danger:not(:disabled),
+.draft-detail-panel .button.danger:not(:disabled) {
+  min-height: 56px;
+}
+
+.button.primary,
+.review-action-panel .button.danger:not(:disabled),
+.draft-detail-panel .button.danger:not(:disabled) {
+  background: var(--button-primary-bg);
+  box-shadow: var(--button-primary-shadow);
+  color: #ffffff;
+}
+
+.button.secondary {
+  border: 1px solid var(--border-strong);
+  background: var(--button-secondary-bg);
+  color: #ffffff;
+}
+
+.button.danger {
+  background: var(--button-danger-bg);
+  box-shadow: 0 16px 36px rgba(229, 57, 53, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/*
+  Controlled send/release actions are primary actions, not destructive actions.
+  Existing TSX class names remain untouched for this small visual-only milestone.
+*/
+.review-action-panel .button.danger:not(:disabled),
+.draft-detail-panel .button.danger:not(:disabled) {
+  border: 1px solid rgba(88, 170, 255, 0.54);
+}
+
+/* Keep disabled legacy/release-blocked controls muted instead of visually alarming. */
+.review-action-panel .button.danger:disabled,
+.draft-detail-panel .button.danger:disabled {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  color: var(--muted-strong);
+}
+
+/* Preserve true destructive styling for reset, remove, and clear actions outside controlled send panels. */
+.more-admin-screen .button.danger,
+.history-local-records-panel .button.danger,
+.review-photo-evidence-panel .button.danger,
+.placeholder-item .button.danger {
+  background: var(--button-danger-bg);
+  box-shadow: 0 16px 36px rgba(229, 57, 53, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .button.primary,
+  .button.success,
+  .review-action-panel .button.danger:not(:disabled),
+  .draft-detail-panel .button.danger:not(:disabled) {
+    min-height: 56px;
+    padding-block: 0;
+  }
+
+  .button.secondary,
+  .button.danger {
+    min-height: 48px;
+  }
+}
