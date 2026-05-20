@@ -103,6 +103,10 @@ export function getOperatorStatement(input: Pick<StandardCorrectiveActionReportI
   return firstFilled(input.shortIssueDescription, 'Operator issue statement not entered.');
 }
 
+export function getOriginalOperatorNote(input: Pick<StandardCorrectiveActionReportInput, 'shortIssueDescription'>) {
+  return normalize(input.shortIssueDescription);
+}
+
 function getOwnerDepartment(input: StandardCorrectiveActionReportInput) {
   return resolveCorrectiveActionOwnerDepartment(input);
 }
@@ -292,7 +296,7 @@ export function buildStandardEvidenceRows(input: StandardCorrectiveActionReportI
 }
 
 export function buildStandardCorrectiveActionReportText(input: StandardCorrectiveActionReportInput) {
-  const operatorStatement = getOperatorStatement(input);
+  const operatorStatement = getOriginalOperatorNote(input);
   const summary = buildAiCasProfessionalSummary(input);
   const requiredAction = buildAiCasRequiredAction(input);
   const owner = getOwnerDepartment(input);
@@ -331,12 +335,10 @@ Date: ${dateCaptured}
 Priority: ${priority}
 
 ## 2. ISSUE SUMMARY
-Operator Statement:
-${operatorStatement}
-
-Professional Summary:
+Professional Issue Summary:
 ${summary}
 
+${operatorStatement ? `Original Operator Note (source reference):\n${operatorStatement}\n\n` : ''}
 ## 3. CORRECTIVE ACTION REQUIREMENTS
 Requirement: ${requiredAction}
 Required Standard: Update router/work instruction clarity and verify operator understanding before release.

@@ -9,7 +9,7 @@ import {
   buildAiCasProfessionalSummary,
   buildAiCasRequiredAction,
   buildStandardEvidenceRows,
-  getOperatorStatement,
+  getOriginalOperatorNote,
   type StandardEvidenceItem,
 } from './standardCorrectiveActionReport';
 
@@ -204,15 +204,11 @@ export function buildControlledCorrectiveActionPdfTemplate(
         layoutHint: 'full-width-text',
         fields: [
           {
-            label: 'Operator / Shop-Floor Issue Statement',
-            value: getOperatorStatement(data),
-            required: true,
-          },
-          {
-            label: 'AI-CAS Corrective Action Summary',
+            label: 'Professional Issue Summary',
             value: buildAiCasProfessionalSummary(data),
             required: true,
           },
+          ...optionalField('Original Operator Note', getOriginalOperatorNote(data)),
         ],
       },
       {
