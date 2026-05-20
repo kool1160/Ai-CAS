@@ -128,7 +128,7 @@ export default function PrintReportPage() {
           background: #ffffff;
           color: #111827;
           font-size: 11px;
-          line-height: 1.24;
+          line-height: 1.36;
         }
 
         .brand-bar {
@@ -196,39 +196,49 @@ export default function PrintReportPage() {
         table {
           width: 100%;
           border-collapse: collapse;
-          margin: 0 0 7px;
+          margin: 0 0 10px;
           background: #ffffff;
+          table-layout: fixed;
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
 
         th,
         td {
           border: 1px solid #d1d5db;
-          padding: 4px 6px;
+          padding: 6px 8px;
           vertical-align: top;
           text-align: left;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         th {
-          width: 32%;
+          width: 31%;
           background: #f3f4f6;
           color: #111827;
-          font-size: 8.5px;
+          font-size: 8.4px;
           text-transform: uppercase;
-          letter-spacing: 0.035em;
+          letter-spacing: 0.045em;
+          padding-right: 12px;
         }
 
         td {
           background: #ffffff;
           color: #111827;
           font-weight: 600;
+          white-space: pre-wrap;
         }
 
         .callout {
           border: 1px solid #111827;
           border-left: 5px solid #111827;
-          padding: 6px 8px;
-          margin: 0 0 6px;
+          padding: 8px 10px;
+          margin: 0 0 10px;
           background: #ffffff;
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
 
         .callout h2 {
@@ -245,25 +255,36 @@ export default function PrintReportPage() {
           margin: 0;
           color: #111827;
           font-weight: 600;
+          line-height: 1.4;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
         }
 
         .section-title {
-          margin: 7px 0 4px;
-          padding: 5px 6px;
+          margin: 12px 0 6px;
+          padding: 6px 8px;
           background: #111827;
           color: #ffffff;
           font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 0.035em;
+          break-after: avoid;
+          page-break-after: avoid;
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
 
         .report-box {
           border: 1px solid #d1d5db;
           background: #ffffff;
           color: #111827;
-          padding: 6px;
+          padding: 9px 10px;
           white-space: pre-wrap;
           overflow-wrap: anywhere;
+          word-break: break-word;
+          line-height: 1.42;
+          orphans: 3;
+          widows: 3;
         }
 
         .error-box {
@@ -338,7 +359,7 @@ export default function PrintReportPage() {
             margin: 0 !important;
             padding: 0 !important;
             font-size: 11px !important;
-            line-height: 1.22 !important;
+            line-height: 1.34 !important;
             background: #ffffff !important;
             color: #000000 !important;
             break-after: avoid !important;
@@ -353,6 +374,20 @@ export default function PrintReportPage() {
           .report-box {
             break-after: avoid !important;
             page-break-after: avoid !important;
+          }
+
+          table,
+          .callout,
+          .report-box {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+
+          .section-title + .report-box,
+          .callout h2,
+          .callout p {
+            break-before: avoid !important;
+            page-break-before: avoid !important;
           }
 
           .header {
