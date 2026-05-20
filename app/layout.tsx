@@ -3,6 +3,7 @@ import './globals.css';
 import './beta2-button-hierarchy.css';
 import './beta2-review-send-polish.css';
 import './beta2-capture-generate-polish.css';
+import './beta2-supporting-screens-polish.css';
 import './v2-more-admin-layout.css';
 import './v2-tablet-polish.css';
 
