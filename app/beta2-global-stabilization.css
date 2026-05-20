@@ -1,0 +1,258 @@
+/*
+  AI-CAS Beta 2 Global UI Stabilization Pass
+  Visual-only consistency layer for spacing, safe areas, card rhythm, helper/status text, and bottom-nav clearance.
+  Preserves all runtime logic, workflow gates, backend/PDF/email behavior, storage behavior, and generated content.
+*/
+
+:root {
+  --beta2-screen-gap: 18px;
+  --beta2-card-padding: 20px;
+  --beta2-card-radius: 28px;
+  --beta2-mobile-card-padding: 17px;
+  --beta2-mobile-card-radius: 24px;
+  --beta2-bottom-nav-space: 118px;
+  --beta2-bottom-nav-space-mobile: 132px;
+}
+
+html,
+body {
+  overscroll-behavior-x: none;
+}
+
+.app-shell {
+  padding-top: calc(18px + env(safe-area-inset-top));
+  padding-bottom: calc(var(--beta2-bottom-nav-space) + env(safe-area-inset-bottom));
+}
+
+.app-frame {
+  padding-bottom: calc(var(--beta2-bottom-nav-space) + env(safe-area-inset-bottom));
+}
+
+.stack,
+.card-grid,
+.placeholder-list,
+.field-list,
+.form-grid {
+  min-width: 0;
+}
+
+.stack {
+  gap: var(--beta2-screen-gap);
+  padding-bottom: calc(var(--beta2-bottom-nav-space) + env(safe-area-inset-bottom));
+}
+
+.screen-title {
+  margin-top: 6px;
+  margin-bottom: 20px;
+}
+
+.screen-title p,
+.field-help,
+.card p {
+  line-height: 1.5;
+}
+
+.card {
+  border-radius: var(--beta2-card-radius);
+  padding: var(--beta2-card-padding);
+}
+
+.card-header {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.action-row {
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.field-help {
+  margin-top: 10px;
+}
+
+.preview-box {
+  max-width: 100%;
+}
+
+.button,
+.nav-button,
+input,
+select,
+textarea,
+.preview-box,
+.placeholder-item,
+.field-row {
+  max-width: 100%;
+}
+
+.button {
+  flex: 0 1 auto;
+}
+
+.button.full-width {
+  flex-basis: 100%;
+}
+
+.nav-dock {
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  margin-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+.nav-button {
+  min-height: 48px;
+}
+
+.status-pill,
+.step-pill,
+.field-status {
+  max-width: 100%;
+}
+
+.upload-preview {
+  max-width: 100%;
+}
+
+/* Give final action zones breathing room before the sticky bottom nav. */
+.review-action-panel,
+.draft-detail-panel,
+.more-setup-panel,
+.history-local-records-panel {
+  margin-bottom: 4px;
+}
+
+/* Avoid important last controls sitting too close to bottom navigation on shorter mobile screens. */
+.stack > :last-child,
+.record-review-screen > :last-child,
+.review-panel-screen > :last-child,
+.more-admin-screen > :last-child,
+.home-screen > :last-child {
+  margin-bottom: 10px;
+}
+
+@media (max-width: 767px) {
+  .app-shell {
+    padding-inline: 14px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-bottom: calc(var(--beta2-bottom-nav-space-mobile) + env(safe-area-inset-bottom));
+  }
+
+  .app-frame {
+    padding-bottom: calc(var(--beta2-bottom-nav-space-mobile) + env(safe-area-inset-bottom));
+  }
+
+  .stack {
+    gap: 16px;
+    padding-bottom: calc(var(--beta2-bottom-nav-space-mobile) + env(safe-area-inset-bottom));
+  }
+
+  .screen-title {
+    margin-top: 4px;
+    margin-bottom: 18px;
+  }
+
+  .screen-title h1 {
+    font-size: clamp(27px, 8.2vw, 32px);
+  }
+
+  .card,
+  .hero,
+  .record-detail-panel,
+  .record-list-panel .placeholder-item,
+  .placeholder-item,
+  .field-row {
+    border-radius: var(--beta2-mobile-card-radius);
+  }
+
+  .card,
+  .hero,
+  .record-detail-panel {
+    padding: var(--beta2-mobile-card-padding);
+  }
+
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .button {
+    width: 100%;
+    min-height: 50px;
+  }
+
+  .button.primary,
+  .button.success {
+    min-height: 56px;
+  }
+
+  .field-help {
+    font-size: 13px;
+  }
+
+  .nav-dock {
+    width: min(100%, calc(100vw - 20px));
+    margin-top: 18px;
+    margin-bottom: calc(10px + env(safe-area-inset-bottom));
+    padding: 8px;
+  }
+
+  .nav-button {
+    min-height: 50px;
+    padding-block: 10px;
+  }
+
+  .preview-box {
+    font-size: 13px;
+    line-height: 1.58;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell {
+    padding-inline: 11px;
+  }
+
+  .nav-dock {
+    width: min(100%, calc(100vw - 14px));
+    gap: 3px;
+    padding: 7px;
+  }
+
+  .nav-button {
+    font-size: 10.5px;
+    min-height: 48px;
+  }
+
+  .screen-title h1 {
+    font-size: 27px;
+  }
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    padding-bottom: calc(var(--beta2-bottom-nav-space) + env(safe-area-inset-bottom));
+  }
+
+  .app-frame {
+    padding-bottom: calc(var(--beta2-bottom-nav-space) + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 1024px) {
+  .stack,
+  .record-review-screen,
+  .review-panel-screen,
+  .more-admin-screen,
+  .home-screen {
+    gap: 22px;
+  }
+
+  .app-shell {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+
+  .app-frame {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+}
