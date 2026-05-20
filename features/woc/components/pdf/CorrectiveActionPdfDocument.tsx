@@ -67,16 +67,17 @@ function sectionLines(section: ControlledPdfTemplateSection): CorrectiveActionPd
 }
 
 export function CorrectiveActionPdfDocument({ template }: CorrectiveActionPdfDocumentProps): CorrectiveActionPdfLine[] {
+  const hasEvidenceSection = template.sections.some((section) => section.sectionId === 'evidence-and-verification');
+
   return [
-    { text: template.templateName, variant: 'title' },
+    { text: 'AI-CAS Corrective Action Sheet', variant: 'title' },
     { text: template.modelSource, variant: 'subtitle' },
     { text: `Template: ${template.templateVersion} - Status: ${template.status}`, variant: 'subtitle' },
     { text: `Review gate: ${template.releaseGate}`, variant: 'gate' },
     ...template.sections.flatMap(sectionLines),
-    {
-      text: 'Text-only evidence metadata. No photo images are embedded in this PDF.',
-      variant: 'footer',
-    },
+    ...(hasEvidenceSection
+      ? [{ text: 'Evidence metadata only. Photo images are not embedded in this PDF.', variant: 'footer' } satisfies CorrectiveActionPdfLine]
+      : []),
     ...(template.layoutNotes.length
       ? [{ text: `Appendix note: ${template.layoutNotes.join(' ')}`, variant: 'footer' } satisfies CorrectiveActionPdfLine]
       : []),
