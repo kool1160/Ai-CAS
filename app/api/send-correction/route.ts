@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const DEFAULT_RESEND_FROM = 'AI-CAS <onboarding@resend.dev>';
+const DEFAULT_RESEND_TEST_RECIPIENT = 'kool1160@gmail.com';
 
 type SendCorrectionRequest = {
   subjectLine?: string;
@@ -25,16 +26,45 @@ type ResendAttachment = {
   content: string;
 };
 
+type RecipientResolution = {
+  recipient: string;
+  intendedRecipient: string;
+  testModeRedirected: boolean;
+};
+
 function cleanValue(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function resolveRecipient(payload: SendCorrectionRequest) {
+function resolveConfiguredRecipient(payload: SendCorrectionRequest) {
   return cleanValue(payload.recipientEmail) || cleanValue(process.env.REFAB_CONNECT_EMAIL_TO);
 }
 
 function resolveSender() {
   return cleanValue(process.env.REFAB_CONNECT_EMAIL_FROM) || DEFAULT_RESEND_FROM;
+}
+
+function isResendTestSender(from: string) {
+  return from.toLowerCase().includes('onboarding@resend.dev');
+}
+
+function resolveRecipient(payload: SendCorrectionRequest, from: string): RecipientResolution {
+  const intendedRecipient = resolveConfiguredRecipient(payload);
+  const testRecipient = cleanValue(process.env.RESEND_TEST_RECIPIENT) || DEFAULT_RESEND_TEST_RECIPIENT;
+
+  if (isResendTestSender(from) && intendedRecipient && intendedRecipient.toLowerCase() !== testRecipient.toLowerCase()) {
+    return {
+      recipient: testRecipient,
+      intendedRecipient,
+      testModeRedirected: true,
+    };
+  }
+
+  return {
+    recipient: intendedRecipient,
+    intendedRecipient,
+    testModeRedirected: false,
+  };
 }
 
 function normalizePdfFileName(value: string) {
@@ -90,13 +120,20 @@ function shouldAppendReportText(emailDraftText: string, reportText: string) {
   return !normalizedEmailDraft.includes(normalizedReport) && !normalizedReport.includes(normalizedEmailDraft);
 }
 
-function buildCorrectiveActionEmailBody(payload: SendCorrectionRequest) {
+function buildTestModeNotice(recipientResolution: RecipientResolution) {
+  if (!recipientResolution.testModeRedirected) return '';
+
+  return `AI-CAS beta email routing notice:\nThis message was redirected to ${recipientResolution.recipient} because the current Resend test sender can only deliver to the verified test inbox. Intended recipient: ${recipientResolution.intendedRecipient}.\n\n---\n\n`;
+}
+
+function buildCorrectiveActionEmailBody(payload: SendCorrectionRequest, recipientResolution: RecipientResolution) {
   const emailDraftText = cleanValue(payload.emailDraftText);
   const reportText = cleanValue(payload.reportText);
+  const testModeNotice = buildTestModeNotice(recipientResolution);
 
   if (emailDraftText) {
     if (shouldAppendReportText(emailDraftText, reportText)) {
-      return `${emailDraftText}
+      return `${testModeNotice}${emailDraftText}
 
 ---
 
@@ -105,13 +142,13 @@ Full AI-CAS Corrective Action Report:
 ${reportText}`;
     }
 
-    return emailDraftText;
+    return `${testModeNotice}${emailDraftText}`;
   }
 
   const fallbackBody = buildEmailBody(payload);
 
   if (reportText) {
-    return `${fallbackBody}
+    return `${testModeNotice}${fallbackBody}
 
 ---
 
@@ -120,7 +157,7 @@ Full AI-CAS Corrective Action Report:
 ${reportText}`;
   }
 
-  return fallbackBody;
+  return `${testModeNotice}${fallbackBody}`;
 }
 
 function buildEmailBody(payload: SendCorrectionRequest) {
@@ -170,8 +207,9 @@ export async function POST(request: Request) {
   const subjectLine = sanitizeSubjectLine(cleanValue(payload.subjectLine));
   const reportText = cleanValue(payload.reportText);
   const emailDraftText = cleanValue(payload.emailDraftText);
-  const recipient = resolveRecipient(payload);
   const from = resolveSender();
+  const recipientResolution = resolveRecipient(payload, from);
+  const recipient = recipientResolution.recipient;
 
   let pdfAttachment: ResendAttachment | null = null;
 
@@ -208,7 +246,7 @@ export async function POST(request: Request) {
       from,
       to: [recipient],
       subject: subjectLine,
-      text: buildCorrectiveActionEmailBody(payload),
+      text: buildCorrectiveActionEmailBody(payload, recipientResolution),
       ...(pdfAttachment ? { attachments: [pdfAttachment] } : {}),
     }),
   });
@@ -229,6 +267,8 @@ export async function POST(request: Request) {
   return NextResponse.json({
     sent: true,
     recipient,
+    intendedRecipient: recipientResolution.intendedRecipient || recipient,
+    testModeRedirected: recipientResolution.testModeRedirected,
     resendId: typeof responseBody?.id === 'string' ? responseBody.id : null,
   });
 }
