@@ -19,11 +19,17 @@ const PAGE_WIDTH = 612;
 const PAGE_MARGIN_X = 40;
 const PAGE_START_Y = 744;
 const PAGE_BOTTOM_Y = 48;
+const PAGE_CONTENT_WIDTH = PAGE_WIDTH - (PAGE_MARGIN_X * 2);
+const LABEL_COLUMN_WIDTH = 150;
+const VALUE_COLUMN_X = PAGE_MARGIN_X + LABEL_COLUMN_WIDTH + 10;
+const VALUE_COLUMN_WIDTH = PAGE_CONTENT_WIDTH - LABEL_COLUMN_WIDTH - 10;
+const TEXT_LINE_HEIGHT = 11;
 const LINE_HEIGHT = 16;
 const TITLE_LINE_HEIGHT = 28;
 const SECTION_LINE_HEIGHT = 24;
-const TABLE_ROW_HEIGHT = 28;
-const BODY_BOX_HEIGHT = 42;
+const ROW_VERTICAL_PADDING = 8;
+const BODY_BOX_VERTICAL_PADDING = 10;
+const SECTION_KEEP_WITH_NEXT_HEIGHT = 64;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -74,11 +80,57 @@ function getHumanConfirmation(body: GeneratePdfRequestBody) {
   return body.finalReviewConfirmed === true || body.confirmations?.finalReviewConfirmed === true;
 }
 
+function normalizePdfText(value: string) {
+  return value
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[\t ]+/g, ' ')
+    .trim();
+}
+
+function wrapPdfText(value: string, maxCharacters: number) {
+  const normalized = normalizePdfText(value);
+  if (!normalized) return [''];
+
+  return normalized.split('\n').flatMap((paragraph) => {
+    const words = paragraph.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    words.forEach((word) => {
+      const candidate = currentLine ? `${currentLine} ${word}` : word;
+
+      if (candidate.length <= maxCharacters) {
+        currentLine = candidate;
+        return;
+      }
+
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    });
+
+    if (currentLine) lines.push(currentLine);
+    return lines.length ? lines : [''];
+  });
+}
+
+function tableRowHeight(line: CorrectiveActionPdfLine) {
+  const labelLines = wrapPdfText(line.label ?? '', 24);
+  const valueLines = wrapPdfText(line.value ?? '', 66);
+  return Math.max(28, (Math.max(labelLines.length, valueLines.length) * TEXT_LINE_HEIGHT) + ROW_VERTICAL_PADDING + 6);
+}
+
+function bodyBoxHeight(line: CorrectiveActionPdfLine) {
+  const labelLines = wrapPdfText(line.label ?? '', 90);
+  const valueLines = wrapPdfText(line.value ?? '', 94);
+  return Math.max(42, ((labelLines.length + valueLines.length) * TEXT_LINE_HEIGHT) + BODY_BOX_VERTICAL_PADDING + 10);
+}
+
 function lineHeight(line: CorrectiveActionPdfLine) {
   if (line.variant === 'title') return TITLE_LINE_HEIGHT;
   if (line.variant === 'section') return SECTION_LINE_HEIGHT;
-  if (line.variant === 'tableRow') return TABLE_ROW_HEIGHT;
-  if (line.variant === 'bodyBox') return BODY_BOX_HEIGHT;
+  if (line.variant === 'tableRow') return tableRowHeight(line);
+  if (line.variant === 'bodyBox') return bodyBoxHeight(line);
   if (line.variant === 'spacer') return 10;
   return LINE_HEIGHT;
 }
@@ -87,10 +139,15 @@ function paginateLines(lines: CorrectiveActionPdfLine[]) {
   const pages: PdfPage[] = [[]];
   let remainingHeight = PAGE_START_Y - PAGE_BOTTOM_Y;
 
-  lines.forEach((line) => {
+  lines.forEach((line, index) => {
     const requiredHeight = lineHeight(line);
+    const nextLine = lines[index + 1];
+    const sectionKeepHeight = line.variant === 'section' && nextLine
+      ? Math.min(SECTION_KEEP_WITH_NEXT_HEIGHT, requiredHeight + lineHeight(nextLine))
+      : requiredHeight;
+    const heightToCheck = line.variant === 'section' ? sectionKeepHeight : requiredHeight;
 
-    if (pages[pages.length - 1].length > 0 && requiredHeight > remainingHeight) {
+    if (pages[pages.length - 1].length > 0 && heightToCheck > remainingHeight) {
       pages.push([]);
       remainingHeight = PAGE_START_Y - PAGE_BOTTOM_Y;
     }
@@ -123,6 +180,10 @@ function renderText(x: number, y: number, size: number, font: 'F1' | 'F2', text:
   ].join('\n');
 }
 
+function renderWrappedText(x: number, startY: number, size: number, font: 'F1' | 'F2', lines: string[]) {
+  return lines.map((text, index) => renderText(x, startY - (index * TEXT_LINE_HEIGHT), size, font, text));
+}
+
 function renderPageContent(page: PdfPage, pageIndex: number, pageCount: number) {
   let cursorY = PAGE_START_Y;
   const operations: string[] = [];
@@ -142,31 +203,43 @@ function renderPageContent(page: PdfPage, pageIndex: number, pageCount: number) 
     }
 
     if (line.variant === 'section') {
-      operations.push(`0 0 0 rg`);
-      operations.push(`${PAGE_MARGIN_X} ${cursorY - 16} ${PAGE_WIDTH - (PAGE_MARGIN_X * 2)} 20 re f`);
-      operations.push(`1 1 1 rg`);
+      operations.push('0 0 0 rg');
+      operations.push(`${PAGE_MARGIN_X} ${cursorY - 16} ${PAGE_CONTENT_WIDTH} 20 re f`);
+      operations.push('1 1 1 rg');
       operations.push(renderText(PAGE_MARGIN_X + 8, cursorY - 11, 11, 'F2', line.text));
-      operations.push(`0 0 0 rg`);
+      operations.push('0 0 0 rg');
       cursorY -= lineHeight(line);
       return;
     }
 
     if (line.variant === 'tableRow') {
-      operations.push(`${PAGE_MARGIN_X} ${cursorY - 24} ${PAGE_WIDTH - (PAGE_MARGIN_X * 2)} 24 re S`);
-      operations.push(`${PAGE_MARGIN_X + 170} ${cursorY - 24} 0 24 re S`);
+      const rowHeight = lineHeight(line);
+      const rowY = cursorY - rowHeight + 4;
+      const labelLines = wrapPdfText(line.label ?? '', 24);
+      const valueLines = wrapPdfText(line.value ?? '', 66);
+      const textTopY = cursorY - 13;
 
-      operations.push(renderText(PAGE_MARGIN_X + 6, cursorY - 16, 9, 'F2', line.label ?? '')); 
-      operations.push(renderText(PAGE_MARGIN_X + 180, cursorY - 16, 9, 'F1', line.value ?? ''));
+      operations.push(`${PAGE_MARGIN_X} ${rowY} ${PAGE_CONTENT_WIDTH} ${rowHeight - 4} re S`);
+      operations.push(`${PAGE_MARGIN_X + LABEL_COLUMN_WIDTH} ${rowY} m ${PAGE_MARGIN_X + LABEL_COLUMN_WIDTH} ${rowY + rowHeight - 4} l S`);
+      operations.push(...renderWrappedText(PAGE_MARGIN_X + 6, textTopY, 8.6, 'F2', labelLines));
+      operations.push(...renderWrappedText(VALUE_COLUMN_X, textTopY, 8.8, 'F1', valueLines));
 
-      cursorY -= lineHeight(line);
+      cursorY -= rowHeight;
       return;
     }
 
     if (line.variant === 'bodyBox') {
-      operations.push(`${PAGE_MARGIN_X} ${cursorY - 38} ${PAGE_WIDTH - (PAGE_MARGIN_X * 2)} 38 re S`);
-      operations.push(renderText(PAGE_MARGIN_X + 6, cursorY - 14, 9, 'F2', line.label ?? ''));
-      operations.push(renderText(PAGE_MARGIN_X + 6, cursorY - 28, 9, 'F1', line.value ?? ''));
-      cursorY -= lineHeight(line);
+      const boxHeight = lineHeight(line);
+      const boxY = cursorY - boxHeight + 4;
+      const labelLines = wrapPdfText(line.label ?? '', 90);
+      const valueLines = wrapPdfText(line.value ?? '', 94);
+      const labelStartY = cursorY - 13;
+      const valueStartY = labelStartY - (labelLines.length * TEXT_LINE_HEIGHT) - 3;
+
+      operations.push(`${PAGE_MARGIN_X} ${boxY} ${PAGE_CONTENT_WIDTH} ${boxHeight - 4} re S`);
+      operations.push(...renderWrappedText(PAGE_MARGIN_X + 6, labelStartY, 8.8, 'F2', labelLines));
+      operations.push(...renderWrappedText(PAGE_MARGIN_X + 6, valueStartY, 8.8, 'F1', valueLines));
+      cursorY -= boxHeight;
       return;
     }
 
