@@ -1,0 +1,291 @@
+/*
+  AI-CAS Beta 2 Supporting Screens Polish
+  Visual-only consistency pass for Home, Drafts, History, and More.
+  Preserves workflow, local storage behavior, setup/admin logic, beta feedback behavior, and backend/PDF/email logic.
+*/
+
+/* Home launchpad */
+.home-screen {
+  gap: 18px;
+}
+
+.home-screen .hero {
+  border-radius: 34px;
+  padding: 32px 20px 24px;
+  border-color: rgba(31, 140, 255, 0.34);
+  background:
+    linear-gradient(180deg, rgba(31, 140, 255, 0.13), rgba(255, 255, 255, 0.02)),
+    radial-gradient(circle at 50% 0, rgba(31, 140, 255, 0.3), transparent 16rem),
+    var(--panel);
+}
+
+.home-screen .brand-title {
+  max-width: 11ch;
+  text-wrap: balance;
+}
+
+.home-screen .button.primary.full-width {
+  min-height: 58px;
+  border: 1px solid rgba(88, 170, 255, 0.44);
+}
+
+.home-screen .workflow-preview {
+  gap: 12px;
+}
+
+.home-screen .workflow-card {
+  border-radius: 24px;
+  padding: 16px;
+  border-color: rgba(31, 140, 255, 0.18);
+}
+
+.home-screen .workflow-card p {
+  margin-top: 4px;
+}
+
+/* Drafts + History shared record readability */
+.record-review-screen {
+  gap: 18px;
+}
+
+.record-review-screen > .screen-title {
+  margin-bottom: 20px;
+}
+
+.record-review-screen > .card,
+.record-review-screen > .placeholder-list,
+.record-review-screen .record-list-panel,
+.record-review-screen .record-detail-panel {
+  border-radius: 28px;
+}
+
+.record-list-panel {
+  gap: 12px;
+}
+
+.record-list-panel .placeholder-item {
+  border-color: rgba(255, 255, 255, 0.13);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.026)),
+    rgba(255, 255, 255, 0.025);
+  padding: 15px;
+}
+
+.record-list-panel .placeholder-item strong {
+  font-size: 15px;
+  line-height: 1.32;
+}
+
+.record-list-panel .placeholder-item span {
+  margin-top: 6px;
+  line-height: 1.42;
+}
+
+.record-list-panel .action-row {
+  margin-top: 13px;
+}
+
+.record-detail-panel {
+  border-color: rgba(31, 140, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(31, 140, 255, 0.07), rgba(255, 255, 255, 0.018)),
+    var(--panel);
+}
+
+.record-detail-panel .preview-box {
+  border-style: solid;
+  border-color: rgba(88, 170, 255, 0.22);
+  font-size: 13px;
+  line-height: 1.58;
+  padding: 16px;
+}
+
+.record-detail-panel h3 {
+  margin-top: 16px;
+}
+
+.draft-detail-panel label:has(input[type="checkbox"]) {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  border: 1px solid rgba(53, 208, 127, 0.24);
+  border-radius: 18px;
+  background: rgba(53, 208, 127, 0.06);
+  padding: 14px 15px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.draft-detail-panel label:has(input[type="checkbox"]:checked) {
+  border-color: rgba(53, 208, 127, 0.46);
+  background: rgba(53, 208, 127, 0.105);
+  box-shadow: 0 0 28px rgba(53, 208, 127, 0.1);
+}
+
+.history-local-records-panel {
+  border-color: rgba(53, 208, 127, 0.18);
+}
+
+/* More / Setup / Beta Feedback */
+.more-admin-screen {
+  gap: 18px;
+}
+
+.more-admin-screen > .screen-title {
+  margin-bottom: 20px;
+}
+
+.more-admin-screen .card {
+  border-radius: 28px;
+  padding: 20px;
+}
+
+.more-admin-screen .more-user-panel,
+.more-admin-screen .more-settings-panel,
+.more-admin-screen .more-beta-feedback-panel,
+.more-admin-screen .more-setup-panel {
+  border-color: rgba(255, 255, 255, 0.13);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
+    var(--panel);
+}
+
+.more-admin-screen .more-beta-feedback-panel {
+  border-color: rgba(31, 140, 255, 0.28);
+  background:
+    linear-gradient(180deg, rgba(31, 140, 255, 0.095), rgba(255, 255, 255, 0.018)),
+    var(--panel);
+}
+
+.more-admin-screen .more-beta-feedback-panel .button.primary {
+  min-height: 56px;
+}
+
+.more-admin-screen .more-setup-panel {
+  border-color: rgba(53, 208, 127, 0.18);
+}
+
+.more-admin-screen .form-grid {
+  gap: 14px;
+}
+
+.more-admin-screen .placeholder-list {
+  gap: 12px;
+}
+
+.more-admin-screen .placeholder-item {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.more-admin-screen .action-row {
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.more-admin-screen .field-help {
+  line-height: 1.48;
+}
+
+/* Keep setup/admin visually contained and not mixed with beta issue reporting. */
+.more-right-column .more-setup-panel h2::after {
+  content: "Protected setup area";
+  display: inline-flex;
+  margin-left: 10px;
+  border: 1px solid rgba(53, 208, 127, 0.24);
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+@media (max-width: 767px) {
+  .home-screen,
+  .record-review-screen,
+  .more-admin-screen {
+    gap: 16px;
+  }
+
+  .home-screen .hero,
+  .home-screen .workflow-card,
+  .record-review-screen > .card,
+  .record-list-panel .placeholder-item,
+  .record-detail-panel,
+  .more-admin-screen .card {
+    border-radius: 24px;
+  }
+
+  .home-screen .hero,
+  .record-review-screen > .card,
+  .record-detail-panel,
+  .more-admin-screen .card {
+    padding: 17px;
+  }
+
+  .record-list-panel .placeholder-item {
+    padding: 14px;
+  }
+
+  .record-review-screen .action-row,
+  .more-admin-screen .action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .record-review-screen .button,
+  .more-admin-screen .button {
+    width: 100%;
+    min-height: 50px;
+  }
+
+  .draft-detail-panel .button.danger:not(:disabled),
+  .more-admin-screen .button.primary,
+  .home-screen .button.primary {
+    min-height: 56px;
+  }
+
+  .record-detail-panel .preview-box {
+    max-height: none;
+    font-size: 13px;
+    line-height: 1.56;
+  }
+
+  .more-right-column .more-setup-panel h2::after {
+    display: flex;
+    width: fit-content;
+    margin: 8px 0 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-screen,
+  .record-review-screen,
+  .more-admin-screen {
+    gap: 22px;
+  }
+
+  .more-admin-screen {
+    grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  }
+
+  .more-admin-screen > .screen-title {
+    grid-column: 1 / -1;
+  }
+
+  .more-left-column,
+  .more-right-column {
+    display: grid;
+    gap: 18px;
+    align-content: start;
+  }
+
+  .record-detail-panel,
+  .more-setup-panel {
+    align-self: start;
+  }
+}
