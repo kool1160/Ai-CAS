@@ -121,6 +121,17 @@ function getAffectedOperationEquipment(data: ControlledPdfTemplateInput) {
   return 'Operation needs confirmation';
 }
 
+function getResponsibilityOwnerDepartment(data: ControlledPdfTemplateInput) {
+  const ownerDepartment = data.correctiveActionOwnerDepartment?.trim() ?? '';
+  if (!isIncorrectTimeRateIssue(data)) return ownerDepartment;
+
+  if (isOtherOrBlank(ownerDepartment) || ownerDepartment.toLowerCase() === 'needs review') {
+    return 'Engineering';
+  }
+
+  return ownerDepartment;
+}
+
 function sanitizePdfFieldValue(data: ControlledPdfTemplateInput, value: string) {
   return removeUploadedRouterContextFromFinalText(value, {
     operationNumber: data.operationNumber,
@@ -189,7 +200,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
           ...optionalField('Customer / Job', data.customerOrJob),
           ...optionalField('Quantity', firstFilled(data.quantityAffected, data.quantity)),
           { label: 'Affected Department / Area', value: valueOrNotConfirmed(getAffectedArea(data)), required: true },
-          { label: 'Affected Operation / Equipment', value: valueOrNotConfirmed(getAffectedOperationEquipment(data)), required: true },
+          { label: 'Affected Operation / Process', value: valueOrNotConfirmed(getAffectedOperationEquipment(data)), required: true },
           { label: 'Date Captured', value: dateCaptured, required: true },
           { label: 'Submitted By', value: submittedBy, required: true },
           { label: 'Priority', value: data.priority?.trim() || 'Standard review', required: true },
@@ -231,7 +242,7 @@ export function buildControlledCorrectiveActionPdfTemplate(
         title: 'RESPONSIBILITY MATRIX',
         layoutHint: 'two-column-table',
         fields: [
-          { label: 'Role / Operation', value: `${valueOrNotConfirmed(data.correctiveActionOwnerDepartment)} | ${valueOrNotConfirmed(getAffectedOperationEquipment(data))}`, required: true },
+          { label: 'Role / Operation', value: `${valueOrNotConfirmed(getResponsibilityOwnerDepartment(data))} | ${valueOrNotConfirmed(getAffectedOperationEquipment(data))}`, required: true },
           { label: 'Responsibility', value: 'Review issue, apply correction, verify outcome, and document closeout.', required: true },
         ],
       },
