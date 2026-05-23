@@ -119,7 +119,7 @@ export function GenerateScreen({
           <div className="placeholder-item" style={{ marginTop: 4 }}>
             <strong>Correction Context</strong>
             <p className="field-help">
-              Select the correction type, affected department, and operation/equipment so AI-CAS routes and drafts the correction correctly.
+              Select the correction type, affected department, and operation/process so AI-CAS routes and drafts the correction correctly.
             </p>
 
             <div className="form-grid" style={{ marginTop: 12 }}>
@@ -143,7 +143,7 @@ export function GenerateScreen({
               />
 
               <OperationEquipmentDropdown
-                label="Operation / Equipment"
+                label="Operation / Process"
                 value={wocData.affectedOperationEquipment}
                 onChange={(value) => onUpdateField('affectedOperationEquipment', value)}
               />

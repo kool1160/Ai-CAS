@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
+import sharp from 'sharp';
 import { CorrectiveActionPdfDocument, type CorrectiveActionPdfLine } from '../../../features/woc/components/pdf/CorrectiveActionPdfDocument';
 import type { ControlledCorrectiveActionPdfTemplate } from '../../../features/woc/logic/controlledPdfTemplateFoundation';
 
@@ -30,6 +33,8 @@ const SECTION_LINE_HEIGHT = 24;
 const ROW_VERTICAL_PADDING = 8;
 const BODY_BOX_VERTICAL_PADDING = 10;
 const SECTION_KEEP_WITH_NEXT_HEIGHT = 64;
+const HEADER_LOGO_WIDTH = 112;
+const HEADER_LOGO_HEIGHT = 26;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -189,6 +194,10 @@ function renderPageContent(page: PdfPage, pageIndex: number, pageCount: number) 
   const operations: string[] = [];
 
   operations.push(renderText(PAGE_MARGIN_X, 28, 8, 'F1', `AI-CAS Corrective Action Sheet - Page ${pageIndex + 1} of ${pageCount}`));
+  operations.push('q');
+  operations.push(`${HEADER_LOGO_WIDTH} 0 0 ${HEADER_LOGO_HEIGHT} ${PAGE_WIDTH - PAGE_MARGIN_X - HEADER_LOGO_WIDTH} ${PAGE_START_Y - 22} cm`);
+  operations.push('/Im1 Do');
+  operations.push('Q');
 
   page.forEach((line) => {
     if (line.variant === 'spacer') {
@@ -254,14 +263,24 @@ function createPdfObject(id: number, body: string) {
   return `${id} 0 obj\n${body}\nendobj\n`;
 }
 
-function buildPdfBinary(lines: CorrectiveActionPdfLine[]) {
+async function loadPdfHeaderLogoJpeg() {
+  const logoPath = path.join(process.cwd(), 'public', 'assets', 'applied-intelligence-logo.png');
+  const logoBuffer = await fs.readFile(logoPath);
+  return sharp(logoBuffer)
+    .resize({ width: 320, withoutEnlargement: true })
+    .jpeg({ quality: 88, mozjpeg: true })
+    .toBuffer({ resolveWithObject: true });
+}
+
+async function buildPdfBinary(lines: CorrectiveActionPdfLine[]) {
   const pages = paginateLines(lines);
   const objects: string[] = [];
   const catalogId = 1;
   const pagesId = 2;
   const fontRegularId = 3;
   const fontBoldId = 4;
-  const firstPageId = 5;
+  const logoObjectId = 5;
+  const firstPageId = 6;
   const firstContentId = firstPageId + pages.length;
   const pageObjectIds = pages.map((_, index) => firstPageId + index);
   const contentObjectIds = pages.map((_, index) => firstContentId + index);
@@ -270,6 +289,11 @@ function buildPdfBinary(lines: CorrectiveActionPdfLine[]) {
   objects[pagesId] = createPdfObject(pagesId, `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pages.length} >>`);
   objects[fontRegularId] = createPdfObject(fontRegularId, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
   objects[fontBoldId] = createPdfObject(fontBoldId, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  const { data: logoData, info: logoInfo } = await loadPdfHeaderLogoJpeg();
+  objects[logoObjectId] = createPdfObject(
+    logoObjectId,
+    `<< /Type /XObject /Subtype /Image /Width ${logoInfo.width} /Height ${logoInfo.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logoData.byteLength} >>\nstream\n${logoData.toString('latin1')}\nendstream`,
+  );
 
   pages.forEach((page, index) => {
     const pageId = pageObjectIds[index];
@@ -278,7 +302,7 @@ function buildPdfBinary(lines: CorrectiveActionPdfLine[]) {
 
     objects[pageId] = createPdfObject(
       pageId,
-      `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> >> /Contents ${contentId} 0 R >>`,
+      `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> /XObject << /Im1 ${logoObjectId} 0 R >> >> /Contents ${contentId} 0 R >>`,
     );
     objects[contentId] = createPdfObject(contentId, `<< /Length ${Buffer.byteLength(content, 'latin1')} >>\nstream\n${content}\nendstream`);
   });
@@ -326,7 +350,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const pdfBuffer = buildPdfBinary(CorrectiveActionPdfDocument({ template }));
+  const pdfBuffer = await buildPdfBinary(CorrectiveActionPdfDocument({ template }));
 
   return new Response(new Uint8Array(pdfBuffer), {
     status: 200,
