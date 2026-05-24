@@ -289,3 +289,18 @@
     align-self: start;
   }
 }
+
+
+/* B1-M8I: Home/Simple mode CTA clarity */
+.home-screen .hero .status-pill {
+  font-weight: 920;
+}
+
+.home-screen .helper-text {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.home-screen .button.primary.full-width {
+  margin-top: 2px;
+}

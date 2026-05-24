@@ -254,3 +254,42 @@
     align-self: start;
   }
 }
+
+
+/* B1-M8I: label scan/readability and simple-mode prominence */
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .card-header .step-pill {
+  font-weight: 950;
+  letter-spacing: 0.09em;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) label {
+  display: grid;
+  gap: 7px;
+  font-weight: 820;
+  line-height: 1.28;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) label select,
+.stack:has(textarea[placeholder^="Example: Welding router says"]) label input,
+.stack:has(textarea[placeholder^="Example: Welding router says"]) label textarea {
+  margin-top: 0;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .placeholder-item strong {
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.stack:has(textarea[placeholder^="Example: Welding router says"]) .field-help {
+  line-height: 1.52;
+}
+
+@media (max-width: 767px) {
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) .card-header h2 {
+    font-size: 20px;
+  }
+
+  .stack:has(textarea[placeholder^="Example: Welding router says"]) label {
+    gap: 8px;
+  }
+}

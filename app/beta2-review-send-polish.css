@@ -271,3 +271,30 @@
     flex: 1 1 calc(50% - 8px);
   }
 }
+
+
+/* B1-M8I: AI draft readability + final gate clarity */
+.review-report-panel .placeholder-item strong {
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.review-report-panel .placeholder-item span {
+  line-height: 1.58;
+}
+
+.review-action-panel .action-row:last-of-type {
+  border-width: 2px;
+}
+
+.review-action-panel .action-row:last-of-type::before {
+  content: "Final human review gate";
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  color: var(--blue-strong);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
