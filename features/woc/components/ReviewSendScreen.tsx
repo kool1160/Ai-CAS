@@ -86,6 +86,12 @@ function extractPreviewLine(text: string | undefined, label: string) {
   return line?.replace(`${label}:`, '').trim() || 'Not captured';
 }
 
+function formatDraftPreviewForReadability(value: string) {
+  return value
+    .replace(/\n(?=(Issue Summary|Corrective Action Required|Standard Work Requirement|Responsibility by Operation|Containment Action|Inspection \/ Verification Requirement|Photo Evidence Reference|Closeout Requirement):)/g, '\n\n')
+    .replace(/:\n(?!\n)/g, ':\n\n');
+}
+
 function appendLine(value: string, line: string) {
   const normalized = value.trimEnd();
   return normalized ? `${normalized}\n${line}` : line;
@@ -240,6 +246,10 @@ export function ReviewSendScreen({
   const enhancedEmailPreview = useMemo(
     () => (standardReportInput ? buildStandardCorrectiveActionEmailText(standardReportInput) : 'Generate a correction package before final review.'),
     [standardReportInput],
+  );
+  const readableDraftPreview = useMemo(
+    () => formatDraftPreviewForReadability(enhancedReportPreview),
+    [enhancedReportPreview],
   );
   const controlledPdfPreview = standardReportInput
     ? buildControlledCorrectiveActionPdfTemplate(
@@ -606,7 +616,12 @@ export function ReviewSendScreen({
           <DraftSectionCard label="Part Number" value={extractPreviewLine(jobContextPreview, 'Part Number')} />
           <DraftSectionCard label="Customer / Job" value={extractPreviewLine(jobContextPreview, 'Customer / Job')} />
           <DraftSectionCard label="Affected Department / Area" value={extractPreviewLine(jobContextPreview, 'Affected Department / Area')} />
-          <DraftSectionCard label="Affected Operation / Equipment" value={extractPreviewLine(jobContextPreview, 'Affected Operation / Equipment')} />
+          <DraftSectionCard
+            label="Affected Operation / Process"
+            value={extractPreviewLine(jobContextPreview, 'Affected Operation / Process') !== 'Not captured'
+              ? extractPreviewLine(jobContextPreview, 'Affected Operation / Process')
+              : extractPreviewLine(jobContextPreview, 'Affected Operation / Equipment')}
+          />
           <DraftSectionCard label="Quantity" value={extractPreviewLine(jobContextPreview, 'Quantity')} />
         </div>
       </article>
@@ -633,7 +648,7 @@ export function ReviewSendScreen({
 
         {isGeneratingAiDraft && <p className="field-help">AI-CAS is drafting corrective-action language from the Simple Mode issue description and confirmed job context...</p>}
 
-        <div className="preview-box">{enhancedReportPreview}</div>
+        <div className="preview-box">{readableDraftPreview}</div>
       </article>
 
       <article className="card review-photo-evidence-panel">
