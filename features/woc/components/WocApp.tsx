@@ -116,7 +116,7 @@ export function WocApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
-  const [appUnlocked, setAppUnlocked] = useState(false);
+  const [appUnlocked, setAppUnlocked] = useState(true);
   const [loginDisplayName, setLoginDisplayName] = useState('');
   const [loginEmailOrEmployeeId, setLoginEmailOrEmployeeId] = useState('');
   const [appUnlockPin, setAppUnlockPin] = useState('');
@@ -268,7 +268,6 @@ export function WocApp() {
 
     clearCurrentUserFromStorage();
     setCurrentUser(null);
-    setAppUnlocked(false);
     setAppUnlockPin('');
     setLoginDisplayName('');
     setLoginEmailOrEmployeeId('');
@@ -277,7 +276,6 @@ export function WocApp() {
   };
 
   const handleLockApp = () => {
-    setAppUnlocked(false);
     setAppUnlockPin('');
     setSetupUnlocked(false);
     setSetupCodeInput('');
@@ -717,7 +715,7 @@ export function WocApp() {
 
   if (!currentUserLoaded) return null;
 
-  if (!currentUser || !appUnlocked) {
+  if (!currentUser) {
     return (
       <LoginScreen
         savedUser={currentUser}
@@ -751,7 +749,7 @@ export function WocApp() {
           <span className="step-pill">AI-CAS · {stepLabels[activeScreen]}</span>
         </div>
 
-        {activeScreen === 'home' && <HomeScreen workflow={workflow} onStartCapture={() => setActiveScreen('capture')} />}
+        {activeScreen === 'home' && <HomeScreen workflow={workflow} signedInEmail={currentUser.emailOrEmployeeId} onStartCapture={() => setActiveScreen('capture')} />}
         {activeScreen === 'capture' && (
           <CaptureScreen
             manualEntry={manualEntry}

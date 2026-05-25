@@ -38,7 +38,6 @@ type MoreScreenProps = {
   onSaveSetupConfig: () => void;
   onClearLocalRecords?: () => void;
   onLogout: () => void;
-  onResetUser?: () => void;
 };
 
 export function MoreScreen({
@@ -53,7 +52,6 @@ export function MoreScreen({
   onUpdateSetupConfig,
   onSaveSetupConfig,
   onLogout,
-  onResetUser,
 }: MoreScreenProps) {
   return (
     <section className="stack more-admin-screen">
@@ -74,12 +72,9 @@ export function MoreScreen({
             </div>
           </div>
           <div className="action-row">
-            <button className="button secondary full-width" type="button" onClick={onLogout}>Lock App</button>
-            {onResetUser && (
-              <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved Operator</button>
-            )}
-          </div>
-          <p className="field-help">Lock App keeps this operator saved and returns to the 4-digit App Access PIN. Reset Saved Operator clears this device profile and starts operator setup again.</p>
+            <button className="button secondary full-width" type="button" onClick={onLogout}>Sign Out</button>
+                      </div>
+          <p className="field-help">Signing out returns this device to the AI-CAS account sign-in screen.</p>
         </article>
 
         <article className="card more-settings-panel">
