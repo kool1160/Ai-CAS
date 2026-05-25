@@ -39,6 +39,7 @@ export type StandardCorrectiveActionReportInput = {
   correctionType?: string;
   foundAtDepartment?: string;
   affectedArea?: string;
+  partDescription?: string;
   correctiveActionOwnerDepartment?: string;
   productionImpact?: string;
   immediateContainment?: string;
@@ -96,6 +97,14 @@ function standardValue(value?: string) {
 function optionalReportLine(label: string, value?: string) {
   const normalized = normalize(value);
   return normalized ? `${label}: ${normalized}\n` : '';
+}
+
+function getRequiredStandard(input: StandardCorrectiveActionReportInput) {
+  return firstFilled(
+    getStructuredDraftText(input, 'standardWorkRequirement'),
+    input.preventionStandardWorkUpdate,
+    'Update router/work instruction clarity and verify operator understanding before release.',
+  );
 }
 
 export function getOperatorStatement(input: Pick<StandardCorrectiveActionReportInput, 'shortIssueDescription'>) {
@@ -303,6 +312,8 @@ export function buildStandardCorrectiveActionReportText(input: StandardCorrectiv
   const productionImpact = getProductionImpact(input);
   const evidenceRows = buildStandardEvidenceRows(input);
   const includeEvidenceSection = shouldIncludePhotoEvidenceSection(input);
+  const closeoutSectionNumber = includeEvidenceSection ? 8 : 7;
+  const releaseApprovalSectionNumber = includeEvidenceSection ? 9 : 8;
   const dateCaptured = standardValue(input.dateCaptured ?? DEFAULT_DATE_CAPTURED);
   const submittedBy = standardValue(input.submittedBy ?? DEFAULT_SUBMITTED_BY);
   const priority = normalize(input.priority) || DEFAULT_PRIORITY;
@@ -314,6 +325,12 @@ export function buildStandardCorrectiveActionReportText(input: StandardCorrectiv
     input.immediateContainment,
     isIncorrectTimeRateIssue(input) ? buildMildTimeRateContainmentText(input) : '',
   );
+  const unresolvedOwner = isUnresolvedCorrectiveActionOwner(input.correctiveActionOwnerDepartment);
+  const roleOwner = isIncorrectTimeRateIssue(input) && unresolvedOwner ? 'Engineering' : owner;
+  const roleOperation = isIncorrectTimeRateIssue(input) && unresolvedOwner
+    ? 'Welding'
+    : standardValue(getAffectedOperationEquipment(input));
+  const partDescriptionLine = optionalReportLine('Part Description', input.partDescription);
 
   const reportText = `AI-CAS | Corrective Action Sheet
 Corrective Action System | Capture. Confirm. Correct.
@@ -323,11 +340,9 @@ Header: ${standardValue(input.partNumber)} | WO ${standardValue(input.workOrderN
 ## 1. METADATA BLOCK
 Work Order: ${standardValue(input.workOrderNumber)}
 Part Number: ${standardValue(input.partNumber)}
-Revision: ${standardValue(input.routerStepOperation)}
 Customer: ${standardValue(input.customerOrJob)}
 Quantity: ${standardValue(firstFilled(input.quantityAffected, input.quantity))}
-Part Description: ${standardValue(input.affectedArea)}
-Affected Operation: ${standardValue(getAffectedOperationEquipment(input))}
+${partDescriptionLine}Affected Operation / Process: ${standardValue(getAffectedOperationEquipment(input))}
 Previous Operation: ${standardValue(input.operationNumber)}
 Inspection / Quality Operation: ${standardValue(input.inspectionVerificationRequirement)}
 Reported By: ${submittedBy}
@@ -341,14 +356,14 @@ ${summary}
 ${operatorStatement ? `Original Operator Note (source reference):\n${operatorStatement}\n\n` : ''}
 ## 3. CORRECTIVE ACTION REQUIREMENTS
 Requirement: ${requiredAction}
-Required Standard: Update router/work instruction clarity and verify operator understanding before release.
+Required Standard: ${getRequiredStandard(input)}
 Acceptance / Verification: ${firstFilled(getStructuredDraftText(input, 'inspectionVerificationRequirement'), input.inspectionVerificationRequirement, 'Owner and Quality verify correction outcome before release.')}
 
 ## 4. CONTAINMENT ACTION
 ${firstFilled(containmentCheck, 'Place affected work on hold, review impacted quantity, verify operation status, and notify responsible owner before release.')}
 
 ## 5. RESPONSIBILITY MATRIX
-Role / Operation: ${owner} | ${standardValue(getAffectedOperationEquipment(input))}
+Role / Operation: ${roleOwner} | ${roleOperation}
 Responsibility: Review issue, apply correction, verify outcome, and document closeout.
 
 ## 6. PASS / FAIL CONDITION
@@ -358,13 +373,13 @@ FAIL: Any required correction, verification, or approval remains incomplete.
 ${includeEvidenceSection ? `## 7. OPTIONAL PHOTO EVIDENCE
 ${evidenceRows.map((row) => `${row.slot}\nType / Label: ${row.typeLabel}\nStatus: ${row.status}\nCaption / Notes: ${row.notes}`).join('\n\n')}
 
-` : ''}## 8. CORRECTIVE ACTION CLOSEOUT
+` : ''}## ${closeoutSectionNumber}. CORRECTIVE ACTION CLOSEOUT
 - Confirm root issue is addressed at source.
 - Confirm affected quantity disposition is complete.
 - Confirm standard work/router updates are complete when required.
 - Confirm recurrence prevention owner and follow-up date are assigned.
 
-## 9. RELEASE APPROVAL
+## ${releaseApprovalSectionNumber}. RELEASE APPROVAL
 Welding / Production: ____________________
 Supervisor: ____________________
 Quality: ____________________
