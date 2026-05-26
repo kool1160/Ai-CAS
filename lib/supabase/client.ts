@@ -1,12 +1,29 @@
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+function normalizeEnvValue(value?: string) {
+  return value
+    ?.trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/^NEXT_PUBLIC_SUPABASE_URL=/, '')
+    .trim();
+}
+
+function getSupabaseBaseUrl() {
+  const normalized = normalizeEnvValue(rawSupabaseUrl);
+  if (!normalized) return '';
+
+  return normalized
+    .replace(/\/auth\/v1\/?$/i, '')
+    .replace(/\/+$/g, '');
+}
+
 export function isSupabaseAuthConfigured() {
-  return Boolean(supabaseUrl && supabaseKey);
+  return Boolean(getSupabaseBaseUrl() && supabaseKey);
 }
 
 function getAuthHeaders() {
-  if (!supabaseUrl || !supabaseKey) throw new Error('Supabase environment variables are not configured.');
+  if (!getSupabaseBaseUrl() || !supabaseKey) throw new Error('Supabase environment variables are not configured.');
   return {
     apikey: supabaseKey,
     Authorization: `Bearer ${supabaseKey}`,
@@ -15,8 +32,11 @@ function getAuthHeaders() {
 }
 
 export async function supabaseAuthRequest(path: string, options?: RequestInit) {
-  if (!supabaseUrl) throw new Error('Supabase URL is missing.');
-  const response = await fetch(`${supabaseUrl}/auth/v1${path}`, {
+  const supabaseBaseUrl = getSupabaseBaseUrl();
+  if (!supabaseBaseUrl) throw new Error('Supabase URL is missing.');
+
+  const authPath = path.startsWith('/') ? path : `/${path}`;
+  const response = await fetch(`${supabaseBaseUrl}/auth/v1${authPath}`, {
     ...options,
     headers: {
       ...getAuthHeaders(),
