@@ -15,6 +15,7 @@ function getSupabaseBaseUrl() {
 
   return normalized
     .replace(/\/auth\/v1\/?$/i, '')
+    .replace(/\/rest\/v1\/?$/i, '')
     .replace(/\/+$/g, '');
 }
 
