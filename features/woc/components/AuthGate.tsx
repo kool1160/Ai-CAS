@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { WocApp } from './WocApp';
-import { clearCurrentUserFromStorage, createCurrentUser, saveCurrentUserToStorage } from '../logic/currentUserStorage';
+import { createCurrentUser, saveCurrentUserToStorage } from '../logic/currentUserStorage';
 import { isSupabaseAuthConfigured, supabaseAuthRequest } from '../../../lib/supabase/client';
 
 type Feedback = { tone: 'success' | 'error'; message: string } | null;
@@ -130,23 +130,5 @@ export function AuthGate() {
     );
   }
 
-  return (
-    <>
-      <div className="screen-title" style={{ padding: '8px 16px' }}>
-        <span className="step-pill">Signed in: {userEmail}</span>
-        <button
-          className="button secondary"
-          type="button"
-          onClick={() => {
-            setUserEmail(null);
-            window.localStorage.removeItem('aicas-supabase-email');
-            clearCurrentUserFromStorage();
-          }}
-        >
-          Sign Out
-        </button>
-      </div>
-      <WocApp />
-    </>
-  );
+  return <WocApp />;
 }
