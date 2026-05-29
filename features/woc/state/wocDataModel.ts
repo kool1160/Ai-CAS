@@ -129,7 +129,7 @@ export const defaultWocCorrectionData: WocCorrectionData = {
   material: '',
   nextOperation: '',
   inspectionOperation: '',
-  correctionType: 'Other',
+  correctionType: 'Incorrect Time / Rate',
   affectedArea: otherAffectedAreaOption,
   customAffectedArea: '',
   shortIssueDescription: '',

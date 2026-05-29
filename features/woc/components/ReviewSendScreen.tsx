@@ -663,6 +663,15 @@ export function ReviewSendScreen({
           </div>
         </div>
 
+        <div className="action-row" style={{ marginTop: 14 }}>
+          <label className="button secondary" htmlFor="review-evidence-upload-input">Add Evidence Photo</label>
+          <input accept="image/*" hidden id="review-evidence-upload-input" onChange={addPhotoEvidence} type="file" />
+        </div>
+
+        {photoEvidenceFeedback && (
+          <p className="field-help">{photoEvidenceFeedback.tone === 'success' ? 'Evidence: ' : 'Evidence error: '}{photoEvidenceFeedback.message}</p>
+        )}
+
         {photoEvidenceItems.length > 0 ? (
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             {photoEvidenceItems.map((item, index) => (
@@ -744,16 +753,11 @@ export function ReviewSendScreen({
         </summary>
 
         <div className="action-row" style={{ marginTop: 14 }}>
-          <label className="button secondary" htmlFor="review-evidence-upload-input">Add Evidence Photo</label>
-          <input accept="image/*" hidden id="review-evidence-upload-input" onChange={addPhotoEvidence} type="file" />
           <button className="button primary" type="button" disabled={isGeneratingAiDraft || !generatedPackage || !aiDraftFoundation} onClick={generateAiCorrectiveActionDraft}>
             {isGeneratingAiDraft ? 'Generating AI Corrective Action Draft...' : structuredDraft ? 'Regenerate AI Corrective Action Draft' : 'Generate AI Corrective Action Draft'}
           </button>
         </div>
 
-        {photoEvidenceFeedback && (
-          <p className="field-help">{photoEvidenceFeedback.tone === 'success' ? 'Evidence: ' : 'Evidence error: '}{photoEvidenceFeedback.message}</p>
-        )}
         {aiDraftFeedback && <p className="field-help">{aiDraftFeedback.tone === 'success' ? 'AI Draft: ' : 'AI Draft error: '}{aiDraftFeedback.message}</p>}
 
         {photoEvidenceItems.length > 0 && (
