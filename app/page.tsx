@@ -1,10 +1,10 @@
-import { WocApp } from '../features/woc/components/WocApp';
+import { AuthGate } from '../features/woc/components/AuthGate';
 import { LaunchSplash } from '../features/woc/components/LaunchSplash';
 
 export default function Home() {
   return (
     <LaunchSplash>
-      <WocApp />
+      <AuthGate />
     </LaunchSplash>
   );
 }

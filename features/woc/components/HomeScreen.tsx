@@ -2,10 +2,11 @@ import type { WorkflowStep } from '../types/wocSessionTypes';
 
 type HomeScreenProps = {
   workflow: WorkflowStep[];
+  signedInEmail: string;
   onStartCapture: () => void;
 };
 
-export function HomeScreen({ workflow, onStartCapture }: HomeScreenProps) {
+export function HomeScreen({ workflow, signedInEmail, onStartCapture }: HomeScreenProps) {
   return (
     <section className="stack home-screen">
       <div className="hero">
@@ -16,6 +17,7 @@ export function HomeScreen({ workflow, onStartCapture }: HomeScreenProps) {
           <p className="brand-subtitle">Powered by Applied Intelligence Framework</p>
         </div>
         <p className="helper-text">Clear. Guided. Fast.</p>
+        <p className="helper-text" style={{ marginTop: 8 }}>Signed in: {signedInEmail}</p>
         <button className="button primary full-width" type="button" onClick={onStartCapture}>Start Correction</button>
       </div>
 

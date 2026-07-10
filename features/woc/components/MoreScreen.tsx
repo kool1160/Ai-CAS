@@ -1,3 +1,4 @@
+import { AUTH_SIGN_OUT_EVENT } from '../logic/supabaseAuth';
 import type { LocalEngineeringAnalyticsSummary } from '../persistence/correctionRecordAnalytics';
 import type { ActionFeedback, CurrentUser, SetupConfig } from '../types/wocSessionTypes';
 
@@ -38,7 +39,6 @@ type MoreScreenProps = {
   onSaveSetupConfig: () => void;
   onClearLocalRecords?: () => void;
   onLogout: () => void;
-  onResetUser?: () => void;
 };
 
 export function MoreScreen({
@@ -53,33 +53,34 @@ export function MoreScreen({
   onUpdateSetupConfig,
   onSaveSetupConfig,
   onLogout,
-  onResetUser,
 }: MoreScreenProps) {
+  const handleSignOut = () => {
+    onLogout();
+    window.dispatchEvent(new Event(AUTH_SIGN_OUT_EVENT));
+  };
+
   return (
     <section className="stack more-admin-screen">
       <div className="screen-title">
         <h1>More</h1>
-        <p>Setup, help, and saved operator access.</p>
+        <p>Setup, help, and authenticated operator access.</p>
       </div>
 
       <div className="more-left-column">
         <article className="card more-user-panel">
           <h2>Current Operator</h2>
-          <p>This operator name is used as Submitted By on correction reports.</p>
+          <p>This authenticated operator identity is used as Submitted By on correction reports.</p>
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             <div className="placeholder-item">
               <strong>{currentUser.displayName}</strong>
               <span>{currentUser.emailOrEmployeeId}</span>
-              <span>Set up: {currentUser.loginTimestamp}</span>
+              <span>Signed in: {currentUser.loginTimestamp}</span>
             </div>
           </div>
           <div className="action-row">
-            <button className="button secondary full-width" type="button" onClick={onLogout}>Lock App</button>
-            {onResetUser && (
-              <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved Operator</button>
-            )}
+            <button className="button secondary full-width" type="button" onClick={handleSignOut}>Sign Out</button>
           </div>
-          <p className="field-help">Lock App keeps this operator saved and returns to the 4-digit App Access PIN. Reset Saved Operator clears this device profile and starts operator setup again.</p>
+          <p className="field-help">Signing out clears the Supabase session and returns this device to the AI-CAS account sign-in screen.</p>
         </article>
 
         <article className="card more-settings-panel">
@@ -107,7 +108,7 @@ export function MoreScreen({
       <div className="more-right-column">
         <article className="card more-setup-panel">
           <h2>Setup / Admin</h2>
-          <p>Setup controls for this device. Unlocking Setup is separate from the App Access PIN and requires the master code.</p>
+          <p>Setup controls for this device. Unlocking Setup is separate from account authentication and requires the master code.</p>
           {!setupUnlocked ? (
             <div className="form-grid" style={{ marginTop: 14 }}>
               <label>
