@@ -1,30 +1,78 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  AUTH_SIGN_OUT_EVENT,
+  clearSupabaseSession,
+  isSupabaseAuthConfigured,
+  loadSupabaseSession,
+  signInWithSupabase,
+  signOutWithSupabase,
+  signUpWithSupabase,
+  validateSupabaseSession,
+  type StoredSupabaseSession,
+} from '../logic/supabaseAuth';
 import { WocApp } from './WocApp';
-import { createCurrentUser, saveCurrentUserToStorage } from '../logic/currentUserStorage';
-import { isSupabaseAuthConfigured, supabaseAuthRequest } from '../../../lib/supabase/client';
 
 type Feedback = { tone: 'success' | 'error'; message: string } | null;
 
 const SUPABASE_NOT_CONFIGURED_MESSAGE = 'Supabase is not configured for this deployment. Check Vercel Preview environment variables.';
 const PASSWORD_TOO_SHORT_MESSAGE = 'Password must be at least 6 characters.';
 
-function getAuthErrorMessage(payload: Record<string, unknown> | null, fallback: string) {
-  const message = payload?.msg ?? payload?.message ?? payload?.error_description ?? payload?.error;
-  return typeof message === 'string' && message.trim() ? message : fallback;
-}
-
 export function AuthGate() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [session, setSession] = useState<StoredSupabaseSession | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [authResolved, setAuthResolved] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('aicas-supabase-email');
-    if (saved) setUserEmail(saved);
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      const savedSession = loadSupabaseSession();
+      if (!savedSession) {
+        if (!cancelled) setAuthResolved(true);
+        return;
+      }
+
+      try {
+        const validatedSession = await validateSupabaseSession(savedSession);
+        if (!cancelled) setSession(validatedSession);
+      } catch {
+        clearSupabaseSession();
+        if (!cancelled) {
+          setSession(null);
+          setFeedback({ tone: 'error', message: 'Your saved session expired. Sign in again.' });
+        }
+      } finally {
+        if (!cancelled) setAuthResolved(true);
+      }
+    };
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleSignOutRequest = () => {
+      const activeSession = loadSupabaseSession();
+      clearSupabaseSession();
+      setSession(null);
+      setEmail('');
+      setPassword('');
+      setFeedback({ tone: 'success', message: 'Signed out successfully.' });
+
+      if (activeSession) {
+        void signOutWithSupabase(activeSession.accessToken);
+      }
+    };
+
+    window.addEventListener(AUTH_SIGN_OUT_EVENT, handleSignOutRequest);
+    return () => window.removeEventListener(AUTH_SIGN_OUT_EVENT, handleSignOutRequest);
   }, []);
 
   const runAuth = async (mode: 'signin' | 'signup') => {
@@ -50,41 +98,40 @@ export function AuthGate() {
     setFeedback(null);
 
     try {
-      const path = mode === 'signup' ? '/signup' : '/token?grant_type=password';
-      const response = await supabaseAuthRequest(path, {
-        method: 'POST',
-        body: JSON.stringify({ email: normalizedEmail, password: normalizedPassword }),
-      });
-      const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+      const nextSession = mode === 'signup'
+        ? await signUpWithSupabase(normalizedEmail, normalizedPassword)
+        : await signInWithSupabase(normalizedEmail, normalizedPassword);
 
-      if (!response.ok) {
-        setFeedback({
-          tone: 'error',
-          message: getAuthErrorMessage(payload, `Auth failed with status ${response.status}.`),
-        });
-        return;
-      }
-
-      const payloadUser = payload?.user;
-      const nextEmail = typeof payloadUser === 'object' && payloadUser !== null && 'email' in payloadUser && typeof payloadUser.email === 'string'
-        ? payloadUser.email
-        : normalizedEmail;
-
-      setUserEmail(nextEmail);
-      window.localStorage.setItem('aicas-supabase-email', nextEmail);
-      saveCurrentUserToStorage(createCurrentUser(nextEmail, nextEmail, '0000'));
-      setFeedback({ tone: 'success', message: mode === 'signup' ? 'Account created and signed in.' : 'Signed in successfully.' });
+      setSession(nextSession);
+      setEmail('');
+      setPassword('');
     } catch (error) {
       setFeedback({
         tone: 'error',
-        message: error instanceof Error && error.message ? error.message : SUPABASE_NOT_CONFIGURED_MESSAGE,
+        message: error instanceof Error && error.message ? error.message : 'Supabase authentication failed.',
       });
+      setPassword('');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!userEmail) {
+  if (!authResolved) {
+    return (
+      <main className="app-shell">
+        <div className="app-frame">
+          <section className="stack home-screen">
+            <article className="card">
+              <h2>Restoring your AI-CAS session...</h2>
+              <p className="field-help">Checking your secure Supabase session.</p>
+            </article>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (!session) {
     return (
       <main className="app-shell">
         <div className="app-frame">
@@ -93,11 +140,11 @@ export function AuthGate() {
               <h2>AI-CAS Sign In</h2>
               <label>
                 Email
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
               </label>
               <label>
                 Password
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <input autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
               </label>
               {feedback && (
                 <div
