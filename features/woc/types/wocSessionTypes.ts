@@ -12,11 +12,18 @@ export type ActionFeedback = {
   message: string;
 } | null;
 
+export type AuthenticatedUser = {
+  id: string;
+  email: string;
+  displayName: string;
+};
+
 export type CurrentUser = {
   userId: string;
+  id: string;
   displayName: string;
+  email: string;
   emailOrEmployeeId: string;
-  appUnlockPin: string;
   loginTimestamp: string;
 };
 

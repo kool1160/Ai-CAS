@@ -16,25 +16,25 @@ export function normalizePin(value: string) {
 
 export function getSubmittedByLabel(user: CurrentUser | null) {
   if (!user) return 'Unknown local user';
-  return `${user.displayName} (${user.emailOrEmployeeId})`;
+  return `${user.displayName} (${user.email})`;
 }
 
 export function sanitizeCurrentUser(value: unknown): CurrentUser | null {
   if (!isObject(value)) return null;
 
-  const userId = stringValue(value.userId);
+  const userId = stringValue(value.userId || value.id);
   const displayName = stringValue(value.displayName);
-  const emailOrEmployeeId = stringValue(value.emailOrEmployeeId);
-  const appUnlockPin = normalizePin(stringValue(value.appUnlockPin));
+  const email = stringValue(value.email || value.emailOrEmployeeId);
   const loginTimestamp = stringValue(value.loginTimestamp);
 
-  if (!userId || !displayName || !emailOrEmployeeId || appUnlockPin.length !== 4 || !loginTimestamp) return null;
+  if (!userId || !displayName || !email || !loginTimestamp) return null;
 
   return {
     userId,
+    id: userId,
     displayName,
-    emailOrEmployeeId,
-    appUnlockPin,
+    email,
+    emailOrEmployeeId: email,
     loginTimestamp,
   };
 }
@@ -55,18 +55,4 @@ export function saveCurrentUserToStorage(user: CurrentUser) {
 
 export function clearCurrentUserFromStorage() {
   window.localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
-}
-
-export function createCurrentUser(displayName: string, emailOrEmployeeId: string, appUnlockPin: string): CurrentUser {
-  const cleanedName = displayName.trim();
-  const cleanedId = emailOrEmployeeId.trim();
-  const cleanedPin = normalizePin(appUnlockPin);
-
-  return {
-    userId: `USER-${Date.now()}`,
-    displayName: cleanedName,
-    emailOrEmployeeId: cleanedId,
-    appUnlockPin: cleanedPin,
-    loginTimestamp: new Date().toLocaleString(),
-  };
 }

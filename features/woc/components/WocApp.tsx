@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  clearCurrentUserFromStorage,
-  createCurrentUser,
-  getSubmittedByLabel,
-  loadCurrentUserFromStorage,
-  saveCurrentUserToStorage,
-} from '../logic/currentUserStorage';
+import { getSubmittedByLabel } from '../logic/currentUserStorage';
 import {
   clearLocalRecordsStorage,
   loadDraftRecordsFromStorage,
@@ -35,6 +29,7 @@ import {
 } from '../state/wocDataModel';
 import type {
   ActionFeedback,
+  AuthenticatedUser,
   CurrentUser,
   DraftRecord,
   ExtractedWorkOrderData,
@@ -53,7 +48,6 @@ import { DraftsScreen } from './DraftsScreen';
 import { GenerateScreen } from './GenerateScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { HomeScreen } from './HomeScreen';
-import { LoginScreen } from './LoginScreen';
 import { MoreScreen } from './MoreScreen';
 import { ReviewSendScreen } from './ReviewSendScreen';
 
@@ -111,15 +105,21 @@ function safeFieldSourceNotes(value: unknown) {
   }, {});
 }
 
-export function WocApp() {
+type WocAppProps = {
+  authenticatedUser: AuthenticatedUser;
+  onSignOut: () => void;
+};
+
+export function WocApp({ authenticatedUser, onSignOut }: WocAppProps) {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
-  const [appUnlocked, setAppUnlocked] = useState(false);
-  const [loginDisplayName, setLoginDisplayName] = useState('');
-  const [loginEmailOrEmployeeId, setLoginEmailOrEmployeeId] = useState('');
-  const [appUnlockPin, setAppUnlockPin] = useState('');
-  const [loginFeedback, setLoginFeedback] = useState<ActionFeedback>(null);
+  const currentUser: CurrentUser = useMemo(() => ({
+    userId: authenticatedUser.id,
+    id: authenticatedUser.id,
+    displayName: authenticatedUser.displayName,
+    email: authenticatedUser.email,
+    emailOrEmployeeId: authenticatedUser.email,
+    loginTimestamp: new Date().toLocaleString(),
+  }), [authenticatedUser.displayName, authenticatedUser.email, authenticatedUser.id]);
 
   const [wocData, setWocData] = useState<WocCorrectionData>(defaultWocCorrectionData);
   const [confirmations, setConfirmations] = useState<WocConfirmationState>(defaultWocConfirmations);
@@ -164,8 +164,6 @@ export function WocApp() {
   }, [uploadedFile?.previewUrl]);
 
   useEffect(() => {
-    setCurrentUser(loadCurrentUserFromStorage());
-    setCurrentUserLoaded(true);
     setDraftRecords(loadDraftRecordsFromStorage());
     setHistoryRecords(loadHistoryRecordsFromStorage());
     setSetupConfig(loadSetupConfigFromStorage());
@@ -205,65 +203,8 @@ export function WocApp() {
     setSendPin('');
   };
 
-  const handleSetupUser = () => {
-    if (!loginDisplayName.trim() || !loginEmailOrEmployeeId.trim()) {
-      setLoginFeedback({ tone: 'error', message: 'Enter a user name and email or employee ID.' });
-      return;
-    }
-
-    if (appUnlockPin.length !== 4) {
-      setLoginFeedback({ tone: 'error', message: 'Set a 4-digit App PIN.' });
-      return;
-    }
-
-    const nextUser = createCurrentUser(loginDisplayName, loginEmailOrEmployeeId, appUnlockPin);
-    saveCurrentUserToStorage(nextUser);
-    setCurrentUser(nextUser);
-    setAppUnlocked(true);
-    setLoginDisplayName('');
-    setLoginEmailOrEmployeeId('');
-    setAppUnlockPin('');
-    setLoginFeedback(null);
-    setActiveScreen('home');
-  };
-
-  const handleUnlockApp = () => {
-    if (!currentUser) return;
-
-    if (appUnlockPin !== currentUser.appUnlockPin) {
-      setLoginFeedback({ tone: 'error', message: 'Incorrect App PIN.' });
-      setAppUnlockPin('');
-      return;
-    }
-
-    setAppUnlocked(true);
-    setAppUnlockPin('');
-    setLoginFeedback(null);
-    setActiveScreen('home');
-  };
-
-  const handleResetUser = () => {
-    const confirmed = window.confirm('Reset the saved local user? You will need to enter name, ID, and a new App PIN again.');
-    if (!confirmed) return;
-
-    clearCurrentUserFromStorage();
-    setCurrentUser(null);
-    setAppUnlocked(false);
-    setAppUnlockPin('');
-    setLoginDisplayName('');
-    setLoginEmailOrEmployeeId('');
-    setLoginFeedback(null);
-    setActiveScreen('home');
-  };
-
-  const handleLockApp = () => {
-    setAppUnlocked(false);
-    setAppUnlockPin('');
-    setSetupUnlocked(false);
-    setSetupCodeInput('');
-    setSendPin('');
-    setDraftSendPin('');
-    setActiveScreen('home');
+  const handleSignOut = () => {
+    onSignOut();
   };
 
   const updateWocData = (key: keyof WocCorrectionData, value: string) => {
@@ -715,35 +656,6 @@ export function WocApp() {
     if (key === 'partNumber') confirmPartNumber();
   };
 
-  if (!currentUserLoaded) return null;
-
-  if (!currentUser || !appUnlocked) {
-    return (
-      <LoginScreen
-        savedUser={currentUser}
-        displayName={loginDisplayName}
-        emailOrEmployeeId={loginEmailOrEmployeeId}
-        appUnlockPin={appUnlockPin}
-        loginFeedback={loginFeedback}
-        onDisplayNameChange={(value) => {
-          setLoginDisplayName(value);
-          setLoginFeedback(null);
-        }}
-        onEmailOrEmployeeIdChange={(value) => {
-          setLoginEmailOrEmployeeId(value);
-          setLoginFeedback(null);
-        }}
-        onAppUnlockPinChange={(value) => {
-          setAppUnlockPin(normalizePin(value));
-          setLoginFeedback(null);
-        }}
-        onSetupUser={handleSetupUser}
-        onUnlockApp={handleUnlockApp}
-        onResetUser={handleResetUser}
-      />
-    );
-  }
-
   return (
     <main className="app-shell">
       <div className="app-frame">
@@ -852,7 +764,7 @@ export function WocApp() {
             onUpdateSetupConfig={updateSetupConfig}
             onSaveSetupConfig={saveSetupConfig}
             onClearLocalRecords={clearLocalRecords}
-            onLogout={handleLockApp}
+            onLogout={handleSignOut}
           />
         )}
       </div>

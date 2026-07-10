@@ -39,13 +39,13 @@ export function MoreScreen({
     <section className="stack more-admin-screen">
       <div className="screen-title">
         <h1>More</h1>
-        <p>Settings, help, setup/admin controls, and saved user access.</p>
+        <p>Settings, help, setup/admin controls, and authenticated user access.</p>
       </div>
 
       <div className="more-left-column">
         <article className="card more-user-panel">
           <h2>Current User</h2>
-          <p>This saved identity is used as Submitted By on correction reports.</p>
+          <p>This authenticated identity is used as Submitted By on correction reports and exposes the user ID for future cloud ownership.</p>
           <div className="placeholder-list" style={{ marginTop: 14 }}>
             <div className="placeholder-item">
               <strong>{currentUser.displayName}</strong>
@@ -54,12 +54,12 @@ export function MoreScreen({
             </div>
           </div>
           <div className="action-row">
-            <button className="button secondary full-width" type="button" onClick={onLogout}>Lock App</button>
+            <button className="button secondary full-width" type="button" onClick={onLogout}>Sign Out</button>
             {onResetUser && (
               <button className="button danger full-width" type="button" onClick={onResetUser}>Reset Saved User</button>
             )}
           </div>
-          <p className="field-help">Lock App keeps the saved identity and returns to the 4-digit App Access PIN screen. Reset Saved User clears the local profile and returns to first-time setup.</p>
+          <p className="field-help">Sign Out clears the active authenticated session and local compatibility identity, then returns to AI-CAS Sign In.</p>
         </article>
 
         <article className="card more-settings-panel">

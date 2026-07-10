@@ -1,17 +1,17 @@
-import type { ActionFeedback, CurrentUser } from '../types/wocSessionTypes';
+import type { ActionFeedback } from '../types/wocSessionTypes';
 
 type LoginScreenProps = {
-  savedUser: CurrentUser | null;
+  isSignUpMode: boolean;
   displayName: string;
-  emailOrEmployeeId: string;
-  appUnlockPin: string;
+  email: string;
+  password: string;
   loginFeedback: ActionFeedback;
   onDisplayNameChange: (value: string) => void;
-  onEmailOrEmployeeIdChange: (value: string) => void;
-  onAppUnlockPinChange: (value: string) => void;
-  onSetupUser: () => void;
-  onUnlockApp: () => void;
-  onResetUser: () => void;
+  onEmailChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onSignIn: () => void;
+  onSignUp: () => void;
+  onToggleMode: () => void;
 };
 
 function resetViewportToTop() {
@@ -24,68 +24,64 @@ function resetViewportToTop() {
 }
 
 export function LoginScreen({
-  savedUser,
+  isSignUpMode,
   displayName,
-  emailOrEmployeeId,
-  appUnlockPin,
+  email,
+  password,
   loginFeedback,
   onDisplayNameChange,
-  onEmailOrEmployeeIdChange,
-  onAppUnlockPinChange,
-  onSetupUser,
-  onUnlockApp,
-  onResetUser,
+  onEmailChange,
+  onPasswordChange,
+  onSignIn,
+  onSignUp,
+  onToggleMode,
 }: LoginScreenProps) {
-  const isReturningUser = Boolean(savedUser);
-
   const handleAccessAction = () => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
 
-    if (isReturningUser) {
-      onUnlockApp();
+    if (isSignUpMode) {
+      onSignUp();
     } else {
-      onSetupUser();
+      onSignIn();
     }
 
     resetViewportToTop();
   };
+
+  const primaryDisabled = !email.trim() || !password || (isSignUpMode && !displayName.trim());
 
   return (
     <main className="app-shell">
       <div className="app-frame">
         <section className="stack home-screen">
           <div className="hero">
-            <span className="status-pill"><span className="status-dot" />APP LOCKED</span>
+            <span className="status-pill"><span className="status-dot" />AUTH REQUIRED</span>
             <div className="brand-mark">
               <h1 className="brand-title">AI-CAS</h1>
               <p className="brand-subtitle">Corrective Action System</p>
               <p className="brand-subtitle">Powered by Applied Intelligence Framework</p>
-              <p className="brand-subtitle">App Access PIN</p>
+              <p className="brand-subtitle">Authenticated Access</p>
             </div>
             <p className="helper-text">
-              {isReturningUser
-                ? 'Enter the 4-digit App Access PIN to prevent casual or accidental use.'
-                : 'Set up the submitting user once, then protect app access with a 4-digit PIN.'}
+              {isSignUpMode
+                ? 'Create an AI-CAS account so future cloud records can be owned by an authenticated user ID.'
+                : 'Sign in to restore your AI-CAS session and continue corrective action work.'}
             </p>
           </div>
 
           <article className="card">
             <div className="card-header">
               <div>
-                <h2>{isReturningUser ? 'Unlock AI-CAS' : 'First-Time Setup'}</h2>
-                <p>
-                  {isReturningUser
-                    ? `Submitted By: ${savedUser?.displayName} (${savedUser?.emailOrEmployeeId})`
-                    : 'This saved identity appears on reports as Submitted By.'}
-                </p>
+                <h2>{isSignUpMode ? 'Sign Up for AI-CAS' : 'Sign In to AI-CAS'}</h2>
+                <p>{isSignUpMode ? 'Your email and generated user ID become the app identity source.' : 'Authentication is required before the app loads.'}</p>
               </div>
               <span className="field-status">AI-CAS</span>
             </div>
 
-            {!isReturningUser && (
-              <div className="form-grid">
+            <div className="form-grid">
+              {isSignUpMode && (
                 <label>
                   User Name
                   <input
@@ -95,29 +91,25 @@ export function LoginScreen({
                     placeholder="Enter your name"
                   />
                 </label>
-                <label>
-                  Email or Employee ID
-                  <input
-                    type="text"
-                    value={emailOrEmployeeId}
-                    onChange={(event) => onEmailOrEmployeeIdChange(event.target.value)}
-                    placeholder="Email or employee ID"
-                  />
-                </label>
-              </div>
-            )}
-
-            <div className="form-grid" style={{ marginTop: isReturningUser ? 0 : 14 }}>
+              )}
               <label>
-                4-Digit App Access PIN
+                Email
                 <input
-                  inputMode="numeric"
-                  maxLength={4}
-                  pattern="[0-9]*"
+                  autoComplete="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => onEmailChange(event.target.value)}
+                  placeholder="you@example.com"
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  autoComplete={isSignUpMode ? 'new-password' : 'current-password'}
                   type="password"
-                  value={appUnlockPin}
-                  onChange={(event) => onAppUnlockPinChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="Enter PIN"
+                  value={password}
+                  onChange={(event) => onPasswordChange(event.target.value)}
+                  placeholder="Enter password"
                 />
               </label>
             </div>
@@ -127,18 +119,17 @@ export function LoginScreen({
             )}
 
             <div className="action-row">
-              <button className="button primary full-width" type="button" disabled={appUnlockPin.length !== 4} onClick={handleAccessAction}>
-                {isReturningUser ? 'Unlock AI-CAS' : 'Save User + Unlock'}
+              <button className="button primary full-width" type="button" disabled={primaryDisabled} onClick={handleAccessAction}>
+                {isSignUpMode ? 'Sign Up + Enter AI-CAS' : 'Sign In'}
+              </button>
+            </div>
+            <div className="action-row">
+              <button className="button secondary full-width" type="button" onClick={onToggleMode}>
+                {isSignUpMode ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
               </button>
             </div>
 
-            {isReturningUser && (
-              <div className="action-row">
-                <button className="button secondary full-width" type="button" onClick={onResetUser}>Reset Saved User</button>
-              </div>
-            )}
-
-            <p className="field-help">This is a lightweight childproof / accidental-use lock. Controlled release actions remain gated separately.</p>
+            <p className="field-help">Session state is owned by AuthGate. Local compatibility identity is rebuilt only from a valid authenticated session.</p>
           </article>
         </section>
       </div>
