@@ -1,0 +1,227 @@
+name: AI-CAS Foreman
+
+on:
+  workflow_dispatch:
+    inputs:
+      milestone:
+        description: 'Milestone number; blank selects the first eligible milestone'
+        required: false
+        type: string
+      publish:
+        description: 'Request the separately approval-gated draft PR publishing job'
+        required: true
+        default: false
+        type: boolean
+      repository_protections_verified:
+        description: 'Operator attestation that GitHub branch protection and publishing reviewers were independently verified'
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: ai-cas-foreman
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  execute:
+    name: Plan and execute selected milestone
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      milestone_number: ${{ steps.select.outputs.number }}
+      milestone_name: ${{ steps.select.outputs.name }}
+      codex_outcome: ${{ steps.codex.outcome }}
+    steps:
+      - name: Check out authoritative main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reject unverified publishing request
+        if: inputs.publish == true && inputs.repository_protections_verified != true
+        shell: bash
+        run: |
+          echo 'Publishing requires repository_protections_verified=true after independent GitHub settings verification.' >&2
+          exit 1
+
+      - name: Select exactly one milestone
+        id: select
+        shell: bash
+        env:
+          REQUESTED_MILESTONE: ${{ inputs.milestone }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ai-cas
+          node scripts/select-milestone.mjs --number "${REQUESTED_MILESTONE}" --context .ai-cas/selected-milestone.md | tee "$RUNNER_TEMP/selection.txt"
+          number="$(sed -n 's/^Selected Milestone \([0-9][0-9]*\):.*$/\1/p' "$RUNNER_TEMP/selection.txt")"
+          name="$(sed -n 's/^Selected Milestone [0-9][0-9]*: //p' "$RUNNER_TEMP/selection.txt")"
+          test -n "$number" && test -n "$name"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          printf '.ai-cas/\n' >> .git/info/exclude
+
+      - name: Read Foreman model default
+        id: model
+        shell: bash
+        run: |
+          set -euo pipefail
+          model="$(tr -d '[:space:]' < .github/codex/model-default.txt)"
+          test -n "$model"
+          echo "name=$model" >> "$GITHUB_OUTPUT"
+
+      - name: Create structured planning artifact
+        shell: bash
+        env:
+          MILESTONE_NUMBER: ${{ steps.select.outputs.number }}
+          MILESTONE_NAME: ${{ steps.select.outputs.name }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg status "planned" \
+            --argjson milestone_number "$MILESTONE_NUMBER" \
+            --arg milestone_name "$MILESTONE_NAME" \
+            '{status:$status,milestone_number:$milestone_number,milestone_name:$milestone_name,goal:("Execute the selected AI-CAS milestone: " + $milestone_name),authority_files:["AI-CAS_PROJECT_SUMMARY.md","AGENTS.md","docs/PRODUCT_DIRECTION.md","docs/PRODUCT_CONSTITUTION.md","docs/ARCHITECTURE.md","docs/PRODUCT_TEAM.md","BACKLOG.md",".ai-cas/selected-milestone.md","DECISIONS.md","GLOSSARY.md"],affected_roles:["AI-CAS Foreman","Corrective Action Workflow Engineer","Manufacturing Operations Engineer","AI Extraction Engineer","Data and Records Engineer","Security and Access Engineer","UX and Mobile Workflow Engineer","Validation Engineer","Deployment Engineer","Product and Commercial Engineer","Privacy and IP Guardian"],scope_in:["Selected milestone acceptance criteria"],scope_out:["Automatic merge","Automatic deployment","GitHub or Vercel rename","Destructive actions","Real customer or employer data"],acceptance_criteria:["Evidence-backed completion","Repository contract checks pass","No unauthorized application changes"],assumptions:["The project summary remains primary"],conflicts:[],risks:["Unavailable application build until dependencies and a lockfile exist"],approval_boundaries:["Publishing requires explicit approval","Merge and deployment require explicit approval"],checks:["bash scripts/ci-contract.sh","git diff --check"]}' \
+            > "$RUNNER_TEMP/ai-cas-planning.json"
+
+      - name: Validate planning artifact before Codex
+        shell: bash
+        env:
+          MILESTONE_NUMBER: ${{ steps.select.outputs.number }}
+        run: node scripts/validate-governance.mjs --planning "$RUNNER_TEMP/ai-cas-planning.json" --milestone "$MILESTONE_NUMBER"
+
+      - name: Verify dedicated non-production Foreman credential
+        shell: bash
+        env:
+          FOREMAN_OPENAI_KEY: ${{ secrets.AI_CAS_FOREMAN_OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$FOREMAN_OPENAI_KEY" ]]; then
+            echo 'AI_CAS_FOREMAN_OPENAI_API_KEY is not configured; Codex execution stopped.' >&2
+            exit 1
+          fi
+
+      - name: Run Codex in isolated workspace
+        id: codex
+        continue-on-error: true
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.AI_CAS_FOREMAN_OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/run-milestone.md
+          model: ${{ steps.model.outputs.name }}
+          effort: medium
+          codex-args: '["--ephemeral"]'
+          output-schema-file: .github/codex/schemas/foreman-result.schema.json
+          output-file: ${{ runner.temp }}/ai-cas-foreman-result.json
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+
+      - name: Validate result and local patch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$RUNNER_TEMP/ai-cas-foreman-result.json"
+          node scripts/validate-governance.mjs --result "$RUNNER_TEMP/ai-cas-foreman-result.json" --milestone "${{ steps.select.outputs.number }}"
+          git diff --check
+          bash scripts/ci-contract.sh
+
+      - name: Export planning, result, logs, and patch artifact
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/ai-cas-foreman"
+          mkdir -p "$artifact"
+          cp "$RUNNER_TEMP/ai-cas-planning.json" "$artifact/foreman-planning.json"
+          cp "$RUNNER_TEMP/ai-cas-foreman-result.json" "$artifact/foreman-result.json"
+          cp .ai-cas/selected-milestone.md "$artifact/selected-milestone.md"
+          git diff --binary --full-index main -- . ':!.ai-cas' > "$artifact/ai-cas.patch"
+          printf '{"codex_outcome":"%s","milestone_number":"%s","milestone_name":"%s"}\n' \
+            '${{ steps.codex.outcome }}' '${{ steps.select.outputs.number }}' '${{ steps.select.outputs.name }}' > "$artifact/metadata.json"
+
+      - name: Upload Foreman artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-cas-foreman-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ai-cas-foreman
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail if Codex did not complete
+        if: steps.codex.outcome != 'success'
+        shell: bash
+        run: |
+          echo 'Codex did not complete. Review the uploaded planning artifact.' >&2
+          exit 1
+
+  publish:
+    name: Publish one approval-gated draft PR
+    needs: execute
+    if: inputs.publish == true && inputs.repository_protections_verified == true && needs.execute.result == 'success'
+    runs-on: ubuntu-latest
+    environment: ai-cas-publish-approval
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out clean main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download Foreman artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ai-cas-foreman-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ai-cas-foreman
+
+      - name: Apply and validate patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -s "$RUNNER_TEMP/ai-cas-foreman/ai-cas.patch" ]]; then
+            git apply --index --3way "$RUNNER_TEMP/ai-cas-foreman/ai-cas.patch"
+          fi
+          git diff --cached --check
+          bash scripts/ci-contract.sh
+
+      - name: Create one draft pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MILESTONE_NUMBER: ${{ needs.execute.outputs.milestone_number }}
+          MILESTONE_NAME: ${{ needs.execute.outputs.milestone_name }}
+        run: |
+          set -euo pipefail
+          if git diff --cached --quiet; then
+            echo 'No publishable changes were produced.'
+            exit 0
+          fi
+          slug="$(printf '%s' "$MILESTONE_NAME" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/^-//; s/-$//' | cut -c1-48)"
+          branch="codex/milestone-${MILESTONE_NUMBER}-${slug}"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "Milestone branch already exists: $branch. Stopping without overwrite or force-push." >&2
+            exit 1
+          fi
+          open_prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --head "$branch" --json number --jq 'length')"
+          all_prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state all --head "$branch" --json number --jq 'length')"
+          if [[ "$open_prs" != "0" || "$all_prs" != "0" ]]; then
+            echo "A pull request already exists or existed for milestone ${MILESTONE_NUMBER} branch $branch. Stopping without duplication." >&2
+            exit 1
+          fi
+          git switch -c "$branch"
+          git config user.name 'AI-CAS Foreman'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "feat: establish AI-CAS milestone governance"
+          git push --set-upstream origin "$branch"
+          gh pr create --base main --head "$branch" --draft \
+            --title "Milestone ${MILESTONE_NUMBER}: ${MILESTONE_NAME}" \
+            --body "Generated by the approval-gated AI-CAS Foreman for milestone ${MILESTONE_NUMBER}. Repository protection attestation was supplied by the operator. Merge, deployment, rename, production settings, and destructive actions remain human approval boundaries."

@@ -1,0 +1,36 @@
+name: AI-CAS CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ai-cas-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: Governance contract checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run offline governance checks
+        shell: bash
+        run: bash scripts/ci-contract.sh
+
+      - name: Report application checks
+        shell: bash
+        run: |
+          if [[ -f package-lock.json || -f pnpm-lock.yaml || -f yarn.lock || -f bun.lock || -f bun.lockb ]]; then
+            echo 'A later milestone may enable the application build and test commands.'
+          else
+            echo 'Application build and test checks unavailable: no dependency lockfile and no test command.'
+          fi

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI-CAS Foreman Planning Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": { "type": "string", "enum": ["planned", "approval_required", "blocked"] },
+    "milestone_number": { "type": "integer", "minimum": 0 },
+    "milestone_name": { "type": "string", "minLength": 1 },
+    "goal": { "type": "string", "minLength": 1 },
+    "authority_files": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "affected_roles": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "scope_in": { "type": "array", "items": { "type": "string" } },
+    "scope_out": { "type": "array", "items": { "type": "string" } },
+    "acceptance_criteria": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "conflicts": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "approval_boundaries": { "type": "array", "items": { "type": "string" } },
+    "checks": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["status", "milestone_number", "milestone_name", "goal", "authority_files", "affected_roles", "scope_in", "scope_out", "acceptance_criteria", "assumptions", "conflicts", "risks", "approval_boundaries", "checks"]
+}
