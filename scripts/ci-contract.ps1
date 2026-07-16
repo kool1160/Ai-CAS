@@ -1,5 +1,20 @@
 $ErrorActionPreference = 'Stop'
 
+$hasRg = $null -ne (Get-Command rg -ErrorAction SilentlyContinue)
+if (-not $hasRg) { Write-Output 'ripgrep unavailable; using Select-String fallback for governance search checks.' }
+
+function Find-RepoMatches([string]$Pattern) {
+  if ($hasRg) {
+    return @(rg -n --hidden --glob '!.git/**' --glob '!node_modules/**' --glob '!.next/**' --glob '!.ai-cas/**' $Pattern . 2>$null)
+  }
+  return @(Get-ChildItem -Recurse -File -Force | Where-Object { $_.FullName -notmatch '\\.git([\\/]|$)|node_modules([\\/]|$)|\.next([\\/]|$)|\.ai-cas([\\/]|$)' } | Select-String -Pattern $Pattern)
+}
+
+function Find-DirectoryMatches([string]$Pattern, [string]$Directory) {
+  if ($hasRg) { return @(rg -n -i $Pattern $Directory 2>$null) }
+  return @(Get-ChildItem -LiteralPath $Directory -Recurse -File -Force | Select-String -Pattern $Pattern -CaseSensitive:$false)
+}
+
 $requiredFiles = @(
   'AI-CAS_PROJECT_SUMMARY.md', 'AGENTS.md', 'BACKLOG.md', 'DECISIONS.md', 'GLOSSARY.md',
   'docs/PRODUCT_DIRECTION.md', 'docs/PRODUCT_CONSTITUTION.md', 'docs/ARCHITECTURE.md',
@@ -41,12 +56,16 @@ foreach ($schema in Get-ChildItem -LiteralPath '.github/codex/schemas' -Filter '
 }
 
 $secretPattern = '(sk-[A-Za-z0-9_-]{20,}|OPENAI_API_KEY\s*=\s*[A-Za-z0-9_-]{8,}|RESEND_API_KEY\s*=\s*[A-Za-z0-9_-]{8,})'
-$matches = rg -n --hidden --glob '!.git/**' --glob '!node_modules/**' --glob '!.next/**' --glob '!.ai-cas/**' $secretPattern . 2>$null
-if ($LASTEXITCODE -eq 0 -and $matches) { throw 'Potential committed secret detected.' }
+$matches = Find-RepoMatches $secretPattern
+if ($matches) { throw 'Potential committed secret detected.' }
 
 if ((Test-Path tests) -or (Test-Path fixtures) -or (Test-Path public/fixtures)) {
-  $sensitive = rg -n -i '(customer|employer|confidential|proprietary|real work order)' tests fixtures public/fixtures 2>$null
-  if ($LASTEXITCODE -eq 0 -and $sensitive) { throw 'Potential sensitive fixture content detected.' }
+  foreach ($directory in @('tests', 'fixtures', 'public/fixtures')) {
+    if (Test-Path $directory) {
+      $sensitive = Find-DirectoryMatches '(customer|employer|confidential|proprietary|real work order)' $directory
+      if ($sensitive) { throw "Potential sensitive fixture content detected in $directory." }
+    }
+  }
 }
 
 if ((Test-Path package-lock.json) -or (Test-Path pnpm-lock.yaml) -or (Test-Path yarn.lock) -or (Test-Path bun.lock) -or (Test-Path bun.lockb)) {
