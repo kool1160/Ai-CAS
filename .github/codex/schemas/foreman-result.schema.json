@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI-CAS Foreman Result",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": { "type": "string", "enum": ["completed", "approval_required", "blocked"] },
+    "milestone_number": { "type": "integer", "minimum": 0 },
+    "milestone_name": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "files_changed": { "type": "array", "items": { "type": "string" } },
+    "application_files_changed": { "type": "array", "items": { "type": "string" } },
+    "tests": { "type": "array", "items": { "type": "string" } },
+    "validation_results": { "type": "array", "items": { "type": "string" } },
+    "specialist_reviews": { "type": "array", "items": { "type": "string" } },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "conflicts": { "type": "array", "items": { "type": "string" } },
+    "unresolved_risks": { "type": "array", "items": { "type": "string" } },
+    "approval_required": { "type": ["string", "null"] },
+    "merge_allowed": { "type": "boolean" },
+    "deploy_allowed": { "type": "boolean" },
+    "recommended_next_action": { "type": "string", "minLength": 1 }
+  },
+  "required": ["status", "milestone_number", "milestone_name", "summary", "files_changed", "application_files_changed", "tests", "validation_results", "specialist_reviews", "assumptions", "conflicts", "unresolved_risks", "approval_required", "merge_allowed", "deploy_allowed", "recommended_next_action"]
+}

@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.vercel/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.ai-cas/
+.DS_Store
+Thumbs.db
