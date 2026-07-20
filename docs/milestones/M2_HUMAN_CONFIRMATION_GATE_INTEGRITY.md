@@ -127,6 +127,7 @@ condition and must not be added silently by the Foreman.
 - `docs/handoffs/M1_PLANNING_HANDOFF.md`
 - `docs/milestones/M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md`
 - `docs/handoffs/M2_PLANNING_HANDOFF.md`
+- `docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md`
 - `features/woc/components/WocApp.tsx`
 - `features/woc/components/ReviewSendScreen.tsx`
 - `features/woc/components/DraftsScreen.tsx`
@@ -182,6 +183,11 @@ condition and must not be added silently by the Foreman.
 - `node scripts/validate-scope.mjs --milestone 2`
 - `node scripts/governance-regression.mjs`
 - `git diff --check`
+
+## Queue transition
+
+On successful completion, mark M2 Complete and not selected, then mark M3
+selected. Do not select M3 before M2 evidence and handoff are complete.
 
 ## Approval boundaries
 
