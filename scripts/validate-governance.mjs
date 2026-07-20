@@ -82,6 +82,8 @@ function checkWorkflowPolicy() {
   if (/secrets\.OPENAI_API_KEY/.test(foreman)) fail('Generic OPENAI_API_KEY is injected into Foreman');
   if (!foreman.includes('repository_protections_verified') || !foreman.includes('default: false')) fail('Publishing attestation is not false-by-default');
   if (!foreman.includes('environment: ai-cas-publish-approval')) fail('Publishing environment is missing');
+  const checkoutBlocks = [...foreman.matchAll(/- name: Check out (authoritative main|clean main)[\s\S]*?persist-credentials: (true|false)/g)];
+  if (checkoutBlocks.length !== 2 || checkoutBlocks[0][2] !== 'false' || checkoutBlocks[1][2] !== 'true') fail('Checkout credential scope is unsafe');
   if (!foreman.includes('git ls-remote --exit-code --heads origin "$branch"')) fail('Stable milestone branch collision check is missing');
   if (!foreman.includes('gh pr list --repo "$GITHUB_REPOSITORY" --state open --head "$branch"')) fail('Open milestone PR check is missing');
   if (!foreman.includes('gh pr list --repo "$GITHUB_REPOSITORY" --state all --head "$branch"')) fail('Historical milestone PR check is missing');
