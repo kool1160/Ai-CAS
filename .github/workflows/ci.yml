@@ -21,6 +21,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Prepare base branch comparison
+        shell: bash
+        run: git branch main origin/main
 
       - name: Run offline governance checks
         shell: bash

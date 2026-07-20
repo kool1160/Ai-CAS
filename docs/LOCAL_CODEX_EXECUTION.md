@@ -98,3 +98,8 @@ and untracked paths, rejects ignored files outside `.ai-cas/`, and defaults to
 deny. Foreman patch artifacts are exported from the staged index with
 `git diff --cached --binary --full-index`; the execute job stages changes for
 artifact construction but never commits them.
+
+The governance CI checkout fetches the base branch history before reconciling
+the handoff's exact changed-file list. The contracts prefer local `main` and
+fall back to `origin/main` for detached pull-request merge checkouts; they fail
+closed when neither reference is available.

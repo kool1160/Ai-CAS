@@ -99,7 +99,12 @@ const handoff = fs.readFileSync('docs/handoffs/M1_PLANNING_HANDOFF.md', 'utf8');
 const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
 if (!match) throw new Error('M1 handoff JSON block is missing.');
 const listed = JSON.parse(match[1]).files_changed;
-const actual = execFileSync('git', ['diff', '--name-only', 'main...HEAD'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+let baseRef;
+for (const candidate of ['main', 'origin/main']) {
+  try { execFileSync('git', ['rev-parse', '--verify', candidate], { stdio: 'ignore' }); baseRef = candidate; break; } catch {}
+}
+if (!baseRef) throw new Error('No main or origin/main ref is available for handoff reconciliation.');
+const actual = execFileSync('git', ['diff', '--name-only', `${baseRef}...HEAD`], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
 if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M1 handoff files_changed does not match main...HEAD.');
 '@
 foreach ($schema in Get-ChildItem -LiteralPath '.github/codex/schemas' -Filter '*.json') {
