@@ -116,13 +116,16 @@ const handoff = fs.readFileSync('docs/handoffs/M1_PLANNING_HANDOFF.md', 'utf8');
 const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
 if (!match) throw new Error('M1 handoff JSON block is missing.');
 const listed = JSON.parse(match[1]).files_changed;
-let baseRef;
-for (const candidate of ['main', 'origin/main']) {
-  try { execFileSync('git', ['rev-parse', '--verify', candidate], { stdio: 'ignore' }); baseRef = candidate; break; } catch {}
+const baseMatch = handoff.match(/^\*\*Base commit:\*\*\s*`([0-9a-f]{40})`/m);
+const headMatch = handoff.match(/^\*\*Reviewed head:\*\*\s*`([0-9a-f]{40})`/m);
+if (!baseMatch || !headMatch) throw new Error('M1 handoff reviewed range is missing.');
+const [, baseCommit] = baseMatch;
+const [, reviewedHead] = headMatch;
+for (const commit of [baseCommit, reviewedHead]) {
+  execFileSync('git', ['cat-file', '-e', `${commit}^{commit}`], { stdio: 'ignore' });
 }
-if (!baseRef) throw new Error('No main or origin/main ref is available for handoff reconciliation.');
-const actual = execFileSync('git', ['diff', '--name-only', `${baseRef}...HEAD`], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
-if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M1 handoff files_changed does not match main...HEAD.');
+const actual = execFileSync('git', ['diff', '--name-only', `${baseCommit}...${reviewedHead}`], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M1 handoff files_changed does not match its reviewed commit range.');
 NODE
 
 if scan_repo '(sk-[A-Za-z0-9_-]{20,}|OPENAI_API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{8,}|RESEND_API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{8,})'; then
