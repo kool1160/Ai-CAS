@@ -51,7 +51,13 @@ if ($scopeContext) {
 node @scopeArgs
 node scripts/governance-regression.mjs
 
-if (Get-Command bash -ErrorAction SilentlyContinue) { bash -n scripts/ci-contract.sh } else { Write-Output 'Bash unavailable; Bash syntax check not run.' }
+$bashCommand = Get-Command bash -ErrorAction SilentlyContinue
+if ($bashCommand) {
+  & $bashCommand.Source -n scripts/ci-contract.sh
+} else {
+  $gitBash = @('C:\Program Files\Git\bin\bash.exe', 'C:\Program Files\Git\usr\bin\bash.exe') | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+  if ($gitBash) { & $gitBash -n scripts/ci-contract.sh } else { Write-Output 'Bash unavailable; Bash syntax check not run.' }
+}
 git diff --check
 
 $foreman = Get-Content -LiteralPath '.github/workflows/ai-cas-foreman.yml' -Raw
@@ -79,7 +85,7 @@ if ((Test-Path tests) -or (Test-Path fixtures) -or (Test-Path public/fixtures)) 
 }
 
 if ((Test-Path package-lock.json) -or (Test-Path pnpm-lock.yaml) -or (Test-Path yarn.lock) -or (Test-Path bun.lock) -or (Test-Path bun.lockb)) {
-  Write-Output 'Dependency lockfile present; application checks may be enabled by a later milestone.'
+  Write-Output 'Dependency lockfile present; CI application test and build checks are enabled.'
 } else {
   Write-Output 'Application build and test checks unavailable: no dependency lockfile.'
 }

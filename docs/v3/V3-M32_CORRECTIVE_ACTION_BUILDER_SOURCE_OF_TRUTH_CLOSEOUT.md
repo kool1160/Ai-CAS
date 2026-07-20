@@ -4,13 +4,13 @@ Milestone Range: V3-M19 through V3-M31
 
 Status: Corrective Action Builder foundation locked/passed
 
-Reference Model: WO 008604 / PN 1124191 corrective action sheet
+Reference Model: synthetic work-order / synthetic-part corrective action sheet
 
 ## Purpose
 
 This document preserves the completed Corrective Action Builder foundation for Refab Connect V3.
 
-The foundation is based on the WO 008604 / PN 1124191 corrective action sheet pattern and is intended to support controlled shop-floor corrective action documentation before future PDF export, AI Vision extraction, backend storage, or automation is activated.
+The foundation is based on synthetic corrective-action fixture data and is intended to support controlled shop-floor corrective action documentation before future PDF export, AI Vision extraction, backend storage, or automation is activated.
 
 ## Completed Capabilities
 

@@ -5,8 +5,9 @@
 AI-CAS is a mixed Next.js App Router application. The client-heavy workflow
 is under `features/woc/`; server routes are under `app/api/`; the print route
 is under `app/print-report/`. The current repository has no database client,
-authentication framework, server session layer, middleware, test suite,
-lockfile, or CI workflow.
+authentication framework, server session layer, or middleware. Milestone 1 adds
+a lockfile, a focused Vitest route suite, and CI test/build execution; it does
+not establish durable persistence or authentication.
 
 ## Current runtime boundaries
 
@@ -20,7 +21,7 @@ Browser shell and workflow state
               |
               +-- OpenAI Vision extraction
               +-- OpenAI corrective-action drafting
-              +-- Resend email sending
+              +-- server-controlled Resend email sending (disabled by default)
               +-- setup unlock
               +-- non-persisting record validation stub
 ```
@@ -51,6 +52,14 @@ Browser shell and workflow state
 - Preserve the working product shell during governance work.
 - Keep browser-local behavior clearly labeled until durable persistence exists.
 - Keep provider calls behind server boundaries and environment variables.
+- Email release requires the exact server value
+  `AI_CAS_EMAIL_RELEASE_ENABLED=true`, server-configured sender and recipient,
+  configured PIN, and literal `finalReviewConfirmed: true`; browser recipient
+  values are ignored.
+- The outgoing email contains the approved draft and complete report. Evidence
+  files are not attached by the current route.
+- The legacy unauthenticated `/api/send` route is removed; active callers use
+  `/api/send-correction` only.
 - Keep AI outputs editable, traceable, and subordinate to human review.
 - Keep historical Refab Connect and AI-WOC compatibility visible but bounded.
 - Record conflicts between repository evidence and
@@ -62,3 +71,7 @@ Authentication, durable persistence, Supabase or another backend, record
 ownership, photo retention, PDF generation, and hosted identity migration are
 not established by Milestone 0. They require later milestones and explicit
 approval.
+
+Milestone 1 adds a reproducible Vitest command and lockfile-backed CI build/test
+baseline without changing those deferred architecture decisions. Email release
+remains disabled by default in every local and CI context.

@@ -68,6 +68,13 @@ function trackedSelectedNumbers() {
     .map(({ name }) => Number(name.match(/^M(\d+)_/)[1]));
 }
 
+function trackedMilestoneFile(number) {
+  const directory = path.resolve('docs/milestones');
+  const matches = fs.readdirSync(directory).filter((name) => new RegExp(`^M${number}_.+\\.md$`).test(name));
+  if (matches.length !== 1) fail(`expected exactly one tracked milestone file for ${number}`);
+  return path.join(directory, matches[0]);
+}
+
 const options = args(process.argv.slice(2));
 const backlogPath = path.resolve(options.backlog);
 if (!fs.existsSync(backlogPath)) fail(`${options.backlog} does not exist`);
@@ -101,7 +108,9 @@ if (options.selected) {
   if (!selected) fail('no eligible milestone found');
 }
 
-const context = `# Selected AI-CAS Milestone\n\n- Number: ${selected.number}\n- Name: ${selected.name}\n- Status: ${selected.status}\n\n## Authoritative milestone excerpt\n\n${selected.markdown}\n`;
+const trackedMilestonePath = trackedMilestoneFile(selected.number);
+const trackedMilestone = fs.readFileSync(trackedMilestonePath, 'utf8').replace(/\r\n/g, '\n').trim();
+const context = `# Selected AI-CAS Milestone\n\n- Number: ${selected.number}\n- Name: ${selected.name}\n- Status: ${selected.status}\n\n## Authoritative milestone excerpt\n\n${selected.markdown}\n\n## Authoritative tracked milestone document\n\n${trackedMilestone}\n`;
 if (options.context) {
   const output = path.resolve(options.context);
   fs.mkdirSync(path.dirname(output), { recursive: true });

@@ -105,3 +105,28 @@ ambiguous scope fails closed. Milestone 0 remains governance-only.
 **Decision:** Foreman publication uses `codex/milestone-<number>` as the stable
 branch and collision key. Editable milestone names remain display metadata and
 cannot create a second branch or PR for the same milestone number.
+
+## 2026-07-20 - Contain external email release
+
+**Decision:** Real email release is disabled unless the server explicitly sets
+`AI_CAS_EMAIL_RELEASE_ENABLED=true`. The server owns recipient and sender
+configuration, requires literal final-review confirmation, and sends the
+approved draft plus complete submitted report in one provider request.
+
+**Reason:** Browser-controlled destinations, missing review evidence, summary-
+only messages, and the unauthenticated legacy route are unsafe external-action
+boundaries.
+
+**Evidence:** Approved Milestone 1 product decisions and route regression tests.
+
+## 2026-07-20 - Use synthetic public sample data
+
+**Decision:** Unverified realistic manufacturing and customer identifiers are
+replaced with obviously synthetic values on active and public fixture-like
+surfaces. Historical product identity references remain bounded and are not a
+hosted rename.
+
+**Reason:** Public source, tests, and CI must not expose customer, employer,
+personal, or proprietary data.
+
+**Evidence:** Milestone 1 synthetic-data scan and complete diff review.

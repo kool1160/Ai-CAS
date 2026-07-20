@@ -26,11 +26,9 @@ jobs:
         shell: bash
         run: bash scripts/ci-contract.sh
 
-      - name: Report application checks
+      - name: Run application checks
         shell: bash
         run: |
-          if [[ -f package-lock.json || -f pnpm-lock.yaml || -f yarn.lock || -f bun.lock || -f bun.lockb ]]; then
-            echo 'A later milestone may enable the application build and test commands.'
-          else
-            echo 'Application build and test checks unavailable: no dependency lockfile and no test command.'
-          fi
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+          npm run build

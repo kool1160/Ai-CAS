@@ -31,6 +31,39 @@ Acceptance criteria:
 - The complete diff contains no application runtime changes or dependency changes.
 - Repository-summary conflicts, assumptions, risks, and unavailable checks are recorded.
 
+## Milestone 1 - External-Action Containment and Public-Data Safety
+
+**Status:** In Progress
+
+**Selected:** Yes
+
+Contain unsafe email-release paths, make provider sending fail closed by
+default at the server boundary, carry final-review evidence into every active
+send request, include the complete reviewed content in the outgoing message,
+and replace unverified realistic sample identifiers with synthetic values.
+
+Acceptance criteria:
+
+- `app/api/send/route.ts` is deleted and no active caller uses `/api/send`.
+- `/api/send-correction` requires the exact server flag
+  `AI_CAS_EMAIL_RELEASE_ENABLED=true`, server-configured sender and recipient,
+  the configured PIN, and literal `finalReviewConfirmed: true` before one
+  provider call is possible.
+- Browser-provided recipient values are ignored; missing or unsafe server
+  addresses fail closed without provider calls.
+- The outgoing plain-text message contains the approved email draft, complete
+  report, work-order/part context, correction type, affected area, available
+  company/submitted-by context, AI-CAS draft/review attribution, and no claim
+  that evidence is attached.
+- Focused Vitest coverage proves release-flag, confirmation, recipient,
+  content, header-injection, and at-most-once provider-call behavior.
+- Public sample values are obviously synthetic and no real customer, employer,
+  personal, or proprietary data is added to tests or CI.
+- A lockfile and test command make the application checks reproducible; CI runs
+  tests and a build without live provider calls.
+- Authentication, Supabase, durable persistence, billing, PDF release, hosted
+  identity migration, and shell redesign remain out of scope.
+
 ## Future milestone placeholders
 
 Future milestones must be added only after Milestone 0 is reviewed. Likely

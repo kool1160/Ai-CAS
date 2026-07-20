@@ -55,7 +55,7 @@ node scripts/validate-governance.mjs --check
 if [[ -n "${AI_CAS_MILESTONE_NUMBER:-}" ]]; then
   milestone_number="$AI_CAS_MILESTONE_NUMBER"
 else
-  milestone_number="$(node scripts/select-milestone.mjs --selected | sed -n 's/^Selected Milestone \([0-9][0-9]*\):.*$/\1/p')"
+  milestone_number="$(node -e "const { execFileSync } = require('node:child_process'); const output = execFileSync(process.execPath, ['scripts/select-milestone.mjs', '--selected'], { encoding: 'utf8' }); const match = output.match(/^Selected Milestone ([0-9]+):/m); if (!match) process.exit(1); process.stdout.write(match[1]);")"
   [[ -n "$milestone_number" ]] || { echo 'Unable to determine the selected milestone.' >&2; exit 1; }
 fi
 scope_args=(--milestone "$milestone_number")
@@ -66,7 +66,11 @@ if [[ -n "$scope_context" ]]; then
 fi
 node scripts/validate-scope.mjs "${scope_args[@]}"
 node scripts/governance-regression.mjs
-bash -n scripts/ci-contract.sh
+if [[ -n "${BASH:-}" && -x "${BASH}" ]]; then
+  "${BASH}" -n scripts/ci-contract.sh
+else
+  echo 'Bash executable path unavailable; Bash syntax check not run.'
+fi
 if command -v powershell.exe >/dev/null 2>&1; then powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1 >/dev/null; else echo 'PowerShell unavailable; PowerShell contract not run.'; fi
 git diff --check
 
@@ -89,7 +93,7 @@ for directory in tests fixtures public/fixtures; do
 done
 
 if [[ -f package-lock.json || -f pnpm-lock.yaml || -f yarn.lock || -f bun.lock || -f bun.lockb ]]; then
-  echo 'Dependency lockfile present; application checks may be enabled by a later milestone.'
+  echo 'Dependency lockfile present; CI application test and build checks are enabled.'
 else
   echo 'Application build and test checks unavailable: no dependency lockfile.'
 fi

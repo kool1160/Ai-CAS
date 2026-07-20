@@ -22,7 +22,7 @@ relevant historical documents before proposing work.
 
 ```text
 git status --short --branch
-node scripts/select-milestone.mjs --number 0 --context .ai-cas/selected-milestone.md
+node scripts/select-milestone.mjs --number 1 --context .ai-cas/selected-milestone.md
 bash scripts/ci-contract.sh
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1
 node scripts/validate-governance.mjs --check
@@ -38,12 +38,8 @@ tracked milestone document under `docs/milestones/` is authoritative.
 
 ## Application checks
 
-The current repository has no dependency lockfile, no installed dependencies,
-and no test script. Do not install packages during governance checks. Report
-`npm run build` and application tests as unavailable until a later approved
-change establishes reproducible dependency state and a test command.
-
-When those prerequisites exist, the expected commands are:
+Milestone 1 establishes a lockfile and focused Vitest command. Use an isolated
+dependency environment or the CI runner for:
 
 ```text
 npm ci
@@ -51,9 +47,16 @@ npm run build
 npm test
 ```
 
-Do not provide production environment values to local checks. Use synthetic
-inputs and mocked provider boundaries. Never send real documents to OpenAI or
-real emails through Resend during repository validation.
+Do not provide production environment values to local checks. The email route
+is disabled unless `AI_CAS_EMAIL_RELEASE_ENABLED=true` is explicitly supplied,
+and no such value is supplied in CI. Use synthetic inputs and mocked provider
+boundaries. Never send real documents to OpenAI or real emails through Resend
+during repository validation.
+
+The route's server boundary requires `RESEND_API_KEY`,
+`REFAB_CONNECT_SEND_PIN`, `REFAB_CONNECT_EMAIL_TO`, and
+`REFAB_CONNECT_EMAIL_FROM` only for a deliberately configured non-CI runtime.
+The browser's recipient field is not authoritative.
 
 ## Approval boundaries
 
