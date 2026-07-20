@@ -36,6 +36,12 @@ scope using the ownership and evidence rules in `docs/PRODUCT_TEAM.md`.
 - Vercel production state is not locally verified.
 - The current product shell remains unchanged.
 - No live provider calls are part of CI.
+- Milestone 0's explicit scope permits governance paths only; runtime changes,
+  new files outside scope, and deletions outside scope are rejected.
+- The exported Foreman patch is staged and index-based, so validated additions
+  and deletions are included without committing in the execute job.
+- The publication branch identity is `codex/milestone-0`, independent of the
+  editable milestone name.
 
 ## Approval required
 
@@ -80,8 +86,10 @@ actions remain separately gated.
     "docs/milestones/M0_GOVERNANCE_FOREMAN_AUTOMATION.md",
     "scripts/ci-contract.ps1",
     "scripts/ci-contract.sh",
+    "scripts/governance-regression.mjs",
     "scripts/select-milestone.mjs",
-    "scripts/validate-governance.mjs"
+    "scripts/validate-governance.mjs",
+    "scripts/validate-scope.mjs"
   ],
   "tests": ["bash scripts/ci-contract.sh", "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1"],
   "approval_required": "Human approval and independent GitHub settings verification before publishing.",

@@ -83,3 +83,25 @@ attestation and the protected `ai-cas-publish-approval` environment.
 **Decision:** Foreman implementation is manual `workflow_dispatch` only. CI
 may run automatically on pull requests and explicitly configured pushes, but
 CI validation never authorizes implementation, publishing, merging, or deploy.
+
+## 2026-07-20 - Export validated index-based patches
+
+**Decision:** Foreman execution stages the isolated workspace change set only
+after scope, secret, privacy, and governance checks pass, then exports a
+binary-capable patch from the index. This includes validated new files and
+deletions while excluding ignored runtime context and forbidden files. The
+execute job never commits.
+
+## 2026-07-20 - Govern runtime changes by selected milestone scope
+
+**Decision:** The general governance contract does not permanently prohibit
+runtime paths. A tracked milestone must explicitly declare allowed and
+forbidden paths and protected operations; the generated selected context
+carries that scope into Foreman execution. Missing, malformed, broad, or
+ambiguous scope fails closed. Milestone 0 remains governance-only.
+
+## 2026-07-20 - Use milestone number as publication identity
+
+**Decision:** Foreman publication uses `codex/milestone-<number>` as the stable
+branch and collision key. Editable milestone names remain display metadata and
+cannot create a second branch or PR for the same milestone number.

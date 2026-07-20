@@ -27,7 +27,8 @@ $requiredFiles = @(
   '.github/codex/schemas/planning-handoff.schema.json',
   '.github/workflows/ai-cas-foreman.yml', '.github/workflows/ci.yml',
   'scripts/select-milestone.mjs', 'scripts/ci-contract.ps1', 'scripts/ci-contract.sh', '.gitignore',
-  'scripts/validate-governance.mjs', 'docs/GITHUB_REPOSITORY_SETUP.md'
+  'scripts/validate-governance.mjs', 'scripts/validate-scope.mjs', 'scripts/governance-regression.mjs',
+  'docs/GITHUB_REPOSITORY_SETUP.md'
 )
 foreach ($file in $requiredFiles) {
   if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing required governance file: $file" }
@@ -36,7 +37,19 @@ foreach ($file in $requiredFiles) {
 node scripts/select-milestone.mjs --validate | Out-Null
 node --check scripts/select-milestone.mjs
 node --check scripts/validate-governance.mjs
+node --check scripts/validate-scope.mjs
+node --check scripts/governance-regression.mjs
 node scripts/validate-governance.mjs --check
+$milestoneNumber = if ($env:AI_CAS_MILESTONE_NUMBER) { $env:AI_CAS_MILESTONE_NUMBER } else { [regex]::Match((node scripts/select-milestone.mjs --selected), '^Selected Milestone (\d+):', 'Multiline').Groups[1].Value }
+if (-not $milestoneNumber) { throw 'Unable to determine the selected milestone.' }
+$scopeArgs = @('scripts/validate-scope.mjs', '--milestone', $milestoneNumber)
+$scopeContext = $env:AI_CAS_SELECTED_MILESTONE
+if ($scopeContext) {
+  if (-not (Test-Path -LiteralPath $scopeContext)) { throw "Selected milestone context is missing: $scopeContext" }
+  $scopeArgs += @('--context', $scopeContext)
+}
+node @scopeArgs
+node scripts/governance-regression.mjs
 
 if (Get-Command bash -ErrorAction SilentlyContinue) { bash -n scripts/ci-contract.sh } else { Write-Output 'Bash unavailable; Bash syntax check not run.' }
 git diff --check
@@ -45,9 +58,6 @@ $foreman = Get-Content -LiteralPath '.github/workflows/ai-cas-foreman.yml' -Raw
 $ci = Get-Content -LiteralPath '.github/workflows/ci.yml' -Raw
 if ($foreman -match '(?m)^\s+(push|pull_request):' -or $foreman -match 'secrets\.OPENAI_API_KEY') { throw 'Foreman trigger or generic credential boundary violated.' }
 if ($ci -notmatch '(?m)^\s+pull_request:') { throw 'CI pull_request trigger missing.' }
-$runtimeFiles = @((git diff --name-only), (git diff --cached --name-only)) | Where-Object { $_ -match '^(app|features|public)/|^package\.json$|^package-lock\.json$|^pnpm-lock\.yaml$|^yarn\.lock$|^bun\.lock' }
-if ($runtimeFiles) { throw "Runtime or dependency files changed: $($runtimeFiles -join ', ')" }
-
 foreach ($schema in Get-ChildItem -LiteralPath '.github/codex/schemas' -Filter '*.json') {
   $parsed = Get-Content -LiteralPath $schema.FullName -Raw | ConvertFrom-Json
   if ($parsed.type -ne 'object' -or $null -eq $parsed.properties -or $null -eq $parsed.required -or $parsed.required.Count -eq 0) {

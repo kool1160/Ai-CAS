@@ -9,11 +9,15 @@ function fail(message) {
 }
 
 function args(argv) {
-  const result = { number: '', context: '', backlog: 'BACKLOG.md', validate: false };
+  const result = { number: '', context: '', backlog: 'BACKLOG.md', validate: false, selected: false };
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
     if (key === '--validate') {
       result.validate = true;
+      continue;
+    }
+    if (key === '--selected') {
+      result.selected = true;
       continue;
     }
     const value = argv[index + 1];
@@ -45,12 +49,23 @@ function parseMilestones(markdown) {
       number: Number(match[1]),
       name: match[2].trim(),
       status: statusLine.replace(/^\*\*Status:\*\*\s*/, '').trim(),
+      selected: /\*\*Selected:\*\*\s+Yes/i.test(block.join('\n')),
       markdown: block.join('\n').trim(),
     });
     index = end - 1;
   }
   if (!milestones.length) fail('no milestones found');
   return milestones;
+}
+
+function trackedSelectedNumbers() {
+  const directory = path.resolve('docs/milestones');
+  if (!fs.existsSync(directory)) fail('docs/milestones does not exist');
+  return fs.readdirSync(directory)
+    .filter((name) => /^M\d+_.+\.md$/.test(name))
+    .map((name) => ({ name, markdown: fs.readFileSync(path.join(directory, name), 'utf8') }))
+    .filter(({ markdown }) => /\*\*Selected:\*\*\s+Yes/i.test(markdown))
+    .map(({ name }) => Number(name.match(/^M(\d+)_/)[1]));
 }
 
 const options = args(process.argv.slice(2));
@@ -63,13 +78,20 @@ if (options.validate) {
     if (numbers.has(milestone.number)) fail(`duplicate milestone ${milestone.number}`);
     numbers.add(milestone.number);
   }
+  const selected = trackedSelectedNumbers();
+  if (selected.length !== 1 || !milestones.some((milestone) => milestone.number === selected[0])) fail(`expected exactly one tracked selected milestone, found ${selected.length}`);
   console.log(`Validated ${milestones.length} AI-CAS milestones.`);
   process.exit(0);
 }
 const complete = (status) => /^complete\b/i.test(status);
 const paused = (status) => /^(blocked|waiting|paused)\b/i.test(status);
 let selected;
-if (options.number) {
+if (options.selected) {
+  const selectedNumbers = trackedSelectedNumbers();
+  const selectedMilestones = milestones.filter((milestone) => selectedNumbers.includes(milestone.number));
+  if (selectedMilestones.length !== 1) fail(`expected exactly one selected milestone, found ${selectedMilestones.length}`);
+  selected = selectedMilestones[0];
+} else if (options.number) {
   const number = Number(options.number);
   selected = milestones.find((milestone) => milestone.number === number);
   if (!selected) fail(`Milestone ${options.number} was not found`);

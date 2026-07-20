@@ -41,6 +41,10 @@ Browser shell and workflow state
 - Publishing requires both the approval-gated `ai-cas-publish-approval` environment
   and the operator attestation `repository_protections_verified=true`; GitHub branch
   protection remains an external prerequisite documented in `docs/GITHUB_REPOSITORY_SETUP.md`.
+- Selected milestones carry an explicit, default-deny path scope in the tracked
+  milestone document and generated `.ai-cas/selected-milestone.md`. Runtime
+  changes are allowed only when that selected scope explicitly permits them;
+  Milestone 0 permits governance files only.
 
 ## Architecture constraints
 

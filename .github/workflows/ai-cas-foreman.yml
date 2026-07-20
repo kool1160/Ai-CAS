@@ -81,11 +81,16 @@ jobs:
           MILESTONE_NAME: ${{ steps.select.outputs.name }}
         run: |
           set -euo pipefail
+          scope_json="$(node scripts/validate-scope.mjs --milestone "$MILESTONE_NUMBER" --context .ai-cas/selected-milestone.md --print)"
+          scope_allowed_paths="$(printf '%s' "$scope_json" | jq -c '.allowed_paths')"
+          scope_forbidden_paths="$(printf '%s' "$scope_json" | jq -c '.forbidden_paths')"
           jq -n \
             --arg status "planned" \
             --argjson milestone_number "$MILESTONE_NUMBER" \
             --arg milestone_name "$MILESTONE_NAME" \
-            '{status:$status,milestone_number:$milestone_number,milestone_name:$milestone_name,goal:("Execute the selected AI-CAS milestone: " + $milestone_name),authority_files:["AI-CAS_PROJECT_SUMMARY.md","AGENTS.md","docs/PRODUCT_DIRECTION.md","docs/PRODUCT_CONSTITUTION.md","docs/ARCHITECTURE.md","docs/PRODUCT_TEAM.md","BACKLOG.md",".ai-cas/selected-milestone.md","DECISIONS.md","GLOSSARY.md"],affected_roles:["AI-CAS Foreman","Corrective Action Workflow Engineer","Manufacturing Operations Engineer","AI Extraction Engineer","Data and Records Engineer","Security and Access Engineer","UX and Mobile Workflow Engineer","Validation Engineer","Deployment Engineer","Product and Commercial Engineer","Privacy and IP Guardian"],scope_in:["Selected milestone acceptance criteria"],scope_out:["Automatic merge","Automatic deployment","GitHub or Vercel rename","Destructive actions","Real customer or employer data"],acceptance_criteria:["Evidence-backed completion","Repository contract checks pass","No unauthorized application changes"],assumptions:["The project summary remains primary"],conflicts:[],risks:["Unavailable application build until dependencies and a lockfile exist"],approval_boundaries:["Publishing requires explicit approval","Merge and deployment require explicit approval"],checks:["bash scripts/ci-contract.sh","git diff --check"]}' \
+            --argjson scope_allowed_paths "$scope_allowed_paths" \
+            --argjson scope_forbidden_paths "$scope_forbidden_paths" \
+            '{status:$status,milestone_number:$milestone_number,milestone_name:$milestone_name,goal:("Execute the selected AI-CAS milestone: " + $milestone_name),authority_files:["AI-CAS_PROJECT_SUMMARY.md","AGENTS.md","docs/PRODUCT_DIRECTION.md","docs/PRODUCT_CONSTITUTION.md","docs/ARCHITECTURE.md","docs/PRODUCT_TEAM.md","BACKLOG.md",".ai-cas/selected-milestone.md","DECISIONS.md","GLOSSARY.md"],affected_roles:["AI-CAS Foreman","Corrective Action Workflow Engineer","Manufacturing Operations Engineer","AI Extraction Engineer","Data and Records Engineer","Security and Access Engineer","UX and Mobile Workflow Engineer","Validation Engineer","Deployment Engineer","Product and Commercial Engineer","Privacy and IP Guardian"],scope_in:["Selected milestone acceptance criteria"],scope_out:["Automatic merge","Automatic deployment","GitHub or Vercel rename","Destructive actions","Real customer or employer data"],scope_allowed_paths:$scope_allowed_paths,scope_forbidden_paths:$scope_forbidden_paths,acceptance_criteria:["Evidence-backed completion","Repository contract checks pass","No unauthorized application changes"],assumptions:["The project summary remains primary"],conflicts:[],risks:["Unavailable application build until dependencies and a lockfile exist"],approval_boundaries:["Publishing requires explicit approval","Merge and deployment require explicit approval"],checks:["bash scripts/ci-contract.sh","git diff --check"]}' \
             > "$RUNNER_TEMP/ai-cas-planning.json"
 
       - name: Validate planning artifact before Codex
@@ -123,12 +128,31 @@ jobs:
       - name: Validate result and local patch
         if: always()
         shell: bash
+        env:
+          AI_CAS_MILESTONE_NUMBER: ${{ steps.select.outputs.number }}
+          AI_CAS_SELECTED_MILESTONE: .ai-cas/selected-milestone.md
         run: |
           set -euo pipefail
           test -f "$RUNNER_TEMP/ai-cas-foreman-result.json"
           node scripts/validate-governance.mjs --result "$RUNNER_TEMP/ai-cas-foreman-result.json" --milestone "${{ steps.select.outputs.number }}"
           git diff --check
           bash scripts/ci-contract.sh
+
+      - name: Stage and export complete validated patch
+        if: always()
+        shell: bash
+        env:
+          AI_CAS_MILESTONE_NUMBER: ${{ steps.select.outputs.number }}
+          AI_CAS_SELECTED_MILESTONE: .ai-cas/selected-milestone.md
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/ai-cas-foreman"
+          mkdir -p "$artifact"
+          node scripts/validate-scope.mjs --milestone "$AI_CAS_MILESTONE_NUMBER" --context "$AI_CAS_SELECTED_MILESTONE"
+          git add -A -- . ':(exclude).ai-cas' ':(exclude).ai-cas/**'
+          git diff --cached --check
+          bash scripts/ci-contract.sh
+          git diff --cached --binary --full-index main -- . ':(exclude).ai-cas' ':(exclude).ai-cas/**' > "$artifact/ai-cas.patch"
 
       - name: Export planning, result, logs, and patch artifact
         if: always()
@@ -140,7 +164,7 @@ jobs:
           cp "$RUNNER_TEMP/ai-cas-planning.json" "$artifact/foreman-planning.json"
           cp "$RUNNER_TEMP/ai-cas-foreman-result.json" "$artifact/foreman-result.json"
           cp .ai-cas/selected-milestone.md "$artifact/selected-milestone.md"
-          git diff --binary --full-index main -- . ':!.ai-cas' > "$artifact/ai-cas.patch"
+          test -s "$artifact/ai-cas.patch"
           printf '{"codex_outcome":"%s","milestone_number":"%s","milestone_name":"%s"}\n' \
             '${{ steps.codex.outcome }}' '${{ steps.select.outputs.number }}' '${{ steps.select.outputs.name }}' > "$artifact/metadata.json"
 
@@ -185,8 +209,13 @@ jobs:
 
       - name: Apply and validate patch
         shell: bash
+        env:
+          AI_CAS_MILESTONE_NUMBER: ${{ needs.execute.outputs.milestone_number }}
+          AI_CAS_SELECTED_MILESTONE: .ai-cas/selected-milestone.md
         run: |
           set -euo pipefail
+          mkdir -p .ai-cas
+          cp "$RUNNER_TEMP/ai-cas-foreman/selected-milestone.md" .ai-cas/selected-milestone.md
           if [[ -s "$RUNNER_TEMP/ai-cas-foreman/ai-cas.patch" ]]; then
             git apply --index --3way "$RUNNER_TEMP/ai-cas-foreman/ai-cas.patch"
           fi
@@ -205,15 +234,16 @@ jobs:
             echo 'No publishable changes were produced.'
             exit 0
           fi
-          slug="$(printf '%s' "$MILESTONE_NAME" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/^-//; s/-$//' | cut -c1-48)"
-          branch="codex/milestone-${MILESTONE_NUMBER}-${slug}"
+          branch="codex/milestone-${MILESTONE_NUMBER}"
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
             echo "Milestone branch already exists: $branch. Stopping without overwrite or force-push." >&2
             exit 1
           fi
           open_prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --head "$branch" --json number --jq 'length')"
           all_prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state all --head "$branch" --json number --jq 'length')"
-          if [[ "$open_prs" != "0" || "$all_prs" != "0" ]]; then
+          all_pr_metadata="$(gh pr list --repo "$GITHUB_REPOSITORY" --state all --limit 1000 --json number,title,body,headRefName)"
+          milestone_metadata_prs="$(printf '%s' "$all_pr_metadata" | jq --arg prefix "Milestone ${MILESTONE_NUMBER}:" --arg marker "milestone ${MILESTONE_NUMBER}" '[.[] | select(((.title // "") | startswith($prefix)) or ((.body // "") | ascii_downcase | contains($marker)))] | length')"
+          if [[ "$open_prs" != "0" || "$all_prs" != "0" || "$milestone_metadata_prs" != "0" ]]; then
             echo "A pull request already exists or existed for milestone ${MILESTONE_NUMBER} branch $branch. Stopping without duplication." >&2
             exit 1
           fi

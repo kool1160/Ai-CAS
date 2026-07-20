@@ -65,7 +65,7 @@ function handoffJson(markdown) {
 }
 
 function representativePlanning() {
-  return { status: 'planned', milestone_number: 0, milestone_name: 'Establish AI-CAS Governance and Foreman Automation', goal: 'Establish governance.', authority_files: ['AI-CAS_PROJECT_SUMMARY.md'], affected_roles: ['AI-CAS Foreman'], scope_in: ['Governance'], scope_out: ['Runtime code'], acceptance_criteria: ['Checks pass'], assumptions: [], conflicts: [], risks: [], approval_boundaries: ['Publishing'], checks: ['contract'] };
+  return { status: 'planned', milestone_number: 0, milestone_name: 'Establish AI-CAS Governance and Foreman Automation', goal: 'Establish governance.', authority_files: ['AI-CAS_PROJECT_SUMMARY.md'], affected_roles: ['AI-CAS Foreman'], scope_in: ['Governance'], scope_out: ['Runtime code'], scope_allowed_paths: ['AGENTS.md'], scope_forbidden_paths: ['app/**'], acceptance_criteria: ['Checks pass'], assumptions: [], conflicts: [], risks: [], approval_boundaries: ['Publishing'], checks: ['contract'] };
 }
 
 function representativeResult() {
@@ -87,6 +87,11 @@ function checkWorkflowPolicy() {
   if (!foreman.includes('git ls-remote --exit-code --heads origin "$branch"')) fail('Stable milestone branch collision check is missing');
   if (!foreman.includes('gh pr list --repo "$GITHUB_REPOSITORY" --state open --head "$branch"')) fail('Open milestone PR check is missing');
   if (!foreman.includes('gh pr list --repo "$GITHUB_REPOSITORY" --state all --head "$branch"')) fail('Historical milestone PR check is missing');
+  if (!foreman.includes('branch="codex/milestone-${MILESTONE_NUMBER}"')) fail('Milestone branch is not number-stable');
+  if (/branch=.*MILESTONE_NAME/.test(foreman)) fail('Milestone branch incorrectly depends on editable name');
+  if (!foreman.includes('milestone_metadata_prs')) fail('Milestone metadata duplicate check is missing');
+  if (!foreman.includes('git add -A -- .') || !foreman.includes('git diff --cached --binary --full-index main')) fail('Index-based complete patch export is missing');
+  if (!foreman.includes('git diff --cached --check')) fail('Staged patch check is missing');
   if (!/^\s+pull_request:/m.test(ci)) fail('CI must retain pull_request validation');
   if (!/AI-CAS Foreman implementation workflow is manual `workflow_dispatch` only/.test(read('AGENTS.md'))) fail('Trigger policy is undocumented');
   if (!/main`? is currently unprotected/i.test(setup) || !/require pull requests before merging/i.test(setup)) fail('Branch protection prerequisite is incomplete');

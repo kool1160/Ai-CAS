@@ -26,6 +26,8 @@ node scripts/select-milestone.mjs --number 0 --context .ai-cas/selected-mileston
 bash scripts/ci-contract.sh
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1
 node scripts/validate-governance.mjs --check
+node scripts/validate-scope.mjs --milestone 0
+node scripts/governance-regression.mjs
 git diff --check
 git diff --stat
 git diff --name-only
@@ -68,3 +70,10 @@ requires the approval-gated `ai-cas-publish-approval` environment and the
 false-by-default `repository_protections_verified` operator attestation after
 independent GitHub settings verification. Repository files cannot prove that
 environment reviewers or branch protection are configured.
+
+The Foreman validates the selected milestone's explicit path scope before and
+after implementation. The scope validator includes modified, added, deleted,
+and untracked paths, rejects ignored files outside `.ai-cas/`, and defaults to
+deny. Foreman patch artifacts are exported from the staged index with
+`git diff --cached --binary --full-index`; the execute job stages changes for
+artifact construction but never commits them.

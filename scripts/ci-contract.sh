@@ -28,7 +28,8 @@ required_files=(
   .github/codex/schemas/planning-handoff.schema.json
   .github/workflows/ai-cas-foreman.yml .github/workflows/ci.yml
   scripts/select-milestone.mjs scripts/ci-contract.ps1 scripts/ci-contract.sh
-  scripts/validate-governance.mjs docs/GITHUB_REPOSITORY_SETUP.md
+  scripts/validate-governance.mjs scripts/validate-scope.mjs scripts/governance-regression.mjs
+  docs/GITHUB_REPOSITORY_SETUP.md
   .gitignore
 )
 for file in "${required_files[@]}"; do
@@ -48,7 +49,23 @@ for (const name of fs.readdirSync('.github/codex/schemas').filter((value) => val
 NODE
 node --check scripts/select-milestone.mjs
 node --check scripts/validate-governance.mjs
+node --check scripts/validate-scope.mjs
+node --check scripts/governance-regression.mjs
 node scripts/validate-governance.mjs --check
+if [[ -n "${AI_CAS_MILESTONE_NUMBER:-}" ]]; then
+  milestone_number="$AI_CAS_MILESTONE_NUMBER"
+else
+  milestone_number="$(node scripts/select-milestone.mjs --selected | sed -n 's/^Selected Milestone \([0-9][0-9]*\):.*$/\1/p')"
+  [[ -n "$milestone_number" ]] || { echo 'Unable to determine the selected milestone.' >&2; exit 1; }
+fi
+scope_args=(--milestone "$milestone_number")
+scope_context="${AI_CAS_SELECTED_MILESTONE:-}"
+if [[ -n "$scope_context" ]]; then
+  [[ -f "$scope_context" ]] || { echo "Selected milestone context is missing: $scope_context" >&2; exit 1; }
+  scope_args+=(--context "$scope_context")
+fi
+node scripts/validate-scope.mjs "${scope_args[@]}"
+node scripts/governance-regression.mjs
 bash -n scripts/ci-contract.sh
 if command -v powershell.exe >/dev/null 2>&1; then powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1 >/dev/null; else echo 'PowerShell unavailable; PowerShell contract not run.'; fi
 git diff --check
@@ -58,9 +75,6 @@ if scan_file '^\s+(push|pull_request):|secrets\.OPENAI_API_KEY' '.github/workflo
   exit 1
 fi
 scan_file '^\s+pull_request:' .github/workflows/ci.yml >/dev/null || { echo 'CI pull_request trigger missing.' >&2; exit 1; }
-
-runtime_files="$( { git diff --name-only; git diff --cached --name-only; } | sort -u | grep -E '^(app|features|public)/|^package\.json$|^package-lock\.json$|^pnpm-lock\.yaml$|^yarn\.lock$|^bun\.lock' || true )"
-[[ -z "$runtime_files" ]] || { echo "Runtime or dependency files changed:\n$runtime_files" >&2; exit 1; }
 
 if scan_repo '(sk-[A-Za-z0-9_-]{20,}|OPENAI_API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{8,}|RESEND_API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{8,})'; then
   echo 'Potential committed secret detected.' >&2

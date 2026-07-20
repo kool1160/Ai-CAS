@@ -25,6 +25,9 @@ Acceptance criteria:
 - Publishing requires both the approval-gated environment and the false-by-default `repository_protections_verified` operator attestation; branch protection remains an external prerequisite.
 - CI runs local governance checks without package installation or live provider calls.
 - Planning, result, and handoff artifacts pass the repository's documented deterministic schema subset validation.
+- The selected milestone declares explicit allowed and forbidden paths; scope checks include new and deleted files, while Milestone 0 continues to reject runtime changes.
+- Foreman patches are staged and exported from the index so validated additions and deletions are included.
+- Publication identity is the immutable milestone number, independent of editable milestone names.
 - The complete diff contains no application runtime changes or dependency changes.
 - Repository-summary conflicts, assumptions, risks, and unavailable checks are recorded.
 
