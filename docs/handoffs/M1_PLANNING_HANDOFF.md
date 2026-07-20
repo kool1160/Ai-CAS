@@ -7,7 +7,7 @@
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Base commit:** `a37cd376b19a013d5bc39ec71a7fc87c8c4f9edb`
 **Branch:** `codex/milestone-1`
-**Final head:** `ca559f42a146e3bafec5e2433c4d5d09268fd0bf`
+**Final head:** `cd98ecd8d4f8b87930ba12b53daff0069fd8ca32`
 
 ## Approved Scope
 
