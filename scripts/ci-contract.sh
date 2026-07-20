@@ -36,6 +36,15 @@ for file in "${required_files[@]}"; do
   [[ -f "$file" ]] || { echo "Missing required governance file: $file" >&2; exit 1; }
 done
 
+node - <<'NODE'
+const fs = require('node:fs');
+const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const requiredScripts = { test: 'vitest', 'test:run': 'vitest run', typecheck: 'tsc --noEmit' };
+for (const [name, command] of Object.entries(requiredScripts)) {
+  if (packageJson.scripts?.[name] !== command) throw new Error(`package.json script contract failed: ${name}`);
+}
+NODE
+
 node scripts/select-milestone.mjs --validate >/dev/null
 for schema in .github/codex/schemas/*.json; do node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));" "$schema"; done
 node - <<'NODE'
@@ -93,7 +102,7 @@ for directory in tests fixtures public/fixtures; do
 done
 
 if [[ -f package-lock.json || -f pnpm-lock.yaml || -f yarn.lock || -f bun.lock || -f bun.lockb ]]; then
-  echo 'Dependency lockfile present; CI application test and build checks are enabled.'
+  echo 'Dependency lockfile present; CI application test, typecheck, and build checks are enabled.'
 else
   echo 'Application build and test checks unavailable: no dependency lockfile.'
 fi

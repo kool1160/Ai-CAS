@@ -30,5 +30,6 @@ jobs:
         shell: bash
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          npm test
+          npm run test:run
+          npm run typecheck
           npm run build

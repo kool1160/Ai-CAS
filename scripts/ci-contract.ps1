@@ -34,6 +34,16 @@ foreach ($file in $requiredFiles) {
   if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing required governance file: $file" }
 }
 
+$packageJson = Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json
+$requiredScripts = @{
+  'test' = 'vitest'
+  'test:run' = 'vitest run'
+  'typecheck' = 'tsc --noEmit'
+}
+foreach ($script in $requiredScripts.GetEnumerator()) {
+  if ($packageJson.scripts.($script.Key) -ne $script.Value) { throw "package.json script contract failed: $($script.Key)" }
+}
+
 node scripts/select-milestone.mjs --validate | Out-Null
 node --check scripts/select-milestone.mjs
 node --check scripts/validate-governance.mjs
@@ -85,7 +95,7 @@ if ((Test-Path tests) -or (Test-Path fixtures) -or (Test-Path public/fixtures)) 
 }
 
 if ((Test-Path package-lock.json) -or (Test-Path pnpm-lock.yaml) -or (Test-Path yarn.lock) -or (Test-Path bun.lock) -or (Test-Path bun.lockb)) {
-  Write-Output 'Dependency lockfile present; CI application test and build checks are enabled.'
+  Write-Output 'Dependency lockfile present; CI application test, typecheck, and build checks are enabled.'
 } else {
   Write-Output 'Application build and test checks unavailable: no dependency lockfile.'
 }

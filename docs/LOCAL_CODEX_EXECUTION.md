@@ -44,7 +44,8 @@ dependency environment or the CI runner for:
 ```text
 npm ci
 npm run build
-npm test
+npm run test:run
+npm run typecheck
 ```
 
 Do not provide production environment values to local checks. The email route

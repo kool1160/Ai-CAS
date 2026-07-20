@@ -59,8 +59,9 @@ Acceptance criteria:
   content, header-injection, and at-most-once provider-call behavior.
 - Public sample values are obviously synthetic and no real customer, employer,
   personal, or proprietary data is added to tests or CI.
-- A lockfile and test command make the application checks reproducible; CI runs
-  tests and a build without live provider calls.
+- A lockfile and explicit `test`, `test:run`, and `typecheck` scripts make the
+  application checks reproducible; CI runs test, typecheck, and build checks
+  without live provider calls.
 - Authentication, Supabase, durable persistence, billing, PDF release, hosted
   identity migration, and shell redesign remain out of scope.
 

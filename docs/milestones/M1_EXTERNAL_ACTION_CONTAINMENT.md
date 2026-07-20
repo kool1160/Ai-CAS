@@ -21,8 +21,8 @@ from public application and fixture surfaces.
   outgoing plain-text body without attachments or unsupported evidence claims.
 - Carry `finalReviewConfirmed: true` from both active send callers.
 - Replace unverified realistic sample identifiers with clearly synthetic values.
-- Add Vitest route regression tests, a lockfile, and provider-offline CI
-  application test/build steps.
+- Add Vitest route regression tests, a lockfile, explicit application test and
+  typecheck scripts, and provider-offline CI test/typecheck/build steps.
 - Update affected architecture, local execution, backlog, decisions, and
   milestone records.
 
@@ -124,7 +124,8 @@ validator. In particular, no other `app/` or `features/` path is authorized.
 - Route tests cover disabled/malformed release flags, literal final-review
   confirmation, server-only recipient, missing/unsafe configuration, content
   completeness, header injection, and at-most-once provider invocation.
-- `npm ci`, `npm test`, and `npm run build` pass in a clean dependency state.
+- `npm ci`, `npm run test:run`, `npm run typecheck`, and `npm run build` pass in
+  a clean dependency state.
 - CI invokes only local tests/build and governance checks; no provider calls or
   secrets are available to it.
 - Synthetic-data scans, secret scans, scope checks, and `git diff --check` pass.
