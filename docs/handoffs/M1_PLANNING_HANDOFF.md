@@ -2,40 +2,36 @@
 
 **Milestone number:** 1
 **Milestone name:** External-Action Containment and Public-Data Safety
-**Status:** In Progress; approval required before merge or deployment
-**Selected:** Yes
+**Status:** Complete
+**Selected:** No
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Base commit:** `a37cd376b19a013d5bc39ec71a7fc87c8c4f9edb`
-**Branch:** `codex/milestone-1`
-**Substantive repair head:** `44245ef736b30496de7e31738318631229bc998a`
-**Review branch:** `codex/milestone-1`
-**Current PR head:** Verify from GitHub at review time; this handoff does not self-reference its own commit.
+**Implementation branch:** `codex/milestone-1`
+**Pull request:** `#69`
+**Reviewed head:** `7c8d2b153cfab9a13c921261cb002ce3c8404327`
+**Squash merge commit:** `487d619f85d74a29df3f4b623850161aff29013c`
 
 ## Approved Scope
 
-Milestone 1 contains the approved external-action containment, server-owned
+Milestone 1 contained the approved external-action containment, server-owned
 email configuration, final-review confirmation, complete reviewed message
 content, synthetic public-data, and deterministic validation work. The
-product-owner-approved added paths retained from the earlier review are:
+product-owner-approved additional paths were:
 
 - `docs/v3/V3-M32_CORRECTIVE_ACTION_BUILDER_SOURCE_OF_TRUTH_CLOSEOUT.md`
 - `features/woc/logic/controlledPdfTemplateFoundation.ts`
 - `scripts/select-milestone.mjs`
-
-This repair additionally adds only the expressly approved review paths:
-
 - `scripts/privacy-fixture-check.mjs`
 - `docs/handoffs/M1_PLANNING_HANDOFF.md`
 
-The tracked M1 milestone document is the authoritative scope record. No
-authentication, durable persistence, Supabase, billing, PDF release, hosted
-identity migration, deployment, or product-shell redesign is included.
+No authentication, durable persistence, Supabase, billing, PDF release, hosted
+identity migration, deployment, or product-shell redesign was included.
 
 ## Implementation Evidence
 
-- The unauthenticated `app/api/send/route.ts` is deleted and no active caller
+- The unauthenticated `app/api/send/route.ts` was deleted and no active caller
   uses `/api/send`.
-- `/api/send-correction` requires the raw server value
+- `/api/send-correction` requires raw
   `AI_CAS_EMAIL_RELEASE_ENABLED=true`, server-owned sender and recipient,
   configured PIN, and literal `finalReviewConfirmed: true` before one provider
   call is possible.
@@ -54,21 +50,17 @@ identity migration, deployment, or product-shell redesign is included.
 
 ## Exact Change Surface
 
-The machine-readable list below must equal `git diff --name-only main...HEAD`
-after the repair commit. It is intentionally kept in sorted repository-path
-order.
-
 ```json
 {
-  "status": "approval_required",
+  "status": "completed",
   "milestone_number": 1,
   "milestone_name": "External-Action Containment and Public-Data Safety",
-  "summary": "Contain unsafe email release, remove unverified public fixture identifiers, preserve employee-ID attribution, and separate application validation from governance evidence.",
-  "runtime_impact": "Removes the legacy email route and hardens the active send route; no authentication or persistence is added.",
+  "summary": "Contained unsafe email release, removed unverified public fixture identifiers, preserved employee-ID attribution, and separated application validation from governance evidence.",
+  "runtime_impact": "Removed the legacy email route and hardened the active send route; no authentication or persistence was added.",
   "data_persistence_impact": "No durable persistence change. Browser-local behavior remains unchanged.",
   "security_impact": "Email release is server-gated by exact configuration, final-review confirmation, server-owned addresses, PIN validation, and bounded attribution input.",
   "privacy_ip_impact": "Tracked application, tests, fixture-like files, and active documentation are checked for a narrow denylist of removed identifiers; synthetic values are used.",
-  "deployment_impact": "No hosted settings or environment values changed. Merge, deployment, and real email release remain approval boundaries.",
+  "deployment_impact": "No hosted settings or environment values changed. Email release remains disabled by default.",
   "files_changed": [
     ".github/workflows/ci.yml",
     "BACKLOG.md",
@@ -104,42 +96,38 @@ order.
     "bash scripts/ci-contract.sh",
     "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1",
     "node scripts/select-milestone.mjs --validate",
-    "node scripts/select-milestone.mjs --selected",
     "node scripts/validate-scope.mjs --milestone 1",
     "node scripts/governance-regression.mjs",
     "git diff --check"
   ],
-  "approval_required": "Human approval is required before merge, deployment, enabling release, or any externally visible action.",
+  "approval_required": "Human approval was received before merge. Deployment, enabling email release, and hosted changes still require separate approval.",
   "unresolved_items": [
     "Real authentication and server-side identity remain absent.",
     "Browser-local ownership and persistence remain limitations.",
-    "Email release remains disabled by default; merge, deployment, and enabling release require explicit human approval."
+    "Email release remains disabled by default."
   ],
-  "recommended_next_action": "Review the pushed repair, verify hosted checks, and stop for explicit approval before merge or deployment."
+  "recommended_next_action": "Run the next selected milestone through the manual AI-CAS Foreman workflow."
 }
 ```
 
-## Required Review Evidence
+## Review and Merge Evidence
 
-The final handoff records legacy-route deletion, exact email boundary,
-employee-ID compatibility, privacy scan, focused tests, typecheck, build,
-hosted CI, and final review findings. Exact-head AI-CAS CI run
-`29761917969` passed both `Governance contract checks` and `Application
-baseline checks`. Vercel passed for `a359389b683774de898df43dbe6a5f404767b2e6`.
-No provider calls occurred and no hosted settings changed. The route test
-provider is mocked and the application CI job has no provider credentials.
+- All review threads were resolved.
+- Exact-head governance and application CI jobs passed.
+- Vercel preview checks passed.
+- No provider calls occurred and no hosted settings changed.
+- PR `#69` was squash-merged into `main` as
+  `487d619f85d74a29df3f4b623850161aff29013c`.
 
-## Rollback and Risks
+## Rollback and Remaining Risks
 
-Rollback is a reviewed Git revert of the repair commit or a controlled revert
-of the complete M1 pull request after human approval. Do not restore the
-unauthenticated route or enable email release as an ad hoc rollback. The main
-remaining risks are the lack of real authentication, browser-local record
-ownership, and the need for independent hosted environment and branch
-protection verification.
+Rollback is a reviewed Git revert of the Milestone 1 squash merge. Do not
+restore the unauthenticated route or enable email release as an ad hoc rollback.
+The main remaining risks are lack of real authentication, browser-local record
+ownership, and no durable backend.
 
-## Stop Boundary
+## Closed Boundary
 
-Stop before merge, deployment, enabling production email release, changing
-hosted settings, or changing GitHub/Vercel identity. Do not treat this handoff
-as approval for any of those actions.
+Milestone 1 is complete. This handoff does not authorize deployment, enabling
+production email release, hosted settings changes, authentication, persistence,
+or GitHub/Vercel identity changes.

@@ -169,3 +169,28 @@ the final `main...HEAD` change surface.
 
 **Reason:** Reviewers need one durable record of scope, evidence, rollback, and
 approval boundaries.
+
+## 2026-07-20 - Use a rolling three-milestone Foreman queue
+
+**Decision:** The executable Foreman queue contains Milestones 2, 3, and 4 in
+that order. A blank workflow milestone input selects the first eligible item in
+`BACKLOG.md`. Only the current milestone carries `Selected: Yes`; each completed
+milestone may switch the marker to the next queued milestone within its approved
+scope.
+
+**Reason:** A short rolling queue gives the GitHub workflow enough prepared work
+to operate while avoiding detailed long-range scopes that could become stale as
+the repository changes.
+
+**Evidence:** M1 merge evidence, current repository audit, ordered backlog, and
+tracked default-deny scope documents for M2 through M4.
+
+## 2026-07-20 - Stop the queue after Milestone 4 for revalidation
+
+**Decision:** Milestone 4 is the final currently executable queue item. After it
+completes, the Foreman must stop and request a product-owner queue refill based
+on fresh repository evidence rather than inventing later scope.
+
+**Reason:** Identity alignment, routing, beta readiness, authentication, durable
+persistence, and hosted migration contain decisions or external boundaries that
+should not be pre-authorized too far in advance.
