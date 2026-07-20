@@ -133,7 +133,6 @@ condition.
 - `package-lock.json`
 - `public/**`
 - `.env`
-- `.env.*`
 - `.vercel/**`
 - `vercel.json`
 
