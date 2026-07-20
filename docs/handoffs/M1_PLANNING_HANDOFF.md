@@ -7,7 +7,7 @@
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Base commit:** `a37cd376b19a013d5bc39ec71a7fc87c8c4f9edb`
 **Branch:** `codex/milestone-1`
-**Final head:** repair commit will be recorded before push
+**Final head:** `ca559f42a146e3bafec5e2433c4d5d09268fd0bf`
 
 ## Approved Scope
 
@@ -111,7 +111,7 @@ order.
   "unresolved_items": [
     "Real authentication and server-side identity remain absent.",
     "Hosted CI and Vercel preview checks must pass on the pushed repair commit.",
-    "The exact final head is recorded after the repair commit is created."
+    "Hosted CI and Vercel preview checks remain external verification gates."
   ],
   "recommended_next_action": "Review the pushed repair, verify hosted checks, and stop for explicit approval before merge or deployment."
 }
@@ -121,9 +121,10 @@ order.
 
 The final handoff records legacy-route deletion, exact email boundary,
 employee-ID compatibility, privacy scan, focused tests, typecheck, build,
-hosted CI, and final review findings. No provider calls occurred and no
-hosted settings changed. The route test provider is mocked and the application
-CI job has no provider credentials.
+hosted CI configuration, and final review findings. The new hosted CI result
+must be verified after the repair commit is pushed; no hosted pass is asserted
+locally. No provider calls occurred and no hosted settings changed. The route
+test provider is mocked and the application CI job has no provider credentials.
 
 ## Rollback and Risks
 

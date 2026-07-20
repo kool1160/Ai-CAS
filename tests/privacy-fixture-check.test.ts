@@ -37,7 +37,7 @@ describe('privacy fixture checker', () => {
       ['tests/tracked-fixture.txt'],
       (relativePath: string) => {
         readPaths.push(relativePath);
-        return 'SYNTHETIC-CUSTOMER';
+        return 'SYNTHETIC-ACCOUNT';
       },
     );
 
