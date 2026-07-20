@@ -7,7 +7,9 @@
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Base commit:** `a37cd376b19a013d5bc39ec71a7fc87c8c4f9edb`
 **Branch:** `codex/milestone-1`
-**Final head:** `44245ef736b30496de7e31738318631229bc998a`
+**Substantive repair head:** `44245ef736b30496de7e31738318631229bc998a`
+**Review branch:** `codex/milestone-1`
+**Current PR head:** Verify from GitHub at review time; this handoff does not self-reference its own commit.
 
 ## Approved Scope
 
@@ -110,8 +112,8 @@ order.
   "approval_required": "Human approval is required before merge, deployment, enabling release, or any externally visible action.",
   "unresolved_items": [
     "Real authentication and server-side identity remain absent.",
-    "Hosted CI and Vercel preview checks must pass on the pushed repair commit.",
-    "Hosted CI and Vercel preview checks remain external verification gates."
+    "Browser-local ownership and persistence remain limitations.",
+    "Email release remains disabled by default; merge, deployment, and enabling release require explicit human approval."
   ],
   "recommended_next_action": "Review the pushed repair, verify hosted checks, and stop for explicit approval before merge or deployment."
 }
@@ -121,10 +123,11 @@ order.
 
 The final handoff records legacy-route deletion, exact email boundary,
 employee-ID compatibility, privacy scan, focused tests, typecheck, build,
-hosted CI configuration, and final review findings. The new hosted CI result
-must be verified after the repair commit is pushed; no hosted pass is asserted
-locally. No provider calls occurred and no hosted settings changed. The route
-test provider is mocked and the application CI job has no provider credentials.
+hosted CI, and final review findings. Exact-head AI-CAS CI run
+`29761917969` passed both `Governance contract checks` and `Application
+baseline checks`. Vercel passed for `a359389b683774de898df43dbe6a5f404767b2e6`.
+No provider calls occurred and no hosted settings changed. The route test
+provider is mocked and the application CI job has no provider credentials.
 
 ## Rollback and Risks
 
