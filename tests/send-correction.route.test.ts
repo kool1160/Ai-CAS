@@ -11,7 +11,7 @@ const basePayload = {
   affectedArea: 'Synthetic affected area',
   companyName: 'SYNTHETIC-COMPANY',
   submittedByName: 'Synthetic Operator',
-  submittedByEmail: 'operator@example.invalid',
+  submittedByIdentifier: 'operator@example.invalid',
   sendPin: '1234',
   finalReviewConfirmed: true,
 };
@@ -49,7 +49,7 @@ describe('POST /api/send-correction', () => {
     fetchMock.mockReset();
   });
 
-  it.each([undefined, 'false', 'True', 'TRUE', '1', 'yes'])('fails closed for release flag %s', async (flag) => {
+  it.each([undefined, 'false', 'True', 'TRUE', '1', 'yes', 'true '])('fails closed for release flag %s', async (flag) => {
     if (flag === undefined) delete process.env.AI_CAS_EMAIL_RELEASE_ENABLED;
     else process.env.AI_CAS_EMAIL_RELEASE_ENABLED = flag;
 
@@ -143,5 +143,34 @@ describe('POST /api/send-correction', () => {
     await POST(requestFor());
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['EMP-1047', 'operator@example.invalid'])('accepts a bounded submitted-by identifier: %s', async (identifier) => {
+    const response = await POST(requestFor({ ...basePayload, submittedByIdentifier: identifier }));
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(init.body));
+    expect(sent.text).toContain(identifier);
+  });
+
+  it.each(['operator\r\nBcc: attacker@example.invalid', 'operator\u0000id', 'operator\u0007id', 'x'.repeat(501)])('rejects unsafe submitted-by identifiers: %s', async (identifier) => {
+    const response = await POST(requestFor({ ...basePayload, submittedByIdentifier: identifier }));
+
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the submitted-by identifier only in the body, never as an email address', async () => {
+    const response = await POST(requestFor({ ...basePayload, submittedByIdentifier: 'EMP-1047' }));
+
+    expect(response.status).toBe(200);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(init.body));
+    expect(sent.from).toBe('AI-CAS <ai-cas@example.invalid>');
+    expect(sent.to).toEqual(['engineering@example.invalid']);
+    expect(sent.reply_to).toBeUndefined();
+    expect(sent.text).toContain('Submitted By: Synthetic Operator / EMP-1047');
   });
 });

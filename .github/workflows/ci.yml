@@ -26,10 +26,41 @@ jobs:
         shell: bash
         run: bash scripts/ci-contract.sh
 
-      - name: Run application checks
+  application:
+    name: Application baseline checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
         shell: bash
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm run test:run
-          npm run typecheck
-          npm run build
+        run: npm ci
+
+      - name: Run application tests
+        shell: bash
+        run: npm run test:run
+
+      - name: Run TypeScript checks
+        shell: bash
+        run: npm run typecheck
+
+      - name: Build application
+        shell: bash
+        run: npm run build
+
+      - name: Run privacy fixture check
+        shell: bash
+        run: node scripts/privacy-fixture-check.mjs

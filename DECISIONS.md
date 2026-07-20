@@ -130,3 +130,42 @@ hosted rename.
 personal, or proprietary data.
 
 **Evidence:** Milestone 1 synthetic-data scan and complete diff review.
+
+## 2026-07-20 - Keep privacy checks tracked-file and denylist based
+
+**Decision:** Public application, test, fixture-like, and active documentation
+surfaces are scanned from `git ls-files` using a narrow hashed denylist of
+known removed fixture identifiers. Clearly synthetic values and generated
+directories are permitted or excluded as documented.
+
+**Reason:** Public-data safety needs deterministic coverage without treating
+ordinary manufacturing language or every number as sensitive.
+
+## 2026-07-20 - Separate governance evidence from application evidence
+
+**Decision:** Pull requests run governance contract checks and application
+baseline checks as separate jobs. The application job uses fixed Node 22,
+`npm ci`, Vitest, TypeScript, build, and the tracked-file privacy checker with
+read-only permissions and no provider credentials.
+
+**Reason:** Governance validity and runtime build evidence are different claims
+and must fail independently.
+
+## 2026-07-20 - Preserve employee identifiers as attribution text
+
+**Decision:** The active client sends `submittedByIdentifier`, sourced from the
+current login identifier with the existing setup attribution fallback. The
+server accepts bounded email or employee-ID text only for the plain-text body;
+it never uses that value as sender, recipient, reply-to, or another header.
+
+**Reason:** The login contract supports employee IDs, and attribution must not
+be confused with server-owned email addressing.
+
+## 2026-07-20 - Require a complete M1 planning handoff
+
+**Decision:** M1 is not ready for merge or deployment without a schema-valid
+planning handoff whose machine-readable `files_changed` list exactly matches
+the final `main...HEAD` change surface.
+
+**Reason:** Reviewers need one durable record of scope, evidence, rollback, and
+approval boundaries.

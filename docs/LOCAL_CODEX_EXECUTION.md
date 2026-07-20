@@ -26,8 +26,11 @@ node scripts/select-milestone.mjs --number 1 --context .ai-cas/selected-mileston
 bash scripts/ci-contract.sh
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1
 node scripts/validate-governance.mjs --check
-node scripts/validate-scope.mjs --milestone 0
+node scripts/select-milestone.mjs --validate
+node scripts/select-milestone.mjs --selected
+node scripts/validate-scope.mjs --milestone 1
 node scripts/governance-regression.mjs
+node scripts/privacy-fixture-check.mjs
 git diff --check
 git diff --stat
 git diff --name-only
@@ -46,6 +49,20 @@ npm ci
 npm run build
 npm run test:run
 npm run typecheck
+```
+
+The pull-request workflow keeps governance checks in `Governance contract
+checks` and runs application evidence separately in `Application baseline
+checks` with fixed Node 22. The application job runs exactly `npm ci`,
+`npm run test:run`, `npm run typecheck`, `npm run build`, and
+`node scripts/privacy-fixture-check.mjs`. Neither job receives provider
+credentials or calls OpenAI, Resend, Supabase, Vercel, or another live service.
+
+Before handoff, validate the selected milestone and M1 handoff:
+
+```text
+node scripts/validate-scope.mjs --milestone 1
+node scripts/validate-governance.mjs --handoff docs/handoffs/M1_PLANNING_HANDOFF.md --milestone 1
 ```
 
 Do not provide production environment values to local checks. The email route

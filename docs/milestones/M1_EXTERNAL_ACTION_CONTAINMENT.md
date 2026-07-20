@@ -23,6 +23,10 @@ from public application and fixture surfaces.
 - Replace unverified realistic sample identifiers with clearly synthetic values.
 - Add Vitest route regression tests, a lockfile, explicit application test and
   typecheck scripts, and provider-offline CI test/typecheck/build steps.
+- Add a tracked-file privacy checker with a narrow denylist and deterministic
+  tests for prohibited, synthetic, generated, and untracked-file behavior.
+- Preserve employee-ID or email attribution as bounded plain text in the
+  reviewed message body without using it for email addressing.
 - Update affected architecture, local execution, backlog, decisions, and
   milestone records.
 
@@ -86,7 +90,9 @@ identity changes, or destructive operations.
 - `package-lock.json`
 - `scripts/ci-contract.sh`
 - `scripts/ci-contract.ps1`
+- `scripts/privacy-fixture-check.mjs`
 - `scripts/select-milestone.mjs`
+- `docs/handoffs/M1_PLANNING_HANDOFF.md`
 - `tests/**`
 - `vitest.config.ts`
 
@@ -123,11 +129,15 @@ validator. In particular, no other `app/` or `features/` path is authorized.
 - The legacy route is absent and no active caller references `/api/send`.
 - Route tests cover disabled/malformed release flags, literal final-review
   confirmation, server-only recipient, missing/unsafe configuration, content
-  completeness, header injection, and at-most-once provider invocation.
+  completeness, header injection, employee-ID attribution, and at-most-once
+  provider invocation.
 - `npm ci`, `npm run test:run`, `npm run typecheck`, and `npm run build` pass in
   a clean dependency state.
-- CI invokes only local tests/build and governance checks; no provider calls or
-  secrets are available to it.
+- Governance and application CI jobs are separate; application checks use fixed
+  Node 22, the lockfile, local tests/build, and the tracked-file privacy check.
+  No provider calls or secrets are available to either job.
+- The M1 planning handoff is schema-valid and its exact changed-file list
+  reconciles to `main...HEAD`.
 - Synthetic-data scans, secret scans, scope checks, and `git diff --check` pass.
 - No application path outside this document's allowed list changes.
 

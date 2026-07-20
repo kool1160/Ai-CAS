@@ -15,7 +15,7 @@ type SendCorrectionRequest = {
   affectedArea?: unknown;
   senderDisplayName?: unknown;
   submittedByName?: unknown;
-  submittedByEmail?: unknown;
+  submittedByIdentifier?: unknown;
   companyName?: unknown;
   sendPin?: unknown;
   finalReviewConfirmed?: unknown;
@@ -42,7 +42,7 @@ function isConfiguredSender(value: string) {
 }
 
 function isEmailReleaseEnabled() {
-  return process.env.AI_CAS_EMAIL_RELEASE_ENABLED?.trim() === 'true';
+  return process.env.AI_CAS_EMAIL_RELEASE_ENABLED === 'true';
 }
 
 const payloadStringLimits: Record<string, number> = {
@@ -55,7 +55,7 @@ const payloadStringLimits: Record<string, number> = {
   affectedArea: MAX_CONTEXT_LENGTH,
   senderDisplayName: MAX_CONTEXT_LENGTH,
   submittedByName: MAX_CONTEXT_LENGTH,
-  submittedByEmail: MAX_CONTEXT_LENGTH,
+  submittedByIdentifier: MAX_CONTEXT_LENGTH,
   companyName: MAX_CONTEXT_LENGTH,
   sendPin: 64,
   recipientEmail: MAX_CONTEXT_LENGTH,
@@ -66,11 +66,15 @@ function hasInvalidPayloadStrings(payload: SendCorrectionRequest) {
     const value = payload[key as keyof SendCorrectionRequest];
     if (value === undefined) continue;
     if (typeof value !== 'string' || value.length > maxLength) return true;
-    if (['subjectLine', 'recipientEmail', 'senderDisplayName', 'submittedByEmail'].includes(key) && hasHeaderInjection(value)) return true;
+    if (['subjectLine', 'recipientEmail', 'senderDisplayName', 'submittedByIdentifier'].includes(key) && hasHeaderInjection(value)) return true;
   }
 
-  const submittedByEmail = cleanValue(payload.submittedByEmail);
-  return Boolean(submittedByEmail) && !isConfiguredEmail(submittedByEmail);
+  if (Object.prototype.hasOwnProperty.call(payload, 'submittedByEmail')) return true;
+
+  const identifier = payload.submittedByIdentifier;
+  if (identifier === undefined) return false;
+  if (typeof identifier !== 'string' || !identifier.trim() || identifier.length > MAX_CONTEXT_LENGTH) return true;
+  return /[\u0000-\u001F\u007F]/.test(identifier);
 }
 
 function buildEmailBody(payload: SendCorrectionRequest, reportText: string, emailDraftText: string) {
@@ -80,8 +84,8 @@ function buildEmailBody(payload: SendCorrectionRequest, reportText: string, emai
   const affectedArea = cleanValue(payload.affectedArea) || 'Not provided';
   const companyName = cleanValue(payload.companyName);
   const submittedByName = cleanValue(payload.submittedByName);
-  const submittedByEmail = cleanValue(payload.submittedByEmail);
-  const submittedBy = [submittedByName, submittedByEmail].filter(Boolean).join(' / ');
+  const submittedByIdentifier = cleanValue(payload.submittedByIdentifier);
+  const submittedBy = [submittedByName, submittedByIdentifier].filter(Boolean).join(' / ');
 
   return `AI-CAS Corrective Action Draft / Human Review Confirmed
 

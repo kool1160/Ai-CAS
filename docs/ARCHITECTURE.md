@@ -36,6 +36,9 @@ Browser shell and workflow state
 - Deployment owns build, environment, preview, rollback, and production
   readiness without performing deployment automatically.
 - CI owns repeatable technical evidence and never calls live providers.
+- CI separates governance contract evidence from the application baseline job.
+  The application job uses fixed Node 22, `npm ci`, Vitest, TypeScript, build,
+  and the tracked-file privacy checker with read-only permissions.
 - The Foreman owns coordination and integration, not specialist truth.
 - Foreman execution uses a dedicated non-production `AI_CAS_FOREMAN_OPENAI_API_KEY`
   with separate usage limits and rotation; it must not access production data or systems.
@@ -58,6 +61,11 @@ Browser shell and workflow state
   values are ignored.
 - The outgoing email contains the approved draft and complete report. Evidence
   files are not attached by the current route.
+- Submitted-by attribution accepts the current login's email or employee ID as
+  bounded plain text in the message body only; it cannot control email headers.
+- Public-data checks use `git ls-files` and a narrow denylist for known removed
+  fixture identifiers while allowing clearly synthetic values and excluding
+  generated artifacts.
 - The legacy unauthenticated `/api/send` route is removed; active callers use
   `/api/send-correction` only.
 - Keep AI outputs editable, traceable, and subordinate to human review.

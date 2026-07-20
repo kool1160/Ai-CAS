@@ -57,11 +57,17 @@ Acceptance criteria:
   that evidence is attached.
 - Focused Vitest coverage proves release-flag, confirmation, recipient,
   content, header-injection, and at-most-once provider-call behavior.
+- Employee IDs and email identifiers remain available as bounded submitted-by
+  attribution text without influencing server-owned email addressing.
 - Public sample values are obviously synthetic and no real customer, employer,
   personal, or proprietary data is added to tests or CI.
+- The tracked privacy checker rejects the narrow prohibited-value denylist,
+  ignores generated paths, and runs in the separate application CI job.
 - A lockfile and explicit `test`, `test:run`, and `typecheck` scripts make the
   application checks reproducible; CI runs test, typecheck, and build checks
   without live provider calls.
+- A schema-valid M1 planning handoff records the complete `main...HEAD`
+  change surface and evidence before merge or deployment.
 - Authentication, Supabase, durable persistence, billing, PDF release, hosted
   identity migration, and shell redesign remain out of scope.
 

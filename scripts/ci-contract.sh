@@ -29,6 +29,8 @@ required_files=(
   .github/workflows/ai-cas-foreman.yml .github/workflows/ci.yml
   scripts/select-milestone.mjs scripts/ci-contract.ps1 scripts/ci-contract.sh
   scripts/validate-governance.mjs scripts/validate-scope.mjs scripts/governance-regression.mjs
+  scripts/privacy-fixture-check.mjs
+  docs/handoffs/M1_PLANNING_HANDOFF.md
   docs/GITHUB_REPOSITORY_SETUP.md
   .gitignore
 )
@@ -60,7 +62,9 @@ node --check scripts/select-milestone.mjs
 node --check scripts/validate-governance.mjs
 node --check scripts/validate-scope.mjs
 node --check scripts/governance-regression.mjs
+node --check scripts/privacy-fixture-check.mjs
 node scripts/validate-governance.mjs --check
+node scripts/validate-governance.mjs --handoff docs/handoffs/M1_PLANNING_HANDOFF.md --milestone 1
 if [[ -n "${AI_CAS_MILESTONE_NUMBER:-}" ]]; then
   milestone_number="$AI_CAS_MILESTONE_NUMBER"
 else
@@ -75,6 +79,7 @@ if [[ -n "$scope_context" ]]; then
 fi
 node scripts/validate-scope.mjs "${scope_args[@]}"
 node scripts/governance-regression.mjs
+node scripts/privacy-fixture-check.mjs
 if [[ -n "${BASH:-}" && -x "${BASH}" ]]; then
   "${BASH}" -n scripts/ci-contract.sh
 else
@@ -88,6 +93,32 @@ if scan_file '^\s+(push|pull_request):|secrets\.OPENAI_API_KEY' '.github/workflo
   exit 1
 fi
 scan_file '^\s+pull_request:' .github/workflows/ci.yml >/dev/null || { echo 'CI pull_request trigger missing.' >&2; exit 1; }
+
+node - <<'NODE'
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const workflow = fs.readFileSync('.github/workflows/ci.yml', 'utf8').replace(/\r\n/g, '\n');
+const governanceStart = workflow.indexOf('  governance:');
+const applicationStart = workflow.indexOf('  application:');
+if (governanceStart < 0 || applicationStart < 0 || applicationStart <= governanceStart) throw new Error('Governance and application CI jobs are required.');
+const governance = workflow.slice(governanceStart, applicationStart);
+const application = workflow.slice(applicationStart);
+if (!governance.includes('name: Governance contract checks')) throw new Error('Governance CI job name is missing.');
+if (!application.includes('name: Application baseline checks') || !application.includes('runs-on: ubuntu-latest')) throw new Error('Application CI job structure is incomplete.');
+if (!application.includes('permissions:\n      contents: read') || !application.includes('persist-credentials: false')) throw new Error('Application CI permissions or checkout boundary is incomplete.');
+if (!application.includes('node-version: 22.14.0') || !application.includes('cache: npm') || !application.includes('cache-dependency-path: package-lock.json')) throw new Error('Fixed Node and npm cache contract is incomplete.');
+for (const command of ['npm ci', 'npm run test:run', 'npm run typecheck', 'npm run build', 'node scripts/privacy-fixture-check.mjs']) {
+  if (!application.includes(`run: ${command}`)) throw new Error(`Application CI command is missing: ${command}`);
+}
+if (/npm (ci|run (test:run|typecheck|build))/.test(governance)) throw new Error('Application commands must not run in governance CI.');
+if (fs.existsSync('app/api/send/route.ts')) throw new Error('Legacy /api/send route must remain absent.');
+const handoff = fs.readFileSync('docs/handoffs/M1_PLANNING_HANDOFF.md', 'utf8');
+const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
+if (!match) throw new Error('M1 handoff JSON block is missing.');
+const listed = JSON.parse(match[1]).files_changed;
+const actual = execFileSync('git', ['diff', '--name-only', 'main...HEAD'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M1 handoff files_changed does not match main...HEAD.');
+NODE
 
 if scan_repo '(sk-[A-Za-z0-9_-]{20,}|OPENAI_API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{8,}|RESEND_API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{8,})'; then
   echo 'Potential committed secret detected.' >&2

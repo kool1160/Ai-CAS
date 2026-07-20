@@ -88,7 +88,7 @@ function buildSendSetupPayload(setupConfig: SetupConfig, currentUser: CurrentUse
   return {
     senderDisplayName: setupConfig.senderDisplayName,
     submittedByName: currentUser?.displayName || setupConfig.defaultSubmittedByName,
-    submittedByEmail: currentUser?.emailOrEmployeeId || setupConfig.defaultSubmittedByEmail,
+    submittedByIdentifier: currentUser?.emailOrEmployeeId || setupConfig.defaultSubmittedByEmail,
     companyName: setupConfig.companyName,
   };
 }
