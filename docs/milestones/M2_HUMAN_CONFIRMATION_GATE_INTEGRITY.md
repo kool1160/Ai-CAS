@@ -149,7 +149,6 @@ condition and must not be added silently by the Foreman.
 - `package-lock.json`
 - `public/**`
 - `.env`
-- `.env.*`
 - `.vercel/**`
 - `vercel.json`
 
