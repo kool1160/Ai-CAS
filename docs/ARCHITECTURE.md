@@ -5,8 +5,9 @@
 AI-CAS is a mixed Next.js App Router application. The client-heavy workflow
 is under `features/woc/`; server routes are under `app/api/`; the print route
 is under `app/print-report/`. The current repository has no database client,
-authentication framework, server session layer, middleware, test suite,
-lockfile, or CI workflow.
+authentication framework, server session layer, or middleware. Milestone 1 adds
+a lockfile, a focused Vitest route suite, and CI test/build execution; it does
+not establish durable persistence or authentication.
 
 ## Current runtime boundaries
 
@@ -20,7 +21,7 @@ Browser shell and workflow state
               |
               +-- OpenAI Vision extraction
               +-- OpenAI corrective-action drafting
-              +-- Resend email sending
+              +-- server-controlled Resend email sending (disabled by default)
               +-- setup unlock
               +-- non-persisting record validation stub
 ```
@@ -35,6 +36,9 @@ Browser shell and workflow state
 - Deployment owns build, environment, preview, rollback, and production
   readiness without performing deployment automatically.
 - CI owns repeatable technical evidence and never calls live providers.
+- CI separates governance contract evidence from the application baseline job.
+  The application job uses fixed Node 22, `npm ci`, Vitest, TypeScript, build,
+  and the tracked-file privacy checker with read-only permissions.
 - The Foreman owns coordination and integration, not specialist truth.
 - Foreman execution uses a dedicated non-production `AI_CAS_FOREMAN_OPENAI_API_KEY`
   with separate usage limits and rotation; it must not access production data or systems.
@@ -51,6 +55,19 @@ Browser shell and workflow state
 - Preserve the working product shell during governance work.
 - Keep browser-local behavior clearly labeled until durable persistence exists.
 - Keep provider calls behind server boundaries and environment variables.
+- Email release requires the exact server value
+  `AI_CAS_EMAIL_RELEASE_ENABLED=true`, server-configured sender and recipient,
+  configured PIN, and literal `finalReviewConfirmed: true`; browser recipient
+  values are ignored.
+- The outgoing email contains the approved draft and complete report. Evidence
+  files are not attached by the current route.
+- Submitted-by attribution accepts the current login's email or employee ID as
+  bounded plain text in the message body only; it cannot control email headers.
+- Public-data checks use `git ls-files` and a narrow denylist for known removed
+  fixture identifiers while allowing clearly synthetic values and excluding
+  generated artifacts.
+- The legacy unauthenticated `/api/send` route is removed; active callers use
+  `/api/send-correction` only.
 - Keep AI outputs editable, traceable, and subordinate to human review.
 - Keep historical Refab Connect and AI-WOC compatibility visible but bounded.
 - Record conflicts between repository evidence and
@@ -62,3 +79,7 @@ Authentication, durable persistence, Supabase or another backend, record
 ownership, photo retention, PDF generation, and hosted identity migration are
 not established by Milestone 0. They require later milestones and explicit
 approval.
+
+Milestone 1 adds a reproducible Vitest command and lockfile-backed CI build/test
+baseline without changing those deferred architecture decisions. Email release
+remains disabled by default in every local and CI context.

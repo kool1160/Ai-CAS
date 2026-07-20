@@ -108,11 +108,11 @@ export const departmentOptions = [
 export const affectedAreaOptions = departmentOptions;
 
 export const defaultWocCorrectionData: WocCorrectionData = {
-  workOrderNumber: '042631-001',
-  partNumber: 'CYM-1750-LH-BU',
+  workOrderNumber: 'SYNTHETIC-WO-001',
+  partNumber: 'SYNTHETIC-PART-001',
   revision: 'B',
   partDescription: '',
-  customerOrJob: 'ENWORK',
+  customerOrJob: 'SYNTHETIC-CUSTOMER',
   operationNumber: '',
   routerStepOperation: '',
   quantity: '35 EA',

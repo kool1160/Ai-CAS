@@ -105,3 +105,67 @@ ambiguous scope fails closed. Milestone 0 remains governance-only.
 **Decision:** Foreman publication uses `codex/milestone-<number>` as the stable
 branch and collision key. Editable milestone names remain display metadata and
 cannot create a second branch or PR for the same milestone number.
+
+## 2026-07-20 - Contain external email release
+
+**Decision:** Real email release is disabled unless the server explicitly sets
+`AI_CAS_EMAIL_RELEASE_ENABLED=true`. The server owns recipient and sender
+configuration, requires literal final-review confirmation, and sends the
+approved draft plus complete submitted report in one provider request.
+
+**Reason:** Browser-controlled destinations, missing review evidence, summary-
+only messages, and the unauthenticated legacy route are unsafe external-action
+boundaries.
+
+**Evidence:** Approved Milestone 1 product decisions and route regression tests.
+
+## 2026-07-20 - Use synthetic public sample data
+
+**Decision:** Unverified realistic manufacturing and customer identifiers are
+replaced with obviously synthetic values on active and public fixture-like
+surfaces. Historical product identity references remain bounded and are not a
+hosted rename.
+
+**Reason:** Public source, tests, and CI must not expose customer, employer,
+personal, or proprietary data.
+
+**Evidence:** Milestone 1 synthetic-data scan and complete diff review.
+
+## 2026-07-20 - Keep privacy checks tracked-file and denylist based
+
+**Decision:** Public application, test, fixture-like, and active documentation
+surfaces are scanned from `git ls-files` using a narrow hashed denylist of
+known removed fixture identifiers. Clearly synthetic values and generated
+directories are permitted or excluded as documented.
+
+**Reason:** Public-data safety needs deterministic coverage without treating
+ordinary manufacturing language or every number as sensitive.
+
+## 2026-07-20 - Separate governance evidence from application evidence
+
+**Decision:** Pull requests run governance contract checks and application
+baseline checks as separate jobs. The application job uses fixed Node 22,
+`npm ci`, Vitest, TypeScript, build, and the tracked-file privacy checker with
+read-only permissions and no provider credentials.
+
+**Reason:** Governance validity and runtime build evidence are different claims
+and must fail independently.
+
+## 2026-07-20 - Preserve employee identifiers as attribution text
+
+**Decision:** The active client sends `submittedByIdentifier`, sourced from the
+current login identifier with the existing setup attribution fallback. The
+server accepts bounded email or employee-ID text only for the plain-text body;
+it never uses that value as sender, recipient, reply-to, or another header.
+
+**Reason:** The login contract supports employee IDs, and attribution must not
+be confused with server-owned email addressing.
+
+## 2026-07-20 - Require a complete M1 planning handoff
+
+**Decision:** M1 is not ready for merge or deployment without a schema-valid
+planning handoff whose machine-readable `files_changed` list exactly matches
+the final `main...HEAD` change surface.
+
+**Reason:** Reviewers need one durable record of scope, evidence, rollback, and
+approval boundaries.

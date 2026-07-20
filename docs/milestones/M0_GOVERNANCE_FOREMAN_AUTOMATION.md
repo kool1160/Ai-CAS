@@ -1,7 +1,7 @@
 # Milestone 0 - Establish AI-CAS Governance and Foreman Automation
 
 **Status:** Complete
-**Selected:** Yes
+**Selected:** No
 **Primary product source:** `AI-CAS_PROJECT_SUMMARY.md`
 
 ## Goal

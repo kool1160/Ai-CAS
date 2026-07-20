@@ -69,11 +69,11 @@ export function buildControlledCorrectiveActionPdfTemplate(
   return {
     templateName: 'AI-CAS Controlled Corrective Action PDF',
     templateVersion: 'V4-M4-foundation',
-    modelSource: 'WO 008604 corrective action style model',
+    modelSource: 'Synthetic corrective-action style model',
     status: humanConfirmed ? 'locked-until-controlled-release' : 'foundation-only',
     releaseGate: 'PDF/export is disabled until future controlled release milestone. Human confirmation remains required.',
     layoutNotes: [
-      'Use a clean shop-floor corrective action sheet structure modeled after WO 008604.',
+      'Use a clean shop-floor corrective action sheet structure modeled after synthetic fixture data.',
       'Prioritize readable header fields, boxed problem/correction sections, evidence placeholders, and approval status.',
       'This file defines template data only; it does not generate, download, print, email, or release a PDF.',
       'Future PDF generation must consume this template only after the controlled release gate is implemented.',

@@ -86,10 +86,9 @@ const stepLabels: Record<Screen, string> = {
 
 function buildSendSetupPayload(setupConfig: SetupConfig, currentUser: CurrentUser | null) {
   return {
-    recipientEmail: setupConfig.engineeringRecipientEmail,
     senderDisplayName: setupConfig.senderDisplayName,
     submittedByName: currentUser?.displayName || setupConfig.defaultSubmittedByName,
-    submittedByEmail: currentUser?.emailOrEmployeeId || setupConfig.defaultSubmittedByEmail,
+    submittedByIdentifier: currentUser?.emailOrEmployeeId || setupConfig.defaultSubmittedByEmail,
     companyName: setupConfig.companyName,
   };
 }
@@ -557,6 +556,7 @@ export function WocApp() {
           partNumber: wocData.partNumber,
           affectedArea: getEffectiveAffectedArea(wocData),
           correctionType: wocData.correctionType,
+          finalReviewConfirmed: true,
           sendPin,
           ...buildSendSetupPayload(setupConfig, currentUser),
         }),
@@ -571,9 +571,8 @@ export function WocApp() {
       }
 
       const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
-      const recipient = typeof payload?.recipient === 'string' ? payload.recipient : 'configured recipient';
       addSentHistoryRecord(resendId);
-      setSendFeedback({ tone: 'success', message: `Email sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
+      setSendFeedback({ tone: 'success', message: `Email sent to the server-configured recipient.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setSendPin('');
     } catch {
       setSendFeedback({ tone: 'error', message: 'Email send could not be completed. Copy controls remain available.' });
@@ -621,6 +620,7 @@ export function WocApp() {
           partNumber: selectedDraft.partNumber,
           affectedArea: selectedDraft.affectedArea,
           correctionType: selectedDraft.correctionType,
+          finalReviewConfirmed: true,
           sendPin: draftSendPin,
           ...buildSendSetupPayload(setupConfig, currentUser),
         }),
@@ -635,9 +635,8 @@ export function WocApp() {
       }
 
       const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
-      const recipient = typeof payload?.recipient === 'string' ? payload.recipient : 'configured recipient';
       addSentHistoryRecordFromDraft(selectedDraft, resendId);
-      setDraftActionFeedback({ tone: 'success', message: `Saved draft sent to ${recipient}.${resendId ? ` Resend ID: ${resendId}` : ''}` });
+      setDraftActionFeedback({ tone: 'success', message: `Saved draft sent to the server-configured recipient.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setDraftFinalReviewConfirmed(false);
       setDraftSendPin('');
     } catch {

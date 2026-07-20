@@ -22,12 +22,15 @@ relevant historical documents before proposing work.
 
 ```text
 git status --short --branch
-node scripts/select-milestone.mjs --number 0 --context .ai-cas/selected-milestone.md
+node scripts/select-milestone.mjs --number 1 --context .ai-cas/selected-milestone.md
 bash scripts/ci-contract.sh
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1
 node scripts/validate-governance.mjs --check
-node scripts/validate-scope.mjs --milestone 0
+node scripts/select-milestone.mjs --validate
+node scripts/select-milestone.mjs --selected
+node scripts/validate-scope.mjs --milestone 1
 node scripts/governance-regression.mjs
+node scripts/privacy-fixture-check.mjs
 git diff --check
 git diff --stat
 git diff --name-only
@@ -38,22 +41,40 @@ tracked milestone document under `docs/milestones/` is authoritative.
 
 ## Application checks
 
-The current repository has no dependency lockfile, no installed dependencies,
-and no test script. Do not install packages during governance checks. Report
-`npm run build` and application tests as unavailable until a later approved
-change establishes reproducible dependency state and a test command.
-
-When those prerequisites exist, the expected commands are:
+Milestone 1 establishes a lockfile and focused Vitest command. Use an isolated
+dependency environment or the CI runner for:
 
 ```text
 npm ci
 npm run build
-npm test
+npm run test:run
+npm run typecheck
 ```
 
-Do not provide production environment values to local checks. Use synthetic
-inputs and mocked provider boundaries. Never send real documents to OpenAI or
-real emails through Resend during repository validation.
+The pull-request workflow keeps governance checks in `Governance contract
+checks` and runs application evidence separately in `Application baseline
+checks` with fixed Node 22. The application job runs exactly `npm ci`,
+`npm run test:run`, `npm run typecheck`, `npm run build`, and
+`node scripts/privacy-fixture-check.mjs`. Neither job receives provider
+credentials or calls OpenAI, Resend, Supabase, Vercel, or another live service.
+
+Before handoff, validate the selected milestone and M1 handoff:
+
+```text
+node scripts/validate-scope.mjs --milestone 1
+node scripts/validate-governance.mjs --handoff docs/handoffs/M1_PLANNING_HANDOFF.md --milestone 1
+```
+
+Do not provide production environment values to local checks. The email route
+is disabled unless `AI_CAS_EMAIL_RELEASE_ENABLED=true` is explicitly supplied,
+and no such value is supplied in CI. Use synthetic inputs and mocked provider
+boundaries. Never send real documents to OpenAI or real emails through Resend
+during repository validation.
+
+The route's server boundary requires `RESEND_API_KEY`,
+`REFAB_CONNECT_SEND_PIN`, `REFAB_CONNECT_EMAIL_TO`, and
+`REFAB_CONNECT_EMAIL_FROM` only for a deliberately configured non-CI runtime.
+The browser's recipient field is not authoritative.
 
 ## Approval boundaries
 
@@ -77,3 +98,8 @@ and untracked paths, rejects ignored files outside `.ai-cas/`, and defaults to
 deny. Foreman patch artifacts are exported from the staged index with
 `git diff --cached --binary --full-index`; the execute job stages changes for
 artifact construction but never commits them.
+
+The governance CI checkout fetches the base branch history before reconciling
+the handoff's exact changed-file list. The contracts prefer local `main` and
+fall back to `origin/main` for detached pull-request merge checkouts; they fail
+closed when neither reference is available.
