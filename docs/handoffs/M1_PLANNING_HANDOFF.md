@@ -52,7 +52,7 @@ identity migration, deployment, or product-shell redesign was included.
 
 ```json
 {
-  "status": "complete",
+  "status": "completed",
   "milestone_number": 1,
   "milestone_name": "External-Action Containment and Public-Data Safety",
   "summary": "Contained unsafe email release, removed unverified public fixture identifiers, preserved employee-ID attribution, and separated application validation from governance evidence.",
