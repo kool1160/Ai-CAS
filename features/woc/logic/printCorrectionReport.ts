@@ -1,3 +1,8 @@
+import {
+  createConfirmedPrintPayload,
+  type ReviewMetadata,
+} from '../state/reviewGate';
+
 export type PrintCorrectionReportInput = {
   subjectLine?: string;
   workOrderNumber?: string;
@@ -68,7 +73,15 @@ function normalizePrintReportEvidence(report: PrintCorrectionReportInput): Print
   };
 }
 
-export function printCorrectionReport(report: PrintCorrectionReportInput) {
-  window.sessionStorage.setItem(PRINT_REPORT_STORAGE_KEY, JSON.stringify(normalizePrintReportEvidence(report)));
+export function printCorrectionReport(
+  report: PrintCorrectionReportInput,
+  reviewMetadata: ReviewMetadata,
+  finalReviewConfirmed: unknown,
+) {
+  const payload = createConfirmedPrintPayload(report, reviewMetadata, finalReviewConfirmed);
+  if (!payload) return false;
+
+  window.sessionStorage.setItem(PRINT_REPORT_STORAGE_KEY, JSON.stringify(normalizePrintReportEvidence(payload)));
   window.location.href = '/print-report';
+  return true;
 }

@@ -15,6 +15,7 @@ import {
   saveDraftRecordsToStorage,
   saveHistoryRecordsToStorage,
 } from '../logic/localRecordsStorage';
+import { printCorrectionReport } from '../logic/printCorrectionReport';
 import {
   defaultSetupConfig,
   loadSetupConfigFromStorage,
@@ -33,6 +34,12 @@ import {
   type WocConfirmationState,
   type WocCorrectionData,
 } from '../state/wocDataModel';
+import {
+  canPerformFreshDraftAction,
+  canSaveGeneratedPackage,
+  createConfirmedReviewMetadata,
+  REVIEW_CONFIRMATION_ERROR,
+} from '../state/reviewGate';
 import type {
   ActionFeedback,
   CurrentUser,
@@ -448,26 +455,42 @@ export function WocApp() {
   };
 
   const saveCurrentDraft = () => {
-    if (!generatedPackage) {
+    const packageForSave = generatedPackage;
+    if (!packageForSave) {
       setSaveFeedback({ tone: 'error', message: 'Generate a draft before saving.' });
       return;
     }
 
+    if (!canSaveGeneratedPackage(packageForSave, confirmations.finalReviewConfirmed)) {
+      setSaveFeedback({ tone: 'error', message: REVIEW_CONFIRMATION_ERROR });
+      return;
+    }
+
     try {
+      const reviewMetadata = createConfirmedReviewMetadata({
+        reviewedBy: submittedByLabel,
+        reviewedById: currentUser?.userId,
+      });
+      if (!reviewMetadata) {
+        setSaveFeedback({ tone: 'error', message: 'Reviewer attribution could not be validated.' });
+        return;
+      }
+
       const createdTimestamp = new Date().toLocaleString();
       const draftId = `DRAFT-${String(draftRecords.length + 1).padStart(4, '0')}`;
       const record: DraftRecord = {
         draftId,
         createdTimestamp,
-        subjectLine: generatedPackage.subjectLine,
+        subjectLine: packageForSave.subjectLine,
         workOrderNumber: wocData.workOrderNumber,
         partNumber: wocData.partNumber,
         affectedArea: getEffectiveAffectedArea(wocData),
         correctionType: wocData.correctionType,
-        reportText: generatedPackage.reportPreview,
-        emailDraftText: generatedPackage.emailPreview,
+        reportText: packageForSave.reportPreview,
+        emailDraftText: packageForSave.emailPreview,
         submittedBy: submittedByLabel,
         submittedById: currentUser?.userId,
+        ...reviewMetadata,
         status: 'Draft',
       };
 
@@ -587,6 +610,61 @@ export function WocApp() {
     setDraftFinalReviewConfirmed(false);
     setDraftSendPin('');
     setDraftActionFeedback(null);
+  };
+
+  const updateDraftReviewConfirmation = (confirmed: boolean) => {
+    setDraftFinalReviewConfirmed(confirmed);
+    setDraftSendPin('');
+    setDraftActionFeedback(null);
+
+    if (!confirmed || !selectedDraft) return;
+
+    const reviewMetadata = createConfirmedReviewMetadata({
+      reviewedBy: submittedByLabel,
+      reviewedById: currentUser?.userId,
+    });
+    if (!reviewMetadata) {
+      setDraftFinalReviewConfirmed(false);
+      setDraftActionFeedback({ tone: 'error', message: 'Reviewer attribution could not be validated.' });
+      return;
+    }
+
+    setDraftRecords((current) => current.map((draft) => (
+      draft.draftId === selectedDraft.draftId ? { ...draft, ...reviewMetadata } : draft
+    )));
+  };
+
+  const printSelectedDraftReport = () => {
+    if (!selectedDraft) {
+      setDraftActionFeedback({ tone: 'error', message: 'Open a saved draft before printing.' });
+      return;
+    }
+
+    if (!canPerformFreshDraftAction(selectedDraft, draftFinalReviewConfirmed)) {
+      setDraftActionFeedback({ tone: 'error', message: 'Final review is required before printing this saved draft.' });
+      return;
+    }
+
+    const didStartPrint = printCorrectionReport(
+      {
+        subjectLine: selectedDraft.subjectLine,
+        workOrderNumber: selectedDraft.workOrderNumber,
+        partNumber: selectedDraft.partNumber,
+        affectedArea: selectedDraft.affectedArea,
+        correctionType: selectedDraft.correctionType,
+        photoEvidenceStatus: selectedDraft.evidenceAttached ? 'Attached' : 'Not attached',
+        submittedBy: selectedDraft.submittedBy,
+        status: selectedDraft.status,
+        generatedTimestamp: selectedDraft.createdTimestamp,
+        reportText: selectedDraft.reportText,
+      },
+      selectedDraft,
+      draftFinalReviewConfirmed,
+    );
+
+    if (!didStartPrint) {
+      setDraftActionFeedback({ tone: 'error', message: 'Confirmed review evidence is required before printing this saved draft.' });
+    }
   };
 
   const sendSelectedDraftEmail = async () => {
@@ -821,11 +899,8 @@ export function WocApp() {
             onSelectDraft={selectDraft}
             onCopyDraftReport={() => copyTextToClipboard(selectedDraft?.reportText, 'Saved draft report', setDraftActionFeedback)}
             onCopyDraftEmail={() => copyTextToClipboard(selectedDraft?.emailDraftText, 'Saved draft email', setDraftActionFeedback)}
-            onDraftFinalReviewChange={(confirmed) => {
-              setDraftFinalReviewConfirmed(confirmed);
-              setDraftSendPin('');
-              setDraftActionFeedback(null);
-            }}
+            onPrintDraftReport={printSelectedDraftReport}
+            onDraftFinalReviewChange={updateDraftReviewConfirmation}
             onDraftSendPinChange={(value) => {
               setDraftSendPin(normalizePin(value));
               setDraftActionFeedback(null);

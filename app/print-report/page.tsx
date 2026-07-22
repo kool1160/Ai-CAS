@@ -5,6 +5,7 @@ import {
   PRINT_REPORT_STORAGE_KEY,
   type PrintCorrectionReportInput,
 } from '../../features/woc/logic/printCorrectionReport';
+import { validateConfirmedPrintPayload } from '../../features/woc/state/reviewGate';
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -25,13 +26,9 @@ function resolveField(explicitValue: string | undefined, reportText: string, lab
 }
 
 function isPrintPayload(value: unknown): value is PrintCorrectionReportInput {
-  return Boolean(
-    value &&
-    typeof value === 'object' &&
-    'reportText' in value &&
-    typeof (value as { reportText?: unknown }).reportText === 'string' &&
-    (value as { reportText: string }).reportText.trim(),
-  );
+  if (!validateConfirmedPrintPayload(value)) return false;
+  const reportText = (value as { reportText?: unknown }).reportText;
+  return typeof reportText === 'string' && Boolean(reportText.trim());
 }
 
 export default function PrintReportPage() {
@@ -42,19 +39,19 @@ export default function PrintReportPage() {
     try {
       const raw = window.sessionStorage.getItem(PRINT_REPORT_STORAGE_KEY);
       if (!raw) {
-        setLoadError('No report data was found. Return to Refab Connect and choose Export / Print Report again.');
+        setLoadError('No AI-CAS report data was found. Return to AI-CAS and choose Export / Print Report again.');
         return;
       }
 
       const parsed = JSON.parse(raw);
       if (!isPrintPayload(parsed)) {
-        setLoadError('Saved print report data is invalid. Return to Refab Connect and export the report again.');
+        setLoadError('Saved AI-CAS print report data is invalid. Return to AI-CAS and export the report again.');
         return;
       }
 
       setReport(parsed);
     } catch {
-      setLoadError('Unable to load the print report. Return to Refab Connect and export the report again.');
+      setLoadError('Unable to load the AI-CAS print report. Return to AI-CAS and export the report again.');
     }
   }, []);
 

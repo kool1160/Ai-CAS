@@ -31,6 +31,8 @@ required_files=(
   scripts/validate-governance.mjs scripts/validate-scope.mjs scripts/governance-regression.mjs
   scripts/privacy-fixture-check.mjs
   docs/handoffs/M1_PLANNING_HANDOFF.md
+  docs/milestones/M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md
+  docs/handoffs/M2_PLANNING_HANDOFF.md
   docs/GITHUB_REPOSITORY_SETUP.md
   .gitignore
 )
@@ -65,6 +67,28 @@ node --check scripts/governance-regression.mjs
 node --check scripts/privacy-fixture-check.mjs
 node scripts/validate-governance.mjs --check
 node scripts/validate-governance.mjs --handoff docs/handoffs/M1_PLANNING_HANDOFF.md --milestone 1
+node scripts/validate-governance.mjs --handoff docs/handoffs/M2_PLANNING_HANDOFF.md --milestone 2
+node - <<'NODE'
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const handoff = fs.readFileSync('docs/handoffs/M2_PLANNING_HANDOFF.md', 'utf8');
+const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
+if (!match) throw new Error('M2 handoff JSON block is missing.');
+const listed = JSON.parse(match[1]).files_changed;
+const actualSet = new Set(execFileSync('git', ['diff', '--name-only', 'main...HEAD'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean));
+const status = execFileSync('git', ['status', '--porcelain=v1', '-uall'], { encoding: 'utf8' }).replace(/\r?\n$/, '');
+for (const line of status.split(/\r?\n/).filter(Boolean)) {
+  const statusPath = line.slice(3);
+  if (/^[RC]/.test(line.slice(0, 2)) && statusPath.includes(' -> ')) {
+    actualSet.add(statusPath.split(' -> ')[0]);
+    actualSet.add(statusPath.split(' -> ')[1]);
+  } else {
+    actualSet.add(statusPath);
+  }
+}
+const actual = [...actualSet];
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M2 handoff files_changed does not match the current or committed main...HEAD change surface.');
+NODE
 if [[ -n "${AI_CAS_MILESTONE_NUMBER:-}" ]]; then
   milestone_number="$AI_CAS_MILESTONE_NUMBER"
 else
@@ -77,9 +101,35 @@ if [[ -n "$scope_context" ]]; then
   [[ -f "$scope_context" ]] || { echo "Selected milestone context is missing: $scope_context" >&2; exit 1; }
   scope_args+=(--context "$scope_context")
 fi
+changed_paths=()
+status_output="$(git status --porcelain=v1 -uall)"
+while IFS= read -r status_line; do
+  [[ -z "$status_line" ]] && continue
+  status_path="${status_line:3}"
+  if [[ "${status_line:0:2}" =~ [RC] ]] && [[ "$status_path" == *' -> '* ]]; then
+    changed_paths+=(--path "${status_path%% -> *}" --path "${status_path##* -> }")
+  else
+    changed_paths+=(--path "$status_path")
+  fi
+done <<< "$status_output"
+if [[ ${#changed_paths[@]} -eq 0 ]]; then
+  while IFS= read -r committed_path; do
+    [[ -n "$committed_path" ]] && changed_paths+=(--path "$committed_path")
+  done < <(git diff --name-only main...HEAD)
+fi
+scope_args+=("${changed_paths[@]}")
 node scripts/validate-scope.mjs "${scope_args[@]}"
 node scripts/governance-regression.mjs
 node scripts/privacy-fixture-check.mjs
+if [[ "$milestone_number" == "2" ]]; then
+  node - <<'NODE'
+const fs = require('node:fs');
+const m2 = fs.readFileSync('docs/milestones/M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md', 'utf8');
+const m3 = fs.readFileSync('docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md', 'utf8');
+if (!/^\*\*Status:\*\* In Progress/m.test(m2) || !/^\*\*Selected:\*\* Yes/m.test(m2)) throw new Error('M2 must remain In Progress and selected until human review and merge.');
+if (!/^\*\*Status:\*\* Queued/m.test(m3) || !/^\*\*Selected:\*\* No/m.test(m3)) throw new Error('M3 must remain queued and unselected during M2.');
+NODE
+fi
 if [[ -n "${BASH:-}" && -x "${BASH}" ]]; then
   "${BASH}" -n scripts/ci-contract.sh
 else

@@ -1,4 +1,3 @@
-import { printCorrectionReport } from '../logic/printCorrectionReport';
 import type { ActionFeedback, DraftRecord } from '../types/wocSessionTypes';
 
 type DraftsScreenProps = {
@@ -11,6 +10,7 @@ type DraftsScreenProps = {
   onSelectDraft: (draftId: string) => void;
   onCopyDraftReport: () => void;
   onCopyDraftEmail: () => void;
+  onPrintDraftReport: () => void;
   onDraftFinalReviewChange: (confirmed: boolean) => void;
   onDraftSendPinChange: (value: string) => void;
   onSendDraftEmail: () => void;
@@ -52,27 +52,11 @@ export function DraftsScreen({
   onSelectDraft,
   onCopyDraftReport,
   onCopyDraftEmail,
+  onPrintDraftReport,
   onDraftFinalReviewChange,
   onDraftSendPinChange,
   onSendDraftEmail,
 }: DraftsScreenProps) {
-  const handlePrintDraftReport = () => {
-    if (!selectedDraft) return;
-
-    printCorrectionReport({
-      subjectLine: selectedDraft.subjectLine,
-      workOrderNumber: selectedDraft.workOrderNumber,
-      partNumber: selectedDraft.partNumber,
-      affectedArea: selectedDraft.affectedArea,
-      correctionType: selectedDraft.correctionType,
-      photoEvidenceStatus: getEvidenceStatus(selectedDraft),
-      submittedBy: selectedDraft.submittedBy,
-      status: selectedDraft.status,
-      generatedTimestamp: selectedDraft.createdTimestamp,
-      reportText: selectedDraft.reportText,
-    });
-  };
-
   return (
     <section className="stack record-review-screen drafts-review-screen">
       <div className="screen-title">
@@ -117,9 +101,16 @@ export function DraftsScreen({
           <div className="preview-box">{selectedDraft.emailDraftText}</div>
 
           <div className="action-row">
-            <button className="button secondary" type="button" disabled={isSendingDraft} onClick={onCopyDraftReport}>Copy Report</button>
+            <button className="button secondary" type="button" disabled={isSendingDraft} onClick={onCopyDraftReport}>Copy Report Draft</button>
             <button className="button secondary" type="button" disabled={isSendingDraft} onClick={onCopyDraftEmail}>Copy Email Draft</button>
-            <button className="button secondary" type="button" disabled={isSendingDraft} onClick={handlePrintDraftReport}>Export / Print Report</button>
+            <button
+              className="button secondary"
+              type="button"
+              disabled={!draftFinalReviewConfirmed || isSendingDraft}
+              onClick={onPrintDraftReport}
+            >
+              Export / Print Report
+            </button>
           </div>
 
           {draftActionFeedback && (

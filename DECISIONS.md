@@ -194,3 +194,28 @@ on fresh repository evidence rather than inventing later scope.
 **Reason:** Identity alignment, routing, beta readiness, authentication, durable
 persistence, and hosted migration contain decisions or external boundaries that
 should not be pre-authorized too far in advance.
+
+## 2026-07-22 - Require literal human confirmation before browser-local actions
+
+**Decision:** Milestone 2 keeps initial Save Draft and saved-draft print/export
+behind literal boolean final-review confirmation. New and reconfirmed drafts
+carry browser-local review status, timestamp, reviewer label, and optional local
+user ID. Missing or malformed legacy metadata remains `legacy-unconfirmed`.
+
+**Reason:** The product rule is draft first, confirm accuracy, then save, print,
+export, send, or release. Browser-local metadata improves gate integrity but
+does not establish authentication, durable persistence, or authoritative audit.
+
+**Evidence:** M2 review-gate, storage migration, and print-handoff tests.
+
+## 2026-07-22 - Keep M2 selected until post-merge closeout
+
+**Decision:** Milestone 2 remains `In Progress` and `Selected: Yes` throughout
+its implementation pull request. A separate post-merge closeout may advance the
+queue to M3.
+
+**Conflict recorded:** The tracked M2 milestone document contains pre-merge
+queue-transition wording that says to mark M2 complete and select M3 on
+successful completion. The current lifecycle rule requires human review and
+merge before that transition, so this handoff follows the lifecycle rule
+without silently rewriting the milestone document.
