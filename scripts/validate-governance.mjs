@@ -84,6 +84,16 @@ function checkWorkflowPolicy() {
   if (!foreman.includes('environment: ai-cas-publish-approval')) fail('Publishing environment is missing');
   const checkoutBlocks = [...foreman.matchAll(/- name: Check out (authoritative main|clean main)[\s\S]*?persist-credentials: (true|false)/g)];
   if (checkoutBlocks.length !== 2 || checkoutBlocks[0][2] !== 'false' || checkoutBlocks[1][2] !== 'true') fail('Checkout credential scope is unsafe');
+
+  const setupNodeIndex = foreman.indexOf('- name: Set up Foreman Node.js 22.14.0');
+  const installIndex = foreman.indexOf('- name: Install Foreman application dependencies');
+  const codexIndex = foreman.indexOf('- name: Run Codex in isolated workspace');
+  if (setupNodeIndex < 0 || installIndex < 0 || codexIndex < 0 || !(setupNodeIndex < installIndex && installIndex < codexIndex)) fail('Foreman dependency bootstrap must run before Codex');
+  if (!foreman.includes('uses: actions/setup-node@v4')) fail('Foreman fixed Node setup is missing');
+  if (!foreman.includes('node-version: 22.14.0')) fail('Foreman Node version is not fixed at 22.14.0');
+  if (!foreman.includes('cache: npm') || !foreman.includes('cache-dependency-path: package-lock.json')) fail('Foreman npm cache contract is incomplete');
+  if (!foreman.includes('run: npm ci --no-audit --no-fund')) fail('Foreman dependency install command is missing');
+
   if (!foreman.includes('git ls-remote --exit-code --heads origin "$branch"')) fail('Stable milestone branch collision check is missing');
   if (!foreman.includes('gh pr list --repo "$GITHUB_REPOSITORY" --state open --head "$branch"')) fail('Open milestone PR check is missing');
   if (!foreman.includes('gh pr list --repo "$GITHUB_REPOSITORY" --state all --head "$branch"')) fail('Historical milestone PR check is missing');
