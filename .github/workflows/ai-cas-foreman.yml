@@ -42,6 +42,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Set up Foreman Node.js 22.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Foreman application dependencies
+        shell: bash
+        run: npm ci --no-audit --no-fund
+
       - name: Reject unverified publishing request
         if: inputs.publish == true && inputs.repository_protections_verified != true
         shell: bash
