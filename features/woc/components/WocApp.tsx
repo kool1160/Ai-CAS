@@ -10,6 +10,7 @@ import {
 } from '../logic/currentUserStorage';
 import {
   clearLocalRecordsStorage,
+  extractEvidenceMetadataFromReportText,
   loadDraftRecordsFromStorage,
   loadHistoryRecordsFromStorage,
   saveDraftRecordsToStorage,
@@ -478,6 +479,7 @@ export function WocApp() {
 
       const createdTimestamp = new Date().toLocaleString();
       const draftId = `DRAFT-${String(draftRecords.length + 1).padStart(4, '0')}`;
+      const evidenceMetadata = extractEvidenceMetadataFromReportText(packageForSave.reportPreview);
       const record: DraftRecord = {
         draftId,
         createdTimestamp,
@@ -491,6 +493,7 @@ export function WocApp() {
         submittedBy: submittedByLabel,
         submittedById: currentUser?.userId,
         ...reviewMetadata,
+        ...evidenceMetadata,
         status: 'Draft',
       };
 
@@ -652,7 +655,10 @@ export function WocApp() {
         partNumber: selectedDraft.partNumber,
         affectedArea: selectedDraft.affectedArea,
         correctionType: selectedDraft.correctionType,
-        photoEvidenceStatus: selectedDraft.evidenceAttached ? 'Attached' : 'Not attached',
+        evidenceAttached: selectedDraft.evidenceAttached,
+        evidenceFileName: selectedDraft.evidenceFileName,
+        evidenceFileType: selectedDraft.evidenceFileType,
+        evidenceFileSize: selectedDraft.evidenceFileSize,
         submittedBy: selectedDraft.submittedBy,
         status: selectedDraft.status,
         generatedTimestamp: selectedDraft.createdTimestamp,

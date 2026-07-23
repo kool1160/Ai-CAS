@@ -4,6 +4,9 @@ import {
   canSaveGeneratedPackage,
   createConfirmedPrintPayload,
   createConfirmedReviewMetadata,
+  formatPersistedReviewStatus,
+  LEGACY_REVIEW_STATUS_TEXT,
+  normalizeReviewAttribution,
   sanitizeReviewMetadata,
   validateConfirmedPrintPayload,
 } from '../features/woc/state/reviewGate';
@@ -38,8 +41,27 @@ describe('review gate helpers', () => {
       reviewedById: 'USER-SYNTHETIC-1',
     });
     expect(createConfirmedReviewMetadata({ reviewedTimestamp: 'not-a-date', reviewedBy: 'Reviewer' })).toBeNull();
-    expect(createConfirmedReviewMetadata({ reviewedTimestamp, reviewedBy: 'Reviewer\nInjected' })).toBeNull();
+    expect(createConfirmedReviewMetadata({ reviewedTimestamp: '2026-02-30T12:00:00.000Z', reviewedBy: 'Reviewer' })).toBeNull();
+    expect(createConfirmedReviewMetadata({ reviewedTimestamp, reviewedBy: 'Reviewer\nInjected' })).toMatchObject({
+      reviewedBy: 'Reviewer Injected',
+    });
     expect(createConfirmedReviewMetadata({ reviewedTimestamp, reviewedBy: 'Reviewer', reviewedById: 7 })).toBeNull();
+  });
+
+  it('normalizes accepted browser-local identity before applying review limits', () => {
+    const longLabel = `  Synthetic\u0000   Reviewer ${' Name'.repeat(80)}  `;
+    const longId = `  USER\u0007-${'SYNTHETIC'.repeat(30)}  `;
+    const normalized = normalizeReviewAttribution({ reviewedBy: longLabel, reviewedById: longId });
+
+    expect(normalized).not.toBeNull();
+    expect(normalized?.reviewedBy.length).toBeLessThanOrEqual(160);
+    expect(normalized?.reviewedById?.length).toBeLessThanOrEqual(120);
+    expect(normalized?.reviewedBy).not.toMatch(/[\u0000-\u001f\u007f]|\s{2,}/);
+    expect(normalized?.reviewedById).not.toMatch(/[\u0000-\u001f\u007f]|\s{2,}/);
+    expect(normalizeReviewAttribution(normalized ?? { reviewedBy: '' })).toEqual(normalized);
+    expect(normalizeReviewAttribution({ reviewedBy: '\u0000\u0007' })).toEqual({
+      reviewedBy: 'Unknown local user',
+    });
   });
 
   it('keeps missing and malformed stored metadata legacy-unconfirmed', () => {
@@ -55,6 +77,23 @@ describe('review gate helpers', () => {
     expect(sanitizeReviewMetadata({ reviewStatus: 'confirmed', reviewedTimestamp, reviewedBy: 1 })).toEqual({
       reviewStatus: 'legacy-unconfirmed',
     });
+    expect(sanitizeReviewMetadata({ reviewStatus: 'confirmed', reviewedTimestamp, reviewedBy: 'Reviewer\nInjected' })).toEqual({
+      reviewStatus: 'legacy-unconfirmed',
+    });
+  });
+
+  it('formats persisted review status without upgrading legacy or malformed data', () => {
+    expect(formatPersistedReviewStatus({
+      reviewStatus: 'confirmed',
+      reviewedTimestamp,
+      reviewedBy: 'Synthetic Reviewer',
+    })).toBe(`Review confirmed: ${reviewedTimestamp} · Synthetic Reviewer`);
+    expect(formatPersistedReviewStatus({ reviewStatus: 'legacy-unconfirmed' })).toBe(LEGACY_REVIEW_STATUS_TEXT);
+    expect(formatPersistedReviewStatus({
+      reviewStatus: 'confirmed',
+      reviewedTimestamp: 'malformed',
+      reviewedBy: 'Synthetic Reviewer',
+    })).toBe('Legacy draft — final review must be confirmed again.');
   });
 
   it('creates print payloads only from fresh literal confirmation and valid metadata', () => {
@@ -105,5 +144,8 @@ describe('review gate helpers', () => {
     }
     expect(validateConfirmedPrintPayload({ ...valid, reviewedTimestamp: 'bad' })).toBe(false);
     expect(validateConfirmedPrintPayload({ ...valid, reviewedBy: 'Reviewer\u0000' })).toBe(false);
+    expect(validateConfirmedPrintPayload({ ...valid, reportText: '' })).toBe(false);
+    expect(validateConfirmedPrintPayload({ ...valid, reportText: 7 })).toBe(false);
+    expect(validateConfirmedPrintPayload(({ ...valid, reportText: undefined }))).toBe(false);
   });
 });

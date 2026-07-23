@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   PRINT_REPORT_STORAGE_KEY,
-  type PrintCorrectionReportInput,
+  validatePrintCorrectionReportPayload,
+  type ConfirmedPrintCorrectionReportPayload,
 } from '../../features/woc/logic/printCorrectionReport';
-import { validateConfirmedPrintPayload } from '../../features/woc/state/reviewGate';
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -25,14 +25,8 @@ function resolveField(explicitValue: string | undefined, reportText: string, lab
   return explicitValue?.trim() || getReportValue(reportText, label);
 }
 
-function isPrintPayload(value: unknown): value is PrintCorrectionReportInput {
-  if (!validateConfirmedPrintPayload(value)) return false;
-  const reportText = (value as { reportText?: unknown }).reportText;
-  return typeof reportText === 'string' && Boolean(reportText.trim());
-}
-
 export default function PrintReportPage() {
-  const [report, setReport] = useState<PrintCorrectionReportInput | null>(null);
+  const [report, setReport] = useState<ConfirmedPrintCorrectionReportPayload | null>(null);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -44,7 +38,7 @@ export default function PrintReportPage() {
       }
 
       const parsed = JSON.parse(raw);
-      if (!isPrintPayload(parsed)) {
+      if (!validatePrintCorrectionReportPayload(parsed)) {
         setLoadError('Saved AI-CAS print report data is invalid. Return to AI-CAS and export the report again.');
         return;
       }
@@ -68,6 +62,10 @@ export default function PrintReportPage() {
       ['Correction Type', resolveField(report.correctionType, report.reportText, 'Correction Type')],
       ['Photo Evidence', resolveField(report.photoEvidenceStatus, report.reportText, 'Photo Evidence')],
       ['Submitted By / Source', resolveField(report.submittedBy, report.reportText, 'Submitted By / Source')],
+      ['Review Status', 'Confirmed (browser-local)'],
+      ['Review Confirmed', report.reviewedTimestamp],
+      ['Reviewed By', report.reviewedBy],
+      ['Reviewer Local ID', report.reviewedById || ''],
       ['Status', resolveField(report.status, report.reportText, 'Status')],
       ['Generated', report.generatedTimestamp || new Date().toLocaleString()],
     ].filter(([, value]) => value?.trim());

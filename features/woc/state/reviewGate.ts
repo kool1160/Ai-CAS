@@ -20,7 +20,15 @@ export type ConfirmedPrintMetadata = ConfirmedReviewMetadata & {
   finalReviewConfirmed: true;
 };
 
-const MAX_REVIEWER_LENGTH = 160;
+export type ConfirmedPrintPayload = ConfirmedPrintMetadata & {
+  reportText: string;
+};
+
+export const LEGACY_REVIEW_STATUS_TEXT = 'Legacy draft — final review must be confirmed again.';
+
+const UNKNOWN_LOCAL_REVIEWER = 'Unknown local user';
+const MAX_REVIEWER_LABEL_LENGTH = 160;
+const MAX_REVIEWER_ID_LENGTH = 120;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 export function isLiteralTrue(value: unknown): value is true {
@@ -28,20 +36,56 @@ export function isLiteralTrue(value: unknown): value is true {
 }
 
 export function isValidReviewTimestamp(value: unknown): value is string {
-  return typeof value === 'string'
-    && ISO_TIMESTAMP_PATTERN.test(value)
-    && Number.isFinite(Date.parse(value));
+  if (typeof value !== 'string' || !ISO_TIMESTAMP_PATTERN.test(value)) return false;
+
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
 }
 
 export function isValidReviewerAttribution(value: unknown): value is string {
   return typeof value === 'string'
     && value.trim().length > 0
-    && value.length <= MAX_REVIEWER_LENGTH
+    && value.length <= MAX_REVIEWER_LABEL_LENGTH
     && !/[\u0000-\u001f\u007f]/.test(value);
 }
 
-function optionalReviewerId(value: unknown) {
-  return value === undefined || isValidReviewerAttribution(value);
+function isValidReviewerId(value: unknown): value is string {
+  return typeof value === 'string'
+    && value.trim().length > 0
+    && value.length <= MAX_REVIEWER_ID_LENGTH
+    && !/[\u0000-\u001f\u007f]/.test(value);
+}
+
+function optionalReviewerId(value: unknown): value is string | undefined {
+  return value === undefined || isValidReviewerId(value);
+}
+
+function normalizeBoundedAttribution(value: string, maxLength: number) {
+  return value
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
+    .trim();
+}
+
+export function normalizeReviewAttribution(input: {
+  reviewedBy: unknown;
+  reviewedById?: unknown;
+}): Pick<ConfirmedReviewMetadata, 'reviewedBy' | 'reviewedById'> | null {
+  if (typeof input.reviewedBy !== 'string') return null;
+  if (input.reviewedById !== undefined && typeof input.reviewedById !== 'string') return null;
+
+  const reviewedBy = normalizeBoundedAttribution(input.reviewedBy, MAX_REVIEWER_LABEL_LENGTH)
+    || UNKNOWN_LOCAL_REVIEWER;
+  const reviewedById = input.reviewedById === undefined
+    ? ''
+    : normalizeBoundedAttribution(input.reviewedById, MAX_REVIEWER_ID_LENGTH);
+
+  return {
+    reviewedBy,
+    ...(reviewedById ? { reviewedById } : {}),
+  };
 }
 
 export function createConfirmedReviewMetadata(input: {
@@ -52,29 +96,46 @@ export function createConfirmedReviewMetadata(input: {
   const reviewedTimestamp = input.reviewedTimestamp === undefined
     ? new Date().toISOString()
     : input.reviewedTimestamp;
+  const reviewer = normalizeReviewAttribution({
+    reviewedBy: input.reviewedBy,
+    reviewedById: input.reviewedById,
+  });
 
-  if (!isValidReviewTimestamp(reviewedTimestamp) || !isValidReviewerAttribution(input.reviewedBy) || !optionalReviewerId(input.reviewedById)) {
+  if (!isValidReviewTimestamp(reviewedTimestamp) || !reviewer) {
     return null;
   }
 
   return {
     reviewStatus: 'confirmed',
     reviewedTimestamp,
-    reviewedBy: input.reviewedBy.trim(),
-    ...(input.reviewedById === undefined ? {} : { reviewedById: input.reviewedById.trim() }),
+    ...reviewer,
   };
 }
 
 export function sanitizeReviewMetadata(value: Record<string, unknown>): ReviewMetadata {
   if (value.reviewStatus !== 'confirmed') return { reviewStatus: 'legacy-unconfirmed' };
 
-  const confirmed = createConfirmedReviewMetadata({
-    reviewedTimestamp: value.reviewedTimestamp,
-    reviewedBy: value.reviewedBy,
-    reviewedById: value.reviewedById,
-  });
+  if (
+    !isValidReviewTimestamp(value.reviewedTimestamp)
+    || !isValidReviewerAttribution(value.reviewedBy)
+    || !optionalReviewerId(value.reviewedById)
+  ) {
+    return { reviewStatus: 'legacy-unconfirmed' };
+  }
 
-  return confirmed ?? { reviewStatus: 'legacy-unconfirmed' };
+  return {
+    reviewStatus: 'confirmed',
+    reviewedTimestamp: value.reviewedTimestamp,
+    reviewedBy: value.reviewedBy.trim(),
+    ...(value.reviewedById === undefined ? {} : { reviewedById: value.reviewedById.trim() }),
+  };
+}
+
+export function formatPersistedReviewStatus(value: ReviewMetadata) {
+  const metadata = sanitizeReviewMetadata(value as Record<string, unknown>);
+  if (metadata.reviewStatus !== 'confirmed') return LEGACY_REVIEW_STATUS_TEXT;
+
+  return `Review confirmed: ${metadata.reviewedTimestamp} · ${metadata.reviewedBy}`;
 }
 
 export function canSaveGeneratedPackage(generatedPackage: unknown, finalReviewConfirmed: unknown) {
@@ -85,7 +146,7 @@ export function canPerformFreshDraftAction(draft: unknown, finalReviewConfirmed:
   return Boolean(draft) && isLiteralTrue(finalReviewConfirmed);
 }
 
-export function validateConfirmedPrintPayload(value: unknown): value is ConfirmedPrintMetadata {
+export function validateConfirmedPrintPayload(value: unknown): value is ConfirmedPrintPayload {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
 
   const candidate = value as Record<string, unknown>;
@@ -93,10 +154,12 @@ export function validateConfirmedPrintPayload(value: unknown): value is Confirme
     && candidate.reviewStatus === 'confirmed'
     && isValidReviewTimestamp(candidate.reviewedTimestamp)
     && isValidReviewerAttribution(candidate.reviewedBy)
-    && optionalReviewerId(candidate.reviewedById);
+    && optionalReviewerId(candidate.reviewedById)
+    && typeof candidate.reportText === 'string'
+    && Boolean(candidate.reportText.trim());
 }
 
-export function createConfirmedPrintPayload<T extends object>(
+export function createConfirmedPrintPayload<T extends { reportText: string }>(
   report: T,
   reviewMetadata: ReviewMetadata,
   finalReviewConfirmed: unknown,

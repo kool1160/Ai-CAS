@@ -35,6 +35,15 @@ and decision records. No path outside that declaration is included.
 - Disabled and handler-gated saved-draft Export / Print Report until a fresh
   final review is confirmed, and validated the session-storage handoff on the
   active print page.
+- Normalized accepted browser-local reviewer identity into bounded review
+  attribution without mutating setup identity or claiming authentication.
+- Displayed persisted confirmed versus legacy review status separately from
+  the fresh-action checkbox in both draft list and detail views.
+- Preserved structured evidence filename, MIME type, and size in print
+  handoffs, with legacy report parsing only as compatibility fallback and
+  explicit no-evidence state taking precedence over session evidence.
+- Consolidated literal confirmation, nonempty report text, reviewer metadata,
+  and optional print fields into one deterministic confirmed-payload contract.
 - Kept direct email and controlled PDF/export actions on the initial Review
   screen disabled. Existing Milestone 1 email and privacy boundaries remain
   unchanged.
@@ -47,8 +56,15 @@ and decision records. No path outside that declaration is included.
   `Complete and confirm final review before saving this correction package.`
 - Literal `true`, string, numeric, object, omitted, legacy, malformed timestamp,
   and unsafe reviewer inputs are covered by deterministic tests.
+- Reviewer normalization tests cover whitespace, control characters, bounds,
+  idempotence, and browser-local fallback without changing setup or send data.
+- Persisted-status tests prove exact confirmed and legacy wording and prevent
+  malformed stored metadata from appearing reviewed.
+- Evidence tests prove structured-first resolution, legacy fallback,
+  filename/type/size preservation, and isolation from unrelated session data.
 - Print handoff tests prove that only validated confirmed metadata can be
-  stored before navigation to `/print-report`.
+  stored before navigation to `/print-report`, including required nonempty
+  report text and valid optional print fields.
 - Existing M1 route tests remain offline and no provider calls occur.
 - No authentication, durable persistence, server PDF generation, email
   enablement, hosted setting, deployment, or product-shell redesign is part of
@@ -78,7 +94,7 @@ queue.
 Validation evidence:
 
 - `npm ci` completed successfully without changing tracked dependencies.
-- `npm run test:run` passed: 5 test files, 43 tests.
+- `npm run test:run` passed: 5 test files, 49 tests.
 - `npm run typecheck` passed.
 - `npm run build` passed with Next.js 15.3.8.
 - `node scripts/privacy-fixture-check.mjs` passed.
