@@ -81,15 +81,20 @@ Acceptance evidence:
 
 ## Milestone 2 - Human Confirmation Gate Integrity
 
-**Status:** In Progress
+**Status:** Complete
 
-**Selected:** Yes
+**Selected:** No
 
 Make the locked product rule true everywhere: draft first, confirm accuracy,
 then save, print, export, send, or release. Add browser-local review metadata
 without claiming authentication or durable auditability.
 
-Acceptance criteria:
+Merge evidence:
+
+- Pull request: `#72`
+- Squash merge commit: `697b84c2be8884e13d6e8a8c25a8504cc33687cf`
+
+Acceptance evidence:
 
 - Initial Save Draft is disabled and handler-rejected until final review is literal `true`.
 - Newly saved drafts store confirmed review status, timestamp, reviewer label, and local user ID when available.
@@ -103,9 +108,9 @@ Acceptance criteria:
 
 ## Milestone 3 - AI Extraction Contract and Confidence Safety
 
-**Status:** Queued
+**Status:** In Progress
 
-**Selected:** No
+**Selected:** Yes
 
 Make AI extraction and drafting outputs structurally validated, attributable,
 and safely fall back when provider output is malformed, unsupported, uncertain,

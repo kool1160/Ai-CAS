@@ -2,12 +2,14 @@
 
 **Milestone number:** 2
 **Milestone name:** Human Confirmation Gate Integrity
-**Status:** In Progress
-**Selected:** Yes
+**Status:** Complete
+**Selected:** No
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Base commit:** `4bd4af9cbef6ffaae8a5012c6d9aafe9bdc570fb`
-**Review branch:** `codex/milestone-2`
-**Current review head:** Verify the branch head from GitHub at review time; this handoff does not self-reference its own commit.
+**Implementation branch:** `codex/milestone-2`
+**Pull request:** `#72`
+**Reviewed head:** `6c7f79f83a97f7ccb487d7d30c8e3c5f34b050b8`
+**Squash merge commit:** `697b84c2be8884e13d6e8a8c25a8504cc33687cf`
 
 ## Scope and authority
 
@@ -80,14 +82,17 @@ Foreman milestones 2 through 4 (#70)`. This conflicts with the ticket wording
 that identifies PR #70 as the M1 closeout. The repository evidence is recorded
 here for human verification rather than silently rewriting M1 records.
 
-## Lifecycle conflict
+## Lifecycle conflict (resolved at closeout)
 
-The tracked M2 milestone document contains queue-transition wording that says
+The tracked M2 milestone document contained queue-transition wording that said
 to mark M2 Complete and select M3 on successful completion. The current
-operating rule requires human review and merge before that transition. This
-implementation therefore keeps M2 In Progress and selected, leaves M3 Queued
-and unselected, and requires a separate post-merge closeout to advance the
-queue.
+operating rule required human review and merge before that transition, so the
+implementation kept M2 In Progress and selected and left M3 Queued and
+unselected until a separate post-merge closeout. PR `#72` was reviewed and
+squash-merged as `697b84c2be8884e13d6e8a8c25a8504cc33687cf`. The Milestone 3
+implementation performs that post-merge closeout: `docs/milestones/
+M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md` and `BACKLOG.md` now record M2 as
+Complete and not selected, and Milestone 3 is now the sole selected milestone.
 
 ## Validation and approval boundaries
 
@@ -118,10 +123,10 @@ human approval boundaries. Do not merge or deploy from this handoff.
 
 ## Rollback
 
-Before merge, discard the review branch through ordinary approved Git review
-procedures. After merge, revert the single Milestone 2 pull request if the
+Rollback is a reviewed Git revert of the Milestone 2 squash merge if the
 confirmation behavior causes a verified regression. Do not reset, force-push,
-delete browser records, rename storage keys, or perform destructive migration.
+delete browser records, rename storage keys, or perform destructive migration
+as an ad hoc rollback.
 
 ## Unresolved risks
 
@@ -129,8 +134,6 @@ delete browser records, rename storage keys, or perform destructive migration.
 - Existing browser-local drafts may require a fresh review before print/export.
 - The app PIN remains a convenience gate on a shared device, not full
   authentication.
-- The M2 queue-transition wording conflict requires post-merge product-owner
-  closeout handling.
 - Hosted branch protection and deployment settings remain external and were not
   verified or changed by this implementation.
 
@@ -138,7 +141,7 @@ delete browser records, rename storage keys, or perform destructive migration.
 
 ```json
 {
-  "status": "approval_required",
+  "status": "completed",
   "milestone_number": 2,
   "milestone_name": "Human Confirmation Gate Integrity",
   "summary": "Make literal human confirmation gate initial save and saved-draft browser print/export while preserving browser-local and provider safety boundaries.",
@@ -180,12 +183,27 @@ delete browser records, rename storage keys, or perform destructive migration.
     "node scripts/governance-regression.mjs",
     "git diff --check"
   ],
-  "approval_required": "Human review and merge approval before M2 closeout; explicit approval remains required for deployment, email enablement, hosted changes, and scope expansion.",
+  "approval_required": "Human approval was received before merge. Deployment, enabling email release, and hosted changes still require separate approval.",
   "unresolved_items": [
     "Browser-local review metadata is not authentication or durable auditability.",
-    "M2 must remain In Progress and selected until post-merge closeout despite pre-merge queue-transition wording in the tracked milestone document.",
     "Hosted protection and deployment settings remain external prerequisites and were not changed."
   ],
-  "recommended_next_action": "Run independent review, then stop for explicit human approval before merge."
+  "recommended_next_action": "Run the next selected milestone through the manual AI-CAS Foreman workflow."
 }
 ```
+
+## Review and Merge Evidence
+
+- Both open review threads (evidence-detail preservation and reviewer-attribution
+  bounds) were resolved by commit `6c7f79f83a97f7ccb487d7d30c8e3c5f34b050b8`.
+- Exact-head governance and application CI jobs passed.
+- Vercel preview checks passed.
+- No provider calls occurred and no hosted settings changed.
+- PR `#72` was squash-merged into `main` as
+  `697b84c2be8884e13d6e8a8c25a8504cc33687cf`.
+
+## Closed Boundary
+
+Milestone 2 is complete. This handoff does not authorize deployment, enabling
+production email release, hosted settings changes, authentication, durable
+persistence, or GitHub/Vercel identity changes.

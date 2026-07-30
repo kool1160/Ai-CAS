@@ -1,7 +1,7 @@
 # Milestone 3 - AI Extraction Contract and Confidence Safety
 
-**Status:** Queued
-**Selected:** No
+**Status:** In Progress
+**Selected:** Yes
 **Primary product source:** `AI-CAS_PROJECT_SUMMARY.md`
 
 ## Goal
