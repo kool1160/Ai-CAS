@@ -1,5 +1,9 @@
 $ErrorActionPreference = 'Stop'
 
+function Assert-NativeSuccess([string]$Label) {
+  if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit code $LASTEXITCODE." }
+}
+
 $hasRg = $null -ne (Get-Command rg -ErrorAction SilentlyContinue)
 if (-not $hasRg) { Write-Output 'ripgrep unavailable; using Select-String fallback for governance search checks.' }
 
@@ -29,6 +33,7 @@ $requiredFiles = @(
   'scripts/select-milestone.mjs', 'scripts/ci-contract.ps1', 'scripts/ci-contract.sh', '.gitignore',
   'scripts/validate-governance.mjs', 'scripts/validate-scope.mjs', 'scripts/governance-regression.mjs',
   'scripts/privacy-fixture-check.mjs', 'docs/handoffs/M1_PLANNING_HANDOFF.md',
+  'docs/milestones/M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md', 'docs/handoffs/M2_PLANNING_HANDOFF.md',
   'docs/GITHUB_REPOSITORY_SETUP.md'
 )
 foreach ($file in $requiredFiles) {
@@ -46,13 +51,45 @@ foreach ($script in $requiredScripts.GetEnumerator()) {
 }
 
 node scripts/select-milestone.mjs --validate | Out-Null
+Assert-NativeSuccess 'Milestone validation'
 node --check scripts/select-milestone.mjs
+Assert-NativeSuccess 'select-milestone syntax check'
 node --check scripts/validate-governance.mjs
+Assert-NativeSuccess 'validate-governance syntax check'
 node --check scripts/validate-scope.mjs
+Assert-NativeSuccess 'validate-scope syntax check'
 node --check scripts/governance-regression.mjs
+Assert-NativeSuccess 'governance-regression syntax check'
 node --check scripts/privacy-fixture-check.mjs
+Assert-NativeSuccess 'privacy-fixture-check syntax check'
 node scripts/validate-governance.mjs --check
+Assert-NativeSuccess 'governance schema check'
 node scripts/validate-governance.mjs --handoff docs/handoffs/M1_PLANNING_HANDOFF.md --milestone 1
+Assert-NativeSuccess 'M1 handoff validation'
+node scripts/validate-governance.mjs --handoff docs/handoffs/M2_PLANNING_HANDOFF.md --milestone 2
+Assert-NativeSuccess 'M2 handoff validation'
+& node -e @'
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const handoff = fs.readFileSync('docs/handoffs/M2_PLANNING_HANDOFF.md', 'utf8');
+const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
+if (!match) throw new Error('M2 handoff JSON block is missing.');
+const listed = JSON.parse(match[1]).files_changed;
+const actualSet = new Set(execFileSync('git', ['diff', '--name-only', 'main...HEAD'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean));
+const status = execFileSync('git', ['status', '--porcelain=v1', '-uall'], { encoding: 'utf8' }).replace(/\r?\n$/, '');
+for (const line of status.split(/\r?\n/).filter(Boolean)) {
+  const statusPath = line.slice(3);
+  if (/^[RC]/.test(line.slice(0, 2)) && statusPath.includes(' -> ')) {
+    actualSet.add(statusPath.split(' -> ')[0]);
+    actualSet.add(statusPath.split(' -> ')[1]);
+  } else {
+    actualSet.add(statusPath);
+  }
+}
+const actual = [...actualSet];
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M2 handoff files_changed does not match the current or committed main...HEAD change surface.');
+'@
+Assert-NativeSuccess 'M2 handoff change-surface check'
 $milestoneNumber = if ($env:AI_CAS_MILESTONE_NUMBER) { $env:AI_CAS_MILESTONE_NUMBER } else { [regex]::Match((node scripts/select-milestone.mjs --selected), '^Selected Milestone (\d+):', 'Multiline').Groups[1].Value }
 if (-not $milestoneNumber) { throw 'Unable to determine the selected milestone.' }
 $scopeArgs = @('scripts/validate-scope.mjs', '--milestone', $milestoneNumber)
@@ -61,18 +98,46 @@ if ($scopeContext) {
   if (-not (Test-Path -LiteralPath $scopeContext)) { throw "Selected milestone context is missing: $scopeContext" }
   $scopeArgs += @('--context', $scopeContext)
 }
+$changedPaths = @()
+$statusLines = @(git status --porcelain=v1 -uall | Where-Object { $_ })
+foreach ($statusLine in $statusLines) {
+  $statusPath = $statusLine.Substring(3)
+  if ($statusLine.Substring(0, 2) -match '[RC]' -and $statusPath -match ' -> ') {
+    $changedPaths += $statusPath.Split(' -> ')[0]
+    $changedPaths += $statusPath.Split(' -> ')[1]
+  } else {
+    $changedPaths += $statusPath
+  }
+}
+if ($changedPaths.Count -eq 0) { $changedPaths = @(git diff --name-only main...HEAD | Where-Object { $_ }) }
+foreach ($changedPath in $changedPaths) { $scopeArgs += @('--path', $changedPath) }
 node @scopeArgs
+Assert-NativeSuccess 'selected milestone scope validation'
 node scripts/governance-regression.mjs
+Assert-NativeSuccess 'governance regression checks'
 node scripts/privacy-fixture-check.mjs
+Assert-NativeSuccess 'privacy fixture checks'
+if ($milestoneNumber -eq '2') {
+  & node -e @'
+const fs = require('node:fs');
+const m2 = fs.readFileSync('docs/milestones/M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md', 'utf8');
+const m3 = fs.readFileSync('docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md', 'utf8');
+if (!/^\*\*Status:\*\* In Progress/m.test(m2) || !/^\*\*Selected:\*\* Yes/m.test(m2)) throw new Error('M2 must remain In Progress and selected until human review and merge.');
+if (!/^\*\*Status:\*\* Queued/m.test(m3) || !/^\*\*Selected:\*\* No/m.test(m3)) throw new Error('M3 must remain queued and unselected during M2.');
+'@
+  Assert-NativeSuccess 'M2 lifecycle state check'
+}
 
 $bashCommand = Get-Command bash -ErrorAction SilentlyContinue
 if ($bashCommand) {
   & $bashCommand.Source -n scripts/ci-contract.sh
+  Assert-NativeSuccess 'Bash syntax check'
 } else {
   $gitBash = @('C:\Program Files\Git\bin\bash.exe', 'C:\Program Files\Git\usr\bin\bash.exe') | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-  if ($gitBash) { & $gitBash -n scripts/ci-contract.sh } else { Write-Output 'Bash unavailable; Bash syntax check not run.' }
+  if ($gitBash) { & $gitBash -n scripts/ci-contract.sh; Assert-NativeSuccess 'Bash syntax check' } else { Write-Output 'Bash unavailable; Bash syntax check not run.' }
 }
 git diff --check
+Assert-NativeSuccess 'git diff check'
 
 $foreman = Get-Content -LiteralPath '.github/workflows/ai-cas-foreman.yml' -Raw
 $ci = Get-Content -LiteralPath '.github/workflows/ci.yml' -Raw
@@ -110,6 +175,7 @@ for (const commit of [baseCommit, reviewedHead]) {
 const actual = execFileSync('git', ['diff', '--name-only', `${baseCommit}...${reviewedHead}`], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
 if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M1 handoff files_changed does not match its reviewed commit range.');
 '@
+Assert-NativeSuccess 'M1 handoff change-surface check'
 foreach ($schema in Get-ChildItem -LiteralPath '.github/codex/schemas' -Filter '*.json') {
   $parsed = Get-Content -LiteralPath $schema.FullName -Raw | ConvertFrom-Json
   if ($parsed.type -ne 'object' -or $null -eq $parsed.properties -or $null -eq $parsed.required -or $parsed.required.Count -eq 0) {

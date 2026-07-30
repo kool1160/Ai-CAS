@@ -26,6 +26,14 @@ Browser shell and workflow state
               +-- non-persisting record validation stub
 ```
 
+Milestone 2 adds browser-local review metadata to drafts. New drafts record a
+confirmed review timestamp and reviewer attribution only after literal final
+confirmation. Older or malformed records load as `legacy-unconfirmed`; this is
+not authentication, durable auditability, or a server-owned identity claim.
+Saved-draft print/export uses a fresh in-memory confirmation and carries the
+validated review metadata through the session-storage print handoff. The
+browser print page rejects missing or non-literal confirmation evidence.
+
 ## Target governance boundaries
 
 - The product workflow owns capture, confirmation, correction, drafting,
@@ -54,6 +62,9 @@ Browser shell and workflow state
 
 - Preserve the working product shell during governance work.
 - Keep browser-local behavior clearly labeled until durable persistence exists.
+- Keep the workflow rule explicit: draft first, confirm accuracy, then save,
+  print, export, send, or release. Initial Save Draft and saved-draft
+  print/export are both gated in the active client handlers.
 - Keep provider calls behind server boundaries and environment variables.
 - Email release requires the exact server value
   `AI_CAS_EMAIL_RELEASE_ENABLED=true`, server-configured sender and recipient,

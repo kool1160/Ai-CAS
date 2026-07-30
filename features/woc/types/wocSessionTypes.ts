@@ -84,6 +84,10 @@ export type DraftRecord = {
   emailDraftText: string;
   submittedBy?: string;
   submittedById?: string;
+  reviewStatus: 'confirmed' | 'legacy-unconfirmed';
+  reviewedTimestamp?: string;
+  reviewedBy?: string;
+  reviewedById?: string;
   evidenceAttached?: boolean;
   evidenceFileName?: string;
   evidenceFileType?: string;

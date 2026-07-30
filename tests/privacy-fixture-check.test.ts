@@ -1,7 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import { PROHIBITED_FIXTURE_HASHES, scanEntries } from '../scripts/privacy-fixture-check.mjs';
+import { beforeAll, describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+
+let PROHIBITED_FIXTURE_HASHES: Set<string>;
+let scanEntries: (entries: string[], readFile: (relativePath: string) => string) => string[];
 
 describe('privacy fixture checker', () => {
+  beforeAll(async () => {
+    const source = fs.readFileSync(new URL('../scripts/privacy-fixture-check.mjs', import.meta.url), 'utf8')
+      .replace(/^#![^\r\n]*(?:\r?\n|$)/, '');
+    const checker = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+    PROHIBITED_FIXTURE_HASHES = checker.PROHIBITED_FIXTURE_HASHES;
+    scanEntries = checker.scanEntries;
+  });
+
   const knownProhibitedValue = ['00', '8604'].join('');
 
   it('rejects a known prohibited legacy identifier', () => {

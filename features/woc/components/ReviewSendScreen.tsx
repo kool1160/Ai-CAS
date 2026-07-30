@@ -234,7 +234,14 @@ export function ReviewSendScreen({
         <div className="action-row">
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyReport}>Copy Report Draft</button>
           <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onCopyEmailDraft}>Copy Email Draft</button>
-          <button className="button secondary" type="button" disabled={!generatedPackage || isSending} onClick={onSaveDraft}>Save Draft</button>
+          <button
+            className="button secondary"
+            type="button"
+            disabled={!generatedPackage || !confirmations.finalReviewConfirmed || isSending}
+            onClick={onSaveDraft}
+          >
+            Save Draft
+          </button>
         </div>
 
         <div className="action-row">

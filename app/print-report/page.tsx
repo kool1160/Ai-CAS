@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   PRINT_REPORT_STORAGE_KEY,
-  type PrintCorrectionReportInput,
+  validatePrintCorrectionReportPayload,
+  type ConfirmedPrintCorrectionReportPayload,
 } from '../../features/woc/logic/printCorrectionReport';
 
 function escapeRegExp(value: string) {
@@ -24,37 +25,27 @@ function resolveField(explicitValue: string | undefined, reportText: string, lab
   return explicitValue?.trim() || getReportValue(reportText, label);
 }
 
-function isPrintPayload(value: unknown): value is PrintCorrectionReportInput {
-  return Boolean(
-    value &&
-    typeof value === 'object' &&
-    'reportText' in value &&
-    typeof (value as { reportText?: unknown }).reportText === 'string' &&
-    (value as { reportText: string }).reportText.trim(),
-  );
-}
-
 export default function PrintReportPage() {
-  const [report, setReport] = useState<PrintCorrectionReportInput | null>(null);
+  const [report, setReport] = useState<ConfirmedPrintCorrectionReportPayload | null>(null);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     try {
       const raw = window.sessionStorage.getItem(PRINT_REPORT_STORAGE_KEY);
       if (!raw) {
-        setLoadError('No report data was found. Return to Refab Connect and choose Export / Print Report again.');
+        setLoadError('No AI-CAS report data was found. Return to AI-CAS and choose Export / Print Report again.');
         return;
       }
 
       const parsed = JSON.parse(raw);
-      if (!isPrintPayload(parsed)) {
-        setLoadError('Saved print report data is invalid. Return to Refab Connect and export the report again.');
+      if (!validatePrintCorrectionReportPayload(parsed)) {
+        setLoadError('Saved AI-CAS print report data is invalid. Return to AI-CAS and export the report again.');
         return;
       }
 
       setReport(parsed);
     } catch {
-      setLoadError('Unable to load the print report. Return to Refab Connect and export the report again.');
+      setLoadError('Unable to load the AI-CAS print report. Return to AI-CAS and export the report again.');
     }
   }, []);
 
@@ -71,6 +62,10 @@ export default function PrintReportPage() {
       ['Correction Type', resolveField(report.correctionType, report.reportText, 'Correction Type')],
       ['Photo Evidence', resolveField(report.photoEvidenceStatus, report.reportText, 'Photo Evidence')],
       ['Submitted By / Source', resolveField(report.submittedBy, report.reportText, 'Submitted By / Source')],
+      ['Review Status', 'Confirmed (browser-local)'],
+      ['Review Confirmed', report.reviewedTimestamp],
+      ['Reviewed By', report.reviewedBy],
+      ['Reviewer Local ID', report.reviewedById || ''],
       ['Status', resolveField(report.status, report.reportText, 'Status')],
       ['Generated', report.generatedTimestamp || new Date().toLocaleString()],
     ].filter(([, value]) => value?.trim());

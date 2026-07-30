@@ -1,4 +1,5 @@
 import type { DraftRecord, HistoryRecord, PhotoEvidenceRecordMetadata } from '../types/wocSessionTypes';
+import { sanitizeReviewMetadata } from '../state/reviewGate';
 
 export const DRAFT_STORAGE_KEY = 'refab-connect-drafts';
 export const HISTORY_STORAGE_KEY = 'refab-connect-history';
@@ -75,6 +76,7 @@ function sanitizeDraftRecord(value: unknown): DraftRecord | null {
   if (!draftId || !subjectLine || !reportText || !emailDraftText) return null;
 
   const evidenceMetadata = evidenceMetadataFromRecord(value, reportText);
+  const reviewMetadata = sanitizeReviewMetadata(value);
 
   return {
     draftId,
@@ -88,6 +90,7 @@ function sanitizeDraftRecord(value: unknown): DraftRecord | null {
     emailDraftText,
     submittedBy: stringValue(value.submittedBy),
     submittedById: stringValue(value.submittedById),
+    ...reviewMetadata,
     ...evidenceMetadata,
     status: 'Draft',
   };
