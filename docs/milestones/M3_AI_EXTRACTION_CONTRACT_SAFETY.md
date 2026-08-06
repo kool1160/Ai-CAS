@@ -1,7 +1,7 @@
 # Milestone 3 - AI Extraction Contract and Confidence Safety
 
-**Status:** In Progress
-**Selected:** Yes
+**Status:** Complete
+**Selected:** No
 **Primary product source:** `AI-CAS_PROJECT_SUMMARY.md`
 
 ## Goal
@@ -20,6 +20,16 @@ parallel implementation gate or changing product behavior.
 Milestone 2 must be merged and marked Complete before Milestone 3 becomes the
 selected milestone. The Milestone 2 closeout may switch the sole tracked
 selection marker from M2 to M3.
+
+## Merge evidence
+
+- Pull request: `#73`
+- Reviewed exact head: `6a70b47e88d92cc39b92275efcdc0ba13a8c1970`
+- Squash merge commit: `97b6ec5efbea371c43bc96d868f56fc99b6c6cb4`
+- Exact-head GitHub Actions run `31128160707`: `Application baseline checks` and `Governance contract checks` passed.
+- Vercel preview passed on the reviewed exact head.
+- All six blocking review threads were resolved before merge.
+- Product owner explicitly issued `Advance AI-CAS` after a READY verdict.
 
 ## In scope
 
@@ -49,7 +59,6 @@ selection marker from M2 to M3.
 - Real customer or employer documents in tests, prompts, logs, or CI.
 - Authentication, persistence, email release changes, routing, PDF release,
   hosted settings, deployment, or shell redesign.
-- Merge, milestone completion, selection or implementation of Milestone 4.
 - Transfer of LaserX product scope, architecture, or identity into AI-CAS.
 
 ## Required behavior
@@ -123,7 +132,7 @@ The product owner controls the governance amendment, merge, and advancement.
 - Governance regression checks fail when command vocabulary, authority order,
   current status, or implementation/merge separation is removed.
 - Typecheck, build, privacy, governance, scope, and handoff validation pass.
-- No live provider, hosted setting, deployment, merge, or real-data action occurs.
+- No live provider, hosted setting, deployment, or real-data action occurred.
 
 ## Approved Change Scope
 
@@ -184,7 +193,6 @@ condition.
 - deployment
 - destructive operations
 - merge without `Advance AI-CAS`, a fresh READY gate, and explicit human approval
-- milestone completion or next-gate selection during `Continue AI-CAS`
 - live OpenAI, Resend, Supabase, Vercel, or other provider calls from tests or CI
 - real customer, employer, personal, or proprietary data
 - automatic acceptance of AI output
@@ -208,14 +216,14 @@ condition.
 
 ## Queue transition
 
-On successful review, use `Advance AI-CAS` to reverify the exact head and CI,
-merge, record M3 completion, and select M4. Do not select or implement M4 during
-`Continue AI-CAS`, and do not advance from a green check alone.
+Milestone 3 was advanced only after exact-head READY review and explicit
+`Advance AI-CAS`. Milestone 4 is now the sole selected gate. No Milestone 4
+implementation is part of this closeout.
 
 ## Approval boundaries
 
 The product owner explicitly approved the command-governance scope amendment
-on 2026-08-06. That approval does not authorize merge, deployment, external
-provider use, hosted changes, destructive actions, or later product scope.
-The active PR remains draft until `Check AI-CAS` returns READY. Merge and gate
-advancement require the separate explicit command `Advance AI-CAS`.
+on 2026-08-06 and separately issued `Advance AI-CAS` after READY. Neither
+action authorizes production deployment, external provider use, hosted changes,
+destructive actions, or Milestone 4 implementation without the next valid
+command.
