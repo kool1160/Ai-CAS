@@ -1,55 +1,64 @@
 # AI-CAS Current Status
 
 **Updated:** 2026-08-06
-**State:** AWAITING_REVIEW
+**State:** ACTIVE
 **Hold:** No
 
 ## Active gate
 
-- Milestone: 3 - AI Extraction Contract and Confidence Safety
+- Milestone: 4 - Browser Record Integrity and Recovery
 - Selected: Yes
-- Pull request: #73
-- Branch: `claude/milestone-3`
-- Base commit: `697b84c2be8884e13d6e8a8c25a8504cc33687cf`
-- Exact head: resolve from GitHub before every action; this tracked file does
-  not self-authorize a stale SHA
-- Merge: not authorized
+- Pull request: none
+- Implementation branch: none
+- Exact base: resolve from current `main` before implementation
+- Merge authority for Milestone 4: not granted
 - Deployment: not authorized
 
-## Owner-approved governance amendment
+## Milestone 3 advancement evidence
 
-On 2026-08-06 the product owner directed AI-CAS to adopt the same
-command-driven operating discipline used by LaserX, with strict role,
-milestone, review, merge, deployment, safety, and scope boundaries.
+The product owner explicitly issued `Advance AI-CAS` after an independent
+`READY` verdict on PR `#73`.
 
-The amendment is implemented in the active draft pull request rather than in a
-parallel pull request so AI-CAS retains one active gate and one review surface.
-It does not change AI-CAS product identity, operator workflow, human
-confirmation requirements, runtime safety rules, or production state.
+Fresh advancement verification confirmed:
 
-## Current review state
+- reviewed exact head remained `6a70b47e88d92cc39b92275efcdc0ba13a8c1970`;
+- PR `#73` was open, mergeable, and unchanged from the reviewed head;
+- all six blocking review threads were resolved;
+- exact-head GitHub Actions run `31128160707` was terminal green for both
+  `Application baseline checks` and `Governance contract checks`;
+- Vercel preview status was successful on the reviewed head;
+- mandatory human confirmation, privacy, provider, deployment, and product
+  boundaries remained intact;
+- rollback remains ordinary PR revert, not reset or history rewrite.
 
-Independent rereview of head `9f6b660` accepted five of the six original
-runtime repairs and narrowed the remaining blocker to response-body streaming:
-after provider headers arrived, stream-phase cancellation and timeout failures
-were being converted to a generic unreadable-response 502.
+PR `#73` was marked ready and squash-merged into `main` as:
 
-That bounded defect is repaired on the same branch. Both routes now retain the
-caller and timeout signals through bounded response-body reading and preserve
-distinct 499 cancellation, 504 timeout, 502 unreadable-body, and 502 oversized
-responses. Deterministic mocked-provider regressions cover stream-phase caller
-cancellation and timeout in both routes.
+`97b6ec5efbea371c43bc96d868f56fc99b6c6cb4`
 
-The original review threads remain unresolved for independent exact-head
-rereview. Required application and governance workflows must be terminal green
-on the exact pushed head before a READY verdict is possible.
+No production deployment, hosted rename, environment change, live provider
+call, external sending, destructive action, authentication, or durable backend
+work was authorized or performed by advancement.
+
+## Active Milestone 4 gate
+
+Milestone 3 is Complete and not selected. Milestone 4 is In Progress and is the
+sole selected gate. Milestone 4 implementation has not begun.
+
+Milestone 4 remains browser-local only. Its current approved goal is record
+integrity and recovery: schema versioning, collision-resistant local IDs,
+non-destructive malformed-record recovery, and validated preview-first local
+backup export/import. Database, Supabase, cloud sync, authentication, storage-
+key renaming, destructive migration, deployment, and product-shell redesign
+remain out of scope.
 
 ## Next valid command
 
-`Check AI-CAS`
+`Continue AI-CAS`
 
-Independently review the exact pushed head, the stream-phase repair, unresolved
-threads, complete diff, and terminal workflow evidence. If exact-head CI fails
-or review finds another blocker, return `REPAIR` and use `Continue AI-CAS`.
-Do not merge, close Milestone 3, select Milestone 4, deploy, rename hosted
-resources, or begin later work.
+Codex may now inspect current `main`, create or use the sole Milestone 4
+implementation branch according to repository rules, implement only the M4
+approved scope, validate it, open one draft pull request, and stop for
+`Check AI-CAS`.
+
+Do not deploy, merge M4, invent Milestone 5, rename hosted resources, change
+production, or expand scope.

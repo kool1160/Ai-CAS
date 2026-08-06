@@ -108,15 +108,23 @@ Acceptance evidence:
 
 ## Milestone 3 - AI Extraction Contract and Confidence Safety
 
-**Status:** In Progress
+**Status:** Complete
 
-**Selected:** Yes
+**Selected:** No
 
 Make AI extraction and drafting outputs structurally validated, attributable,
 and safely fall back when provider output is malformed, unsupported, uncertain,
 or unavailable. Preserve mandatory human confirmation.
 
-Acceptance criteria:
+Merge evidence:
+
+- Pull request: `#73`
+- Reviewed exact head: `6a70b47e88d92cc39b92275efcdc0ba13a8c1970`
+- Squash merge commit: `97b6ec5efbea371c43bc96d868f56fc99b6c6cb4`
+- Exact-head GitHub Actions run `31128160707`: application and governance jobs passed.
+- Vercel preview check passed and all six blocking review threads were resolved before merge.
+
+Acceptance evidence:
 
 - Vision and drafting responses are validated against explicit runtime schemas before use.
 - Malformed, partial, oversized, or contradictory provider responses fail clearly without becoming accepted data.
@@ -130,9 +138,9 @@ Acceptance criteria:
 
 ## Milestone 4 - Browser Record Integrity and Recovery
 
-**Status:** Queued
+**Status:** In Progress
 
-**Selected:** No
+**Selected:** Yes
 
 Strengthen the current browser-local record model so drafts and history are
 versioned, validated, recoverable, and portable without claiming durable cloud

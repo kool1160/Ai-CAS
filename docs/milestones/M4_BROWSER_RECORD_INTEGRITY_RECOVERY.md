@@ -1,7 +1,7 @@
 # Milestone 4 - Browser Record Integrity and Recovery
 
-**Status:** Queued
-**Selected:** No
+**Status:** In Progress
+**Selected:** Yes
 **Primary product source:** `AI-CAS_PROJECT_SUMMARY.md`
 
 ## Goal
@@ -13,8 +13,15 @@ persistence or activating a backend.
 ## Entry condition
 
 Milestone 3 must be merged and marked Complete before Milestone 4 becomes the
-selected milestone. The Milestone 3 closeout may switch the sole tracked
-selection marker from M3 to M4.
+selected milestone. This condition is satisfied by PR `#73`, reviewed at exact
+head `6a70b47e88d92cc39b92275efcdc0ba13a8c1970` and squash-merged as
+`97b6ec5efbea371c43bc96d868f56fc99b6c6cb4` after the product owner issued
+`Advance AI-CAS`.
+
+## Activation state
+
+Milestone 4 is the sole selected gate. Implementation has not begun. The next
+valid command is `Continue AI-CAS`.
 
 ## In scope
 
