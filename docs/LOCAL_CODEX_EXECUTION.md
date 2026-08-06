@@ -121,8 +121,11 @@ backend work, destructive actions, real sensitive data, external publication,
 or another controlled action. Those boundaries remain explicit product-owner
 decisions. A green result stops for `Check AI-CAS`.
 
-The manual Foreman workflow is `workflow_dispatch` only and is the repository
-implementation path for the exact command `Continue AI-CAS`. It uses only the dedicated non-production
+The manual Foreman workflow is `workflow_dispatch` only. It may bootstrap a
+selected milestone only when no active implementation PR exists. It is not the
+repair path for an existing PR and may not create a parallel repair branch or
+duplicate PR. Once a PR exists, local Codex must use `Continue AI-CAS` on that
+same branch. Foreman uses only the dedicated non-production
 `AI_CAS_FOREMAN_OPENAI_API_KEY`. Draft-PR publication remains separately
 approval-gated by `ai-cas-publish-approval` and the external repository-
 protection attestation. Repository files cannot prove that branch protection
