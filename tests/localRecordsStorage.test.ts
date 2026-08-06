@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DRAFT_STORAGE_KEY, loadDraftRecordsFromStorage } from '../features/woc/logic/localRecordsStorage';
+import {
+  DRAFT_STORAGE_KEY,
+  LOCAL_RECORD_SCHEMA_VERSION,
+  createLocalRecordId,
+  loadDraftRecordsFromStorage,
+  loadLocalRecordsFromStorage,
+  saveDraftRecordsToStorage,
+} from '../features/woc/logic/localRecordsStorage';
 
 function createStorage() {
   const values = new Map<string, string>();
@@ -65,5 +72,73 @@ describe('browser-local draft review migration', () => {
     const drafts = loadDraftRecordsFromStorage();
     expect(drafts[0]).toMatchObject({ reviewStatus: 'confirmed', reviewedBy: 'Synthetic Reviewer' });
     expect(drafts[1]).toMatchObject({ reviewStatus: 'legacy-unconfirmed', reportText: 'Synthetic report remains' });
+  });
+
+  it('migrates a compatible legacy array to the documented versioned envelope without changing the record', () => {
+    storage.setItem(DRAFT_STORAGE_KEY, JSON.stringify([{
+      draftId: 'DRAFT-SYNTHETIC-4',
+      subjectLine: 'Legacy synthetic draft',
+      reportText: 'Synthetic report',
+      emailDraftText: 'Synthetic email',
+    }]));
+
+    const [legacyDraft] = loadDraftRecordsFromStorage();
+    saveDraftRecordsToStorage([legacyDraft]);
+
+    const stored = JSON.parse(storage.getItem(DRAFT_STORAGE_KEY) ?? '{}');
+    expect(stored).toMatchObject({
+      schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
+      recordType: 'drafts',
+      records: [{ draftId: 'DRAFT-SYNTHETIC-4', subjectLine: 'Legacy synthetic draft' }],
+    });
+    expect(loadDraftRecordsFromStorage()).toMatchObject([legacyDraft]);
+  });
+
+  it('reports malformed browser JSON while leaving the original browser value unchanged', () => {
+    const malformedSource = '{ not valid JSON';
+    storage.setItem(DRAFT_STORAGE_KEY, malformedSource);
+
+    const snapshot = loadLocalRecordsFromStorage();
+
+    expect(snapshot.draftRecords).toEqual([]);
+    expect(snapshot.recoveries).toContainEqual({
+      collection: 'drafts',
+      reason: 'malformed-json',
+      rejectedRecordCount: 0,
+    });
+    expect(storage.getItem(DRAFT_STORAGE_KEY)).toBe(malformedSource);
+  });
+
+  it('reports malformed records without dropping valid records from the recovery view', () => {
+    storage.setItem(DRAFT_STORAGE_KEY, JSON.stringify([{
+      draftId: 'DRAFT-SYNTHETIC-5',
+      subjectLine: 'Valid synthetic draft',
+      reportText: 'Synthetic report',
+      emailDraftText: 'Synthetic email',
+    }, {
+      draftId: 'DRAFT-SYNTHETIC-6',
+      subjectLine: 'Incomplete synthetic draft',
+      reportText: 'Synthetic report',
+      emailDraftText: 'Synthetic email',
+      schemaVersion: LOCAL_RECORD_SCHEMA_VERSION + 1,
+    }]));
+
+    const snapshot = loadLocalRecordsFromStorage();
+
+    expect(snapshot.draftRecords.map((record) => record.draftId)).toEqual(['DRAFT-SYNTHETIC-5']);
+    expect(snapshot.recoveries).toContainEqual({
+      collection: 'drafts',
+      reason: 'malformed-records',
+      rejectedRecordCount: 1,
+    });
+  });
+
+  it('creates collision-resistant record identifiers instead of using the collection length', () => {
+    const firstId = createLocalRecordId('DRAFT');
+    const secondId = createLocalRecordId('DRAFT');
+
+    expect(firstId).toMatch(/^DRAFT-/);
+    expect(secondId).toMatch(/^DRAFT-/);
+    expect(secondId).not.toBe(firstId);
   });
 });

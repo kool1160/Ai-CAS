@@ -73,6 +73,7 @@ export type SetupConfig = {
 };
 
 export type DraftRecord = {
+  schemaVersion: number;
   draftId: string;
   createdTimestamp: string;
   subjectLine: string;
@@ -96,6 +97,7 @@ export type DraftRecord = {
 };
 
 export type HistoryRecord = {
+  schemaVersion: number;
   historyId: string;
   completedTimestamp: string;
   subjectLine: string;

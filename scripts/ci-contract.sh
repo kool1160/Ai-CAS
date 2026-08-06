@@ -35,6 +35,8 @@ required_files=(
   docs/handoffs/M2_PLANNING_HANDOFF.md
   docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md
   docs/handoffs/M3_PLANNING_HANDOFF.md
+  docs/milestones/M4_BROWSER_RECORD_INTEGRITY_RECOVERY.md
+  docs/handoffs/M4_PLANNING_HANDOFF.md
   docs/GITHUB_REPOSITORY_SETUP.md
   .gitignore
 )
@@ -71,6 +73,7 @@ node scripts/validate-governance.mjs --check
 node scripts/validate-governance.mjs --handoff docs/handoffs/M1_PLANNING_HANDOFF.md --milestone 1
 node scripts/validate-governance.mjs --handoff docs/handoffs/M2_PLANNING_HANDOFF.md --milestone 2
 node scripts/validate-governance.mjs --handoff docs/handoffs/M3_PLANNING_HANDOFF.md --milestone 3
+node scripts/validate-governance.mjs --handoff docs/handoffs/M4_PLANNING_HANDOFF.md --milestone 4
 node - <<'NODE'
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
@@ -96,6 +99,24 @@ const handoff = fs.readFileSync('docs/handoffs/M3_PLANNING_HANDOFF.md', 'utf8');
 const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
 if (!match) throw new Error('M3 handoff JSON block is missing.');
 const listed = JSON.parse(match[1]).files_changed;
+const baseMatch = handoff.match(/^\*\*Base commit:\*\*\s*`([0-9a-f]{40})`/m);
+const headMatch = handoff.match(/^\*\*Reviewed runtime head:\*\*\s*`([0-9a-f]{40})`/m);
+if (!baseMatch || !headMatch) throw new Error('M3 handoff reviewed range is missing.');
+const [, baseCommit] = baseMatch;
+const [, reviewedHead] = headMatch;
+for (const commit of [baseCommit, reviewedHead]) {
+  execFileSync('git', ['cat-file', '-e', `${commit}^{commit}`], { stdio: 'ignore' });
+}
+const actual = execFileSync('git', ['diff', '--name-only', `${baseCommit}...${reviewedHead}`], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M3 handoff files_changed does not match its reviewed commit range.');
+NODE
+node - <<'NODE'
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const handoff = fs.readFileSync('docs/handoffs/M4_PLANNING_HANDOFF.md', 'utf8');
+const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
+if (!match) throw new Error('M4 handoff JSON block is missing.');
+const listed = JSON.parse(match[1]).files_changed;
 const actualSet = new Set(execFileSync('git', ['diff', '--name-only', 'main...HEAD'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean));
 const status = execFileSync('git', ['status', '--porcelain=v1', '-uall'], { encoding: 'utf8' }).replace(/\r?\n$/, '');
 for (const line of status.split(/\r?\n/).filter(Boolean)) {
@@ -108,7 +129,7 @@ for (const line of status.split(/\r?\n/).filter(Boolean)) {
   }
 }
 const actual = [...actualSet];
-if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M3 handoff files_changed does not match the current or committed main...HEAD change surface.');
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M4 handoff files_changed does not match the current or committed main...HEAD change surface.');
 NODE
 if [[ -n "${AI_CAS_MILESTONE_NUMBER:-}" ]]; then
   milestone_number="$AI_CAS_MILESTONE_NUMBER"

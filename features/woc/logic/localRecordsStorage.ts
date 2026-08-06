@@ -3,9 +3,35 @@ import { sanitizeReviewMetadata } from '../state/reviewGate';
 
 export const DRAFT_STORAGE_KEY = 'refab-connect-drafts';
 export const HISTORY_STORAGE_KEY = 'refab-connect-history';
+export const LOCAL_RECORD_SCHEMA_VERSION = 1;
+
+type LocalRecordCollection = 'drafts' | 'history';
+
+type LocalRecordsEnvelope = {
+  schemaVersion: typeof LOCAL_RECORD_SCHEMA_VERSION;
+  recordType: LocalRecordCollection;
+  records: unknown[];
+};
+
+export type LocalRecordsRecovery = {
+  collection: LocalRecordCollection;
+  reason: 'malformed-json' | 'unsupported-schema' | 'malformed-records';
+  rejectedRecordCount: number;
+};
+
+export type LocalRecordsLoadSnapshot = {
+  draftRecords: DraftRecord[];
+  historyRecords: HistoryRecord[];
+  recoveries: LocalRecordsRecovery[];
+};
+
+type CollectionLoadResult<T> = {
+  records: T[];
+  recovery: LocalRecordsRecovery | null;
+};
 
 function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function stringValue(value: unknown) {
@@ -58,6 +84,7 @@ function addEvidenceMetadata<T extends DraftRecord | HistoryRecord>(record: T): 
 
   return {
     ...record,
+    schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
     evidenceAttached: record.evidenceAttached ?? metadata.evidenceAttached,
     evidenceFileName: record.evidenceFileName ?? metadata.evidenceFileName,
     evidenceFileType: record.evidenceFileType ?? metadata.evidenceFileType,
@@ -65,8 +92,9 @@ function addEvidenceMetadata<T extends DraftRecord | HistoryRecord>(record: T): 
   };
 }
 
-function sanitizeDraftRecord(value: unknown): DraftRecord | null {
+export function normalizeDraftRecord(value: unknown): DraftRecord | null {
   if (!isObject(value)) return null;
+  if (value.schemaVersion !== undefined && value.schemaVersion !== LOCAL_RECORD_SCHEMA_VERSION) return null;
 
   const draftId = stringValue(value.draftId);
   const subjectLine = stringValue(value.subjectLine);
@@ -79,6 +107,7 @@ function sanitizeDraftRecord(value: unknown): DraftRecord | null {
   const reviewMetadata = sanitizeReviewMetadata(value);
 
   return {
+    schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
     draftId,
     createdTimestamp: stringValue(value.createdTimestamp),
     subjectLine,
@@ -96,8 +125,9 @@ function sanitizeDraftRecord(value: unknown): DraftRecord | null {
   };
 }
 
-function sanitizeHistoryRecord(value: unknown): HistoryRecord | null {
+export function normalizeHistoryRecord(value: unknown): HistoryRecord | null {
   if (!isObject(value)) return null;
+  if (value.schemaVersion !== undefined && value.schemaVersion !== LOCAL_RECORD_SCHEMA_VERSION) return null;
 
   const historyId = stringValue(value.historyId);
   const subjectLine = stringValue(value.subjectLine);
@@ -112,6 +142,7 @@ function sanitizeHistoryRecord(value: unknown): HistoryRecord | null {
   const evidenceMetadata = evidenceMetadataFromRecord(value, reportText);
 
   return {
+    schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
     historyId,
     completedTimestamp: stringValue(value.completedTimestamp),
     subjectLine,
@@ -129,35 +160,109 @@ function sanitizeHistoryRecord(value: unknown): HistoryRecord | null {
   };
 }
 
-function readJsonArray(key: string): unknown[] {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+function getStoredRecords(value: unknown, collection: LocalRecordCollection): unknown[] | null {
+  if (Array.isArray(value)) return value;
+
+  if (!isObject(value)) return null;
+
+  const envelope = value as Partial<LocalRecordsEnvelope>;
+  if (
+    envelope.schemaVersion !== LOCAL_RECORD_SCHEMA_VERSION
+    || envelope.recordType !== collection
+    || !Array.isArray(envelope.records)
+  ) {
+    return null;
   }
+
+  return envelope.records;
+}
+
+function readCollection<T>(
+  key: string,
+  collection: LocalRecordCollection,
+  normalizeRecord: (value: unknown) => T | null,
+): CollectionLoadResult<T> {
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return { records: [], recovery: null };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return {
+      records: [],
+      recovery: { collection, reason: 'malformed-json', rejectedRecordCount: 0 },
+    };
+  }
+
+  const storedRecords = getStoredRecords(parsed, collection);
+  if (!storedRecords) {
+    return {
+      records: [],
+      recovery: { collection, reason: 'unsupported-schema', rejectedRecordCount: 0 },
+    };
+  }
+
+  const records = storedRecords
+    .map(normalizeRecord)
+    .filter((record): record is T => Boolean(record));
+  const rejectedRecordCount = storedRecords.length - records.length;
+
+  return {
+    records,
+    recovery: rejectedRecordCount > 0
+      ? { collection, reason: 'malformed-records', rejectedRecordCount }
+      : null,
+  };
+}
+
+function saveCollection<T extends DraftRecord | HistoryRecord>(
+  key: string,
+  collection: LocalRecordCollection,
+  records: T[],
+) {
+  const envelope: LocalRecordsEnvelope = {
+    schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
+    recordType: collection,
+    records: records.map(addEvidenceMetadata),
+  };
+  window.localStorage.setItem(key, JSON.stringify(envelope));
+}
+
+export function loadLocalRecordsFromStorage(): LocalRecordsLoadSnapshot {
+  const drafts = readCollection(DRAFT_STORAGE_KEY, 'drafts', normalizeDraftRecord);
+  const history = readCollection(HISTORY_STORAGE_KEY, 'history', normalizeHistoryRecord);
+
+  return {
+    draftRecords: drafts.records,
+    historyRecords: history.records,
+    recoveries: [drafts.recovery, history.recovery].filter((recovery): recovery is LocalRecordsRecovery => Boolean(recovery)),
+  };
 }
 
 export function loadDraftRecordsFromStorage() {
-  return readJsonArray(DRAFT_STORAGE_KEY)
-    .map(sanitizeDraftRecord)
-    .filter((record): record is DraftRecord => Boolean(record));
+  return readCollection(DRAFT_STORAGE_KEY, 'drafts', normalizeDraftRecord).records;
 }
 
 export function loadHistoryRecordsFromStorage() {
-  return readJsonArray(HISTORY_STORAGE_KEY)
-    .map(sanitizeHistoryRecord)
-    .filter((record): record is HistoryRecord => Boolean(record));
+  return readCollection(HISTORY_STORAGE_KEY, 'history', normalizeHistoryRecord).records;
 }
 
 export function saveDraftRecordsToStorage(records: DraftRecord[]) {
-  window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(records.map(addEvidenceMetadata)));
+  saveCollection(DRAFT_STORAGE_KEY, 'drafts', records);
 }
 
 export function saveHistoryRecordsToStorage(records: HistoryRecord[]) {
-  window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(records.map(addEvidenceMetadata)));
+  saveCollection(HISTORY_STORAGE_KEY, 'history', records);
+}
+
+export function createLocalRecordId(prefix: 'DRAFT' | 'HISTORY') {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  const randomPart = Math.random().toString(36).slice(2);
+  return `${prefix}-${Date.now().toString(36)}-${randomPart}`;
 }
 
 export function clearLocalRecordsStorage() {

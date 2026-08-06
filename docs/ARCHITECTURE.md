@@ -49,6 +49,18 @@ document text is no longer written to server logs. Existing missing-field
 reporting, manual-entry fallback, and the M1/M2 confirmation and email
 boundaries are unchanged.
 
+Milestone 4 versions each browser-local draft and history record at schema
+version 1 while retaining the existing browser storage keys. Unversioned
+legacy arrays load through a compatibility path; explicitly unsupported
+versions, malformed JSON, and malformed records produce bounded recovery
+information and are not automatically written back. New local record IDs are
+collision-resistant rather than collection-length-derived. The More screen can
+export a labeled local-only backup and preview a validated import before an
+explicit confirmation. Imports merge only records with new IDs, preserving
+existing records, review metadata, attribution, evidence metadata, and stored
+timestamps. This remains browser-local storage, not a backend, authentication,
+or durable audit system.
+
 ## Target governance boundaries
 
 - The product workflow owns capture, confirmation, correction, drafting,

@@ -263,3 +263,12 @@ field-source note values.
 and `tests/draft-corrective-action.route.test.ts` cover valid, malformed,
 partial, contradictory, oversized, timeout, and provider-unavailable cases
 with mocked provider calls only.
+# Milestone 4 validation conflict — 2026-08-06
+
+Milestone 4 repository evidence contains a pre-existing governance conflict.
+`docs/status/CURRENT.md` correctly declares the sole selected M4 gate `ACTIVE`,
+while `scripts/governance-regression.mjs` still requires the obsolete M3
+`AWAITING_REVIEW` state. Both files are outside the M4 approved change scope.
+The M4 implementation must not silently change either source; explicit
+product-owner authorization is required to reconcile the prior-gate governance
+contract before terminal M4 governance validation can pass.
