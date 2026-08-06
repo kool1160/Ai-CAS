@@ -62,7 +62,10 @@ owner carrying a prompt between tools.
 
 ### `Continue AI-CAS`
 
-**Use:** Codex or the manual AI-CAS Foreman workflow only.
+**Use:** Codex. The manual AI-CAS Foreman workflow may bootstrap a selected
+gate only when no active implementation pull request exists. Once a pull
+request exists, repairs must be made by Codex on that same branch and PR; the
+workflow may not create a parallel repair branch or second PR.
 
 This is the only normal implementation command. Read repository truth before
 changing anything, then follow this order:
