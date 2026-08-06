@@ -2,15 +2,16 @@
 
 **Milestone number:** 3
 **Milestone name:** AI Extraction Contract and Confidence Safety
-**Status:** In Progress / Awaiting independent rereview
+**Status:** Awaiting independent rereview
 **Selected:** Yes
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Operator protocol:** `OPERATOR_PROTOCOL.md`
 **Current status:** `docs/status/CURRENT.md`
 **Base commit:** `697b84c2be8884e13d6e8a8c25a8504cc33687cf`
 **Review branch:** `claude/milestone-3`
-**Current review head:** Resolve the exact branch head from GitHub before every
-action; this handoff does not self-reference its own commit.
+**Validated implementation head:** `054f8270d33ee06058e4ba6aa9a64e6e3c756584`
+**Evidence update:** This handoff update is the next commit on the same branch;
+the PR comment will record its exact pushed head and final CI result.
 
 ## Scope and authority
 
@@ -62,6 +63,23 @@ regression coverage:
 The review threads intentionally remain unresolved until an independent
 reviewer verifies the exact pushed head. The earlier 115-test result remains
 historical and does not substitute for the final exact-head evidence.
+
+## Exact implementation-head evidence
+
+Validated locally against implementation head
+`054f8270d33ee06058e4ba6aa9a64e6e3c756584` before this handoff-only evidence
+update:
+
+- `npm ci` completed without installing or changing dependencies; npm reported
+  three high-severity audit findings for the existing dependency set.
+- `npm run test:run`: 8 files passed, 130 tests passed.
+- `npm run typecheck`: passed.
+- `npm run build`: passed on Next.js 15.3.8.
+- Privacy fixture, milestone selection, scoped M3, governance regression,
+  Bash contract, PowerShell contract, and `git diff --check`: passed.
+- The POSIX contract was executed through the installed Git Bash executable;
+  `bash` is not directly on this PowerShell PATH.
+- No live OpenAI, Resend, Supabase, Vercel, or other provider call was made.
 
 ## Owner-approved operator-system amendment
 
