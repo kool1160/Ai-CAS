@@ -38,9 +38,10 @@ Milestone 3 adds `features/woc/state/aiContracts.ts` as the shared runtime
 contract for both OpenAI Vision extraction and AI corrective-action drafting.
 Parsed provider payloads are validated as a plain-object shape before any
 field is trusted; a malformed top-level shape fails clearly instead of
-becoming a silently accepted blank result. Every accepted field, including
-field-source notes and client-supplied drafting input, is length-bounded and
-stripped of unsafe control characters. Provider HTTP failures and
+becoming a silently accepted blank result. Every candidate field, including
+field-source notes and client-supplied drafting input, must satisfy its length
+bound; candidate values containing unsafe control characters are rejected.
+Provider HTTP failures and
 timeout/network failures are normalized into generic messages before
 reaching the client; raw provider error text is never forwarded. Provider
 requests use a fixed request timeout via `AbortSignal.timeout`, and extracted

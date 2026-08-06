@@ -9,9 +9,9 @@
 **Current status:** `docs/status/CURRENT.md`
 **Base commit:** `697b84c2be8884e13d6e8a8c25a8504cc33687cf`
 **Review branch:** `claude/milestone-3`
-**Reviewed repair base:** `9f6b660afb86a78ee4657812913918ba7459d05f`
-**Evidence update:** The final PR comment records the exact pushed repair head
-and its terminal CI result; this tracked handoff does not self-reference.
+**Reviewed runtime head:** `1e81b21ba0242c89d36f1f7682edf3c6774ceece`
+**Evidence update:** The final PR comment records the exact pushed wording head
+and its available CI state; this tracked handoff does not self-reference.
 
 ## Scope and authority
 
@@ -67,14 +67,21 @@ stream failed after headers. The current bounded repair passes both signals
 into the shared response reader and adds deterministic stream-phase regression
 coverage for both routes.
 
+Independent exact-head rereview of `1e81b21` accepted the remaining runtime
+repair and found no additional runtime defect. All six original runtime
+findings are materially repaired in code. Their review threads remain open for
+independent closure, and the current wording-only repair remains subject to
+exact-head review.
+
 The review threads intentionally remain unresolved until an independent
 reviewer verifies the exact pushed head. The earlier 115-test result remains
 historical and does not substitute for the final exact-head evidence.
 
 ## Exact implementation-head evidence
 
-Validated locally on the current repair worktree based on reviewed head
-`9f6b660afb86a78ee4657812913918ba7459d05f` before the evidence commit:
+Validated locally on runtime head
+`1e81b21ba0242c89d36f1f7682edf3c6774ceece` before this wording-only evidence
+commit:
 
 - `npm ci` completed without installing or changing dependencies; npm reported
   three high-severity audit findings for the existing dependency set.
@@ -173,7 +180,9 @@ hosted resources, or perform destructive migration.
 
 ## Unresolved risks
 
-- Six concrete runtime contract findings block merge and must be repaired.
+- All six original runtime contract findings are materially repaired; their
+  threads remain open for independent closure, and the wording-only repair
+  requires exact-head review.
 - The 25-second provider timeout remains untuned against real manufacturing
   document latency because no live provider call is allowed in this milestone.
 - Extraction and drafting quality against real documents remains unverified.
@@ -190,7 +199,7 @@ hosted resources, or perform destructive migration.
   "status": "approval_required",
   "milestone_number": 3,
   "milestone_name": "AI Extraction Contract and Confidence Safety",
-  "summary": "Repair the six recorded M3 runtime contract blockers on the existing draft PR and stop for independent exact-head rereview.",
+  "summary": "Record the six original M3 runtime contract findings as materially repaired on the existing draft PR and stop for independent exact-head review and thread closure.",
   "runtime_impact": "The shared AI-provider contract layer now rejects malformed, partial, contradictory, mistyped, unknown, unsafe, and oversized data; routes validate top-level requests, bound provider wrappers before parsing, and distinguish caller cancellation from timeout through both fetch and response-body streaming.",
   "data_persistence_impact": "No persistence behavior or storage key changes.",
   "security_impact": "The governance layer prevents implementation from self-authorizing merge or advancement and requires exact-head review. Runtime safety now fails closed for the six repaired contract gaps; independent review remains required.",
@@ -235,13 +244,13 @@ hosted resources, or perform destructive migration.
     "git diff --check",
     "required GitHub workflows on the exact pushed head"
   ],
-  "approval_required": "Continue AI-CAS may repair only the six recorded blockers. Check AI-CAS must then independently review the exact repaired head. Advance AI-CAS is separately required for merge and gate advancement; deployment and other controlled actions remain prohibited.",
+  "approval_required": "Continue AI-CAS may repair only the recorded wording contradictions. Check AI-CAS must then independently review the exact repaired head. Advance AI-CAS is separately required for merge and gate advancement; deployment and other controlled actions remain prohibited.",
   "unresolved_items": [
-    "The original PR review threads remain unresolved; five findings were accepted on the prior head and the stream-phase repair requires independent exact-head rereview.",
+    "All six original runtime findings are materially repaired in code; their PR review threads remain unresolved for independent closure and the wording-only repair requires exact-head review.",
     "Provider timeout is untuned against real document latency.",
     "Real-document extraction and drafting quality remains unverified.",
     "Hosted protection, environment reviewer, deployment, and rollback settings remain external evidence.",
-    "Final-head CI and independent rereview are pending."
+    "Terminal green final-head CI and independent wording rereview are pending; exact-head run 31127763177 was cancelled before any step executed."
   ],
   "recommended_next_action": "Check AI-CAS: independently review the exact pushed head, complete diff, six repaired threads, and final-head CI."
 }

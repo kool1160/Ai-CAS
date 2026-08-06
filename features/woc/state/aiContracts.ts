@@ -189,8 +189,9 @@ export function validateExtractedWorkOrderData(value: unknown): ValidationResult
 
 /**
  * Validates and bounds a client-supplied AI drafting input before it is used
- * to build the server-owned prompt. A non-object shape is rejected; every
- * accepted field is bounded and control characters are stripped.
+ * to build the server-owned prompt. A non-object shape is rejected; candidate
+ * fields must satisfy their bounds, and values with unsafe control characters
+ * are rejected.
  */
 export function validateAiCorrectiveActionDraftInput(value: unknown): ValidationResult<AiCorrectiveActionDraftInput> {
   if (!isPlainObject(value)) return { ok: false, reason: 'draft-input-not-an-object' };
@@ -218,11 +219,10 @@ export function validateAiCorrectiveActionDraftInput(value: unknown): Validation
 }
 
 /**
- * Validates and bounds a parsed AI drafting output payload. `status` is
- * always forced to the literal `draft-only-unconfirmed` value regardless of
- * what the provider returned; the provider is never trusted for release
- * state. A non-object shape is rejected rather than silently accepted as an
- * all-blank draft.
+ * Validates and bounds a parsed AI drafting output payload. `status` must
+ * already equal the literal `draft-only-unconfirmed` value; a contradictory
+ * provider status is rejected rather than overwritten. A non-object shape is
+ * rejected rather than silently accepted as an all-blank draft.
  */
 export function validateAiCorrectiveActionDraftOutput(value: unknown): ValidationResult<AiCorrectiveActionDraftOutput> {
   if (!isPlainObject(value)) return { ok: false, reason: 'draft-payload-not-an-object' };
