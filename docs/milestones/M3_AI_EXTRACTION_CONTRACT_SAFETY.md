@@ -11,6 +11,10 @@ validated, attributable, bounded, and safely rejected when provider output is
 malformed, unsupported, contradictory, oversized, uncertain, or unavailable.
 Human confirmation remains mandatory.
 
+Under the product owner's 2026-08-06 directive, this active draft PR also
+installs the command-driven AI-CAS operating protocol without opening a
+parallel implementation gate or changing product behavior.
+
 ## Entry condition
 
 Milestone 2 must be merged and marked Complete before Milestone 3 becomes the
@@ -29,6 +33,14 @@ selection marker from M2 to M3.
 - Add deterministic mocked-provider tests for valid, malformed, partial,
   contradictory, oversized, timeout, and unavailable-provider cases.
 - Document data flow, uncertainty behavior, and remaining provider limitations.
+- Record the owner-approved AI-CAS command system in the primary summary,
+  `OPERATOR_PROTOCOL.md`, `AGENTS.md`, and `docs/status/CURRENT.md`.
+- Make local and workflow Codex execution obey `Continue AI-CAS`, stop for
+  review, and prohibit self-merge, self-advancement, deployment, and scope
+  invention.
+- Add deterministic governance regression checks for command vocabulary,
+  authority order, current-status presence, and implementation/merge
+  separation.
 
 ## Out of scope
 
@@ -37,6 +49,8 @@ selection marker from M2 to M3.
 - Real customer or employer documents in tests, prompts, logs, or CI.
 - Authentication, persistence, email release changes, routing, PDF release,
   hosted settings, deployment, or shell redesign.
+- Merge, milestone completion, selection or implementation of Milestone 4.
+- Transfer of LaserX product scope, architecture, or identity into AI-CAS.
 
 ## Required behavior
 
@@ -64,6 +78,14 @@ Manual entry remains available after missing configuration, timeout, malformed
 output, rejected schema, or provider failure. Existing work-order and part
 confirmation gates remain mandatory.
 
+### Command and gate boundary
+
+AI-CAS keeps one selected milestone, one active implementation PR, and one next
+valid command. `Continue AI-CAS` implements or repairs and stops.
+`Check AI-CAS` independently reviews the exact head. `Advance AI-CAS` is the
+only merge-and-advance command and requires a fresh READY gate plus explicit
+product-owner direction. Green CI alone is never merge permission.
+
 ## Required affected roles
 
 - AI-CAS Foreman
@@ -75,9 +97,10 @@ confirmation gates remain mandatory.
 - UX and Mobile Workflow Engineer
 - Deployment Engineer
 
-Data and Records Engineer reviews structured metadata. Manufacturing Operations
-Engineer validates synthetic floor-side cases. Product and Commercial Engineer
-reviews complexity and adoption impact.
+Data and Records Engineer reviews structured metadata and durable status
+records. Manufacturing Operations Engineer validates synthetic floor-side
+cases. Product and Commercial Engineer reviews complexity and adoption impact.
+The product owner controls the governance amendment, merge, and advancement.
 
 ## Acceptance criteria
 
@@ -90,24 +113,40 @@ reviews complexity and adoption impact.
 - Manual entry remains available for every provider failure mode.
 - Existing M1 email and M2 confirmation behavior remains unchanged.
 - Synthetic mocked-provider tests cover positive and negative contracts.
+- `OPERATOR_PROTOCOL.md` defines the seven commands, exact role separation,
+  one-gate rule, check/advance safety checks, hold behavior, and compact result
+  formats.
+- The project summary identifies the current command-driven model and the
+  verified `kool1160/Ai-CAS` repository without claiming a hosted rename.
+- Codex instructions treat `Continue AI-CAS` as implementation-only and stop
+  before merge, closeout, next-gate selection, deployment, or scope invention.
+- Governance regression checks fail when command vocabulary, authority order,
+  current status, or implementation/merge separation is removed.
 - Typecheck, build, privacy, governance, scope, and handoff validation pass.
-- No live provider, hosted setting, deployment, or real-data action occurs.
+- No live provider, hosted setting, deployment, merge, or real-data action occurs.
 
 ## Approved Change Scope
 
-Scope is default-deny. Any required path outside this list is a stop-and-ask
+Scope is default-deny. The product owner explicitly approved the governance
+paths below on 2026-08-06. Any other required path remains a stop-and-ask
 condition.
 
 ### Allowed paths
 
+- `AI-CAS_PROJECT_SUMMARY.md`
+- `AGENTS.md`
+- `OPERATOR_PROTOCOL.md`
 - `BACKLOG.md`
 - `DECISIONS.md`
+- `docs/status/CURRENT.md`
 - `docs/ARCHITECTURE.md`
+- `docs/LOCAL_CODEX_EXECUTION.md`
 - `docs/milestones/M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md`
 - `docs/handoffs/M2_PLANNING_HANDOFF.md`
 - `docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md`
 - `docs/handoffs/M3_PLANNING_HANDOFF.md`
 - `docs/milestones/M4_BROWSER_RECORD_INTEGRITY_RECOVERY.md`
+- `.github/codex/prompts/run-milestone.md`
 - `app/api/extract-work-order/route.ts`
 - `app/api/draft-corrective-action/route.ts`
 - `features/woc/components/CaptureScreen.tsx`
@@ -120,10 +159,10 @@ condition.
 - `tests/**`
 - `scripts/ci-contract.sh`
 - `scripts/ci-contract.ps1`
+- `scripts/governance-regression.mjs`
 
 ### Forbidden paths
 
-- `AI-CAS_PROJECT_SUMMARY.md`
 - `app/api/send-correction/**`
 - `features/woc/logic/localRecordsStorage.ts`
 - `features/woc/logic/printCorrectionReport.ts`
@@ -140,11 +179,12 @@ condition.
 
 - secrets
 - environment values
-- GitHub/Vercel identity
+- GitHub/Vercel identity changes
 - production settings
 - deployment
 - destructive operations
-- merge without human approval
+- merge without `Advance AI-CAS`, a fresh READY gate, and explicit human approval
+- milestone completion or next-gate selection during `Continue AI-CAS`
 - live OpenAI, Resend, Supabase, Vercel, or other provider calls from tests or CI
 - real customer, employer, personal, or proprietary data
 - automatic acceptance of AI output
@@ -168,11 +208,14 @@ condition.
 
 ## Queue transition
 
-On successful completion, mark M3 Complete and not selected, then mark M4
-selected. Do not select M4 before M3 evidence and handoff are complete.
+On successful review, use `Advance AI-CAS` to reverify the exact head and CI,
+merge, record M3 completion, and select M4. Do not select or implement M4 during
+`Continue AI-CAS`, and do not advance from a green check alone.
 
 ## Approval boundaries
 
-The Foreman may prepare, validate, and request publication of one draft PR for
-Milestone 3. Merge, deployment, external provider use, hosted changes, scope
-expansion, and destructive actions remain human approval boundaries.
+The product owner explicitly approved the command-governance scope amendment
+on 2026-08-06. That approval does not authorize merge, deployment, external
+provider use, hosted changes, destructive actions, or later product scope.
+The active PR remains draft until `Check AI-CAS` returns READY. Merge and gate
+advancement require the separate explicit command `Advance AI-CAS`.
