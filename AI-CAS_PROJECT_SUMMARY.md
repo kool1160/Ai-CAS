@@ -103,22 +103,36 @@ Based on the current application, repository state, screenshots, deployment stat
 `C:\Users\kool1\OneDrive-Personal\OneDrive\Documents\GitHub\ai-cas`
 
 **Current GitHub repository:**  
-`kool1160/refab-connect-core-reskin`
+`kool1160/Ai-CAS`
 
-**Current branch:**  
+**Default branch:**  
 `main`
 
-**Verified commit during local inspection:**  
-`47f5bdbf2e62b62b22f266d7fab0859757e2a71c`
+**Operational status:**  
+The selected milestone, active pull request, branch, review state, and next
+valid command are tracked in `docs/status/CURRENT.md` and must be reverified
+from GitHub before review or advancement.
+
+**Repository evidence:**  
+The connected GitHub repository was verified as `kool1160/Ai-CAS` on
+2026-08-06. The earlier `kool1160/refab-connect-core-reskin` repository entry
+was stale metadata and is corrected here under explicit product-owner
+approval. This documentation correction does not rename or modify Vercel.
 
 **Current Vercel project:**  
 `refab-connect-core-reskin`
 
 **Current production state:**  
-The Vercel production deployment was verified as ready and tied to the same main-branch commit during inspection.
+Historical inspection recorded a ready Vercel production deployment. Current
+hosted state, deployment commit, environment values, and rollback readiness
+must be independently verified before any production action. Repository files
+do not prove current hosted settings.
 
 **Important identity note:**  
-The local folder is already named `ai-cas`, but GitHub and Vercel still use the historical `refab-connect-core-reskin` name. Hosted renaming should happen later as a controlled migration after product governance, build verification, and rollback planning are established.
+AI-CAS is the active product identity. Historical Refab Connect / AI-WOC names
+may remain in compatibility or deployment metadata until a separately approved
+hosted migration. GitHub or Vercel renaming, URL changes, and production
+changes remain controlled actions.
 
 ---
 
@@ -152,22 +166,39 @@ The product should preserve the simplicity of the original workflow while suppor
 
 ---
 
-## Existing Beta 1 Operating Structure
+## Current Command-Driven Operating Structure
 
-The current uploaded Beta 1 structure uses:
+AI-CAS uses the command contract in `OPERATOR_PROTOCOL.md`:
 
-- Chat 1 — Planning / Source of Truth;
-- Chat 2 — Task Runner / Implementation Support;
-- Chat 3 — Testing / QA;
-- Codex as the preferred implementation tool.
+- `Plan AI-CAS: <idea>` — discuss product intent; no repository change;
+- `Lock that into AI-CAS` — record the accepted decision in GitHub;
+- `Continue AI-CAS` — Codex implements or repairs only the active gate, then
+  stops;
+- `Check AI-CAS` — independently review the exact pull-request head and return
+  `READY`, `REPAIR`, or `BLOCKED`;
+- `Advance AI-CAS` — after `READY` and an explicit product-owner command,
+  verify the unchanged head and evidence, merge, close the gate, activate one
+  next gate, and stop;
+- `Status AI-CAS` — read-only status;
+- `Hold AI-CAS` — pause work while preserving the branch, pull request, and
+  evidence.
 
-Its workflow is:
+The operating rule is:
 
-> Plan the work. Pass the work. Verify the work. Lock the work.
+> Chat decides. GitHub remembers. Codex executes. Pull requests hold the
+> evidence. The product owner receives the verdict and next command.
 
-This remains a useful discipline, but the project is now ready to evolve from a manual multi-chat workflow into a governed **Foreman + specialist-agent system** similar to FXD.
+AI-CAS keeps one repository, one selected milestone, one active implementation
+pull request, and one next valid command. Only `Continue AI-CAS` authorizes
+normal implementation. Only `Advance AI-CAS` can authorize merge and gate
+advancement, and it does not authorize production deployment or implementation
+of the newly activated gate.
 
-The old structure should be preserved as historical process documentation, not treated as the permanent final operating model.
+The former three-chat Beta 1 workflow remains historical process documentation.
+Its discipline — plan, execute, verify, and lock — is preserved, but it no
+longer defines the active command or authority model. LaserX product scope,
+architecture, and identity do not transfer to AI-CAS; only the proven
+command-and-gate discipline is reused.
 
 ---
 
@@ -322,22 +353,54 @@ Required question:
 
 ---
 
-## Proposed Foreman Operating Model
+## AI-CAS Command-Driven Foreman Operating Model
 
-For each milestone:
+The planning/review Foreman and Codex have separate authority.
 
-1. Read the governing documents.
-2. Inspect the real repository before making decisions.
-3. Select one milestone with clear acceptance criteria.
-4. Identify materially affected specialists.
-5. Record assumptions, disagreements, risks, and approval boundaries.
-6. Implement only the approved scope.
-7. Run exact build and test checks.
-8. Fix failures caused by the milestone.
-9. Review the final diff.
-10. Open one reviewable pull request.
-11. Produce a structured result card and planning handoff.
-12. Stop before merge, production deployment, hosted rename, destructive action, paid service, or sensitive-data boundary unless explicitly approved.
+### Planning and locking
+
+`Plan AI-CAS: <idea>` discusses direction without changing the repository.
+`Lock that into AI-CAS` records an accepted decision in the correct issue,
+milestone, requirement, decision record, status file, or pull-request finding.
+Locking does not authorize implementation.
+
+### Implementation and repair
+
+Only `Continue AI-CAS` goes to Codex or the manual Foreman implementation
+workflow. Codex reads repository truth, repairs blocking review findings first,
+repairs required CI second, otherwise implements the smallest complete slice
+of the sole selected gate, updates one draft pull request, and stops in
+`AWAITING_REVIEW` or `BLOCKED`.
+
+`Continue AI-CAS` never merges, closes the gate, marks the milestone complete,
+selects or starts the next milestone, deploys, renames hosted resources,
+changes production, expands scope, or weakens product safety.
+
+### Independent review
+
+`Check AI-CAS` reviews the exact pushed head, full diff, selected milestone,
+acceptance criteria, tests, required GitHub workflows, review threads, product
+boundaries, privacy, and safety. Detailed findings stay on GitHub. The user
+receives a compact `READY`, `REPAIR`, or `BLOCKED` verdict and one next valid
+command.
+
+### Advancement
+
+Only an explicit `Advance AI-CAS` command may begin advancement. The Foreman
+must reverify that the reviewed head is unchanged, required workflows are
+green, blocking review threads are resolved, acceptance criteria are met, and
+rollback and approval boundaries remain intact. It may then merge using the
+expected head SHA, record exact evidence, close the active gate, select exactly
+one approved next gate, and stop before implementation.
+
+### Status and hold
+
+`Status AI-CAS` is read-only. `Hold AI-CAS` freezes implementation, repair,
+merge, and advancement while preserving state. Conflicts, missing authority,
+missing evidence, and out-of-scope needs block instead of being guessed around.
+
+The detailed command permissions, compact result formats, and permanent safety
+boundaries are defined in `OPERATOR_PROTOCOL.md`.
 
 ---
 
@@ -437,7 +500,7 @@ These unknowns should be resolved by Codex through direct repository inspection 
 
 Explicit approval is required before:
 
-- merging a pull request;
+- merging a pull request without an explicit `Advance AI-CAS` command and a fresh READY gate;
 - deploying to production;
 - renaming the GitHub repository;
 - renaming the Vercel project;
@@ -455,13 +518,14 @@ Explicit approval is required before:
 
 ## Recommended Next Action
 
-Use Codex Desktop in the local AI-CAS repository to perform an **audit-only comparison** between the current AI-CAS repository and the proven FXD governance structure.
+Read `docs/status/CURRENT.md`, then use the exact next valid command reported
+there. For the active draft pull request, the normal sequence is:
 
-Codex should verify the uncertain technical facts in this summary, propose the exact governance and Foreman files, and return a controlled implementation plan for:
+> `Check AI-CAS` → `Continue AI-CAS` for a bounded repair, or
+> `Advance AI-CAS` only after `READY` and explicit product-owner approval.
 
-> **Milestone 0 — Establish AI-CAS Governance and Foreman Automation**
-
-No production code, hosted names, deployment settings, or live environment should change until the audit is reviewed and approved.
+Do not merge, deploy, rename hosted resources, select a later milestone, or
+begin later implementation based on stale chat context or a green check alone.
 
 ---
 
