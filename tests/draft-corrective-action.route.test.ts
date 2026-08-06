@@ -64,6 +64,12 @@ describe('POST /api/draft-corrective-action', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each([null, [], 'not an object', 42])('rejects a valid-JSON non-object request body: %p', async (body) => {
+    const response = await POST(requestFor(body));
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('rejects a request missing aiDraftFoundation.input', async () => {
     const response = await POST(requestFor({}));
     expect(response.status).toBe(400);
@@ -88,28 +94,20 @@ describe('POST /api/draft-corrective-action', () => {
     expect(payload.missingDraftSections).toEqual([]);
   });
 
-  it('forces the literal draft-only-unconfirmed status even if the provider returns a different value', async () => {
+  it('rejects a contradictory provider status rather than overwriting it', async () => {
     fetchMock.mockResolvedValue(openAiTextResponse(JSON.stringify({ ...validDraftOutput, status: 'released-and-approved' })));
 
     const response = await POST(requestFor({ aiDraftFoundation: validDraftFoundation }));
-    const payload = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(payload.draft.status).toBe('draft-only-unconfirmed');
+    expect(response.status).toBe(502);
   });
 
-  it('bounds an oversized client-supplied input before it reaches the provider request', async () => {
-    fetchMock.mockResolvedValue(openAiTextResponse(JSON.stringify(validDraftOutput)));
-
+  it('rejects oversized client-supplied input before it reaches the provider request', async () => {
     const oversizedFoundation = { input: { detailedIssueNotes: 'z'.repeat(50_000) } };
     const response = await POST(requestFor({ aiDraftFoundation: oversizedFoundation }));
 
-    expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const sentBody = JSON.parse(String(init.body));
-    const sentPromptText = sentBody.input[0].content[0].text as string;
-    expect(sentPromptText.length).toBeLessThan(10_000);
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('normalizes a provider HTTP error without forwarding raw provider text', async () => {
@@ -160,11 +158,48 @@ describe('POST /api/draft-corrective-action', () => {
     expect(payload.draft).toBeUndefined();
   });
 
+  it.each([
+    ['partial', { ...validDraftOutput, issueSummary: undefined }],
+    ['mistyped', { ...validDraftOutput, containmentAction: 123 }],
+    ['empty', { ...validDraftOutput, closeoutRequirement: '   ' }],
+    ['oversized section', { ...validDraftOutput, issueSummary: 'z'.repeat(4_001) }],
+  ])('rejects %s provider draft output', async (_label, output) => {
+    fetchMock.mockResolvedValue(openAiTextResponse(JSON.stringify(output)));
+    const response = await POST(requestFor({ aiDraftFoundation: validDraftFoundation }));
+    expect(response.status).toBe(502);
+  });
+
   it('rejects an oversized provider response', async () => {
-    fetchMock.mockResolvedValue(openAiTextResponse('x'.repeat(30_000)));
+    fetchMock.mockResolvedValue(openAiTextResponse('x'.repeat(20_001)));
 
     const response = await POST(requestFor({ aiDraftFoundation: validDraftFoundation }));
     expect(response.status).toBe(502);
+  });
+
+  it('rejects an oversized provider wrapper before parsing it', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ output_text: JSON.stringify(validDraftOutput), padding: 'x'.repeat(30_000) })));
+    const response = await POST(requestFor({ aiDraftFoundation: validDraftFoundation }));
+    expect(response.status).toBe(502);
+  });
+
+  it('propagates caller abort separately from provider timeout', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    fetchMock.mockImplementation((_url, init: RequestInit) => {
+      expect((init.signal as AbortSignal).aborted).toBe(true);
+      return Promise.reject(Object.assign(new Error('caller aborted'), { name: 'AbortError' }));
+    });
+
+    const response = await POST(new Request('http://localhost/api/draft-corrective-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aiDraftFoundation: validDraftFoundation }),
+      signal: controller.signal,
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(499);
+    expect(payload.error).toContain('cancelled');
   });
 
   it('fails clearly when the provider returns no readable output', async () => {

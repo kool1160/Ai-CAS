@@ -6,6 +6,7 @@ import {
   isProviderTimeoutError,
   normalizeProviderFailureMessage,
   normalizeProviderNetworkFailureMessage,
+  readBoundedProviderResponseBody,
   stripJsonCodeFence,
   validateExtractedWorkOrderData,
 } from '../../../features/woc/state/aiContracts';
@@ -109,24 +110,14 @@ export async function POST(request: Request) {
           },
         ],
       }),
-      signal: AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS)]),
     });
   } catch (error) {
-    const timedOut = isProviderTimeoutError(error);
-    console.info('[AI-CAS-M3] OpenAI Vision provider request failed', { timedOut });
+    const failure = request.signal.aborted ? 'aborted' : isProviderTimeoutError(error) ? 'timeout' : 'network';
+    console.info('[AI-CAS-M3] OpenAI Vision provider request failed', { failure });
     return NextResponse.json(
-      { error: normalizeProviderNetworkFailureMessage('extraction', timedOut) },
-      { status: timedOut ? 504 : 502 },
-    );
-  }
-
-  let responseBody: unknown;
-  try {
-    responseBody = await openAiResponse.json();
-  } catch {
-    return NextResponse.json(
-      { error: 'OpenAI Vision returned an unreadable response. Manual entry is still available.' },
-      { status: 502 },
+      { error: normalizeProviderNetworkFailureMessage('extraction', failure) },
+      { status: failure === 'timeout' ? 504 : failure === 'aborted' ? 499 : 502 },
     );
   }
 
@@ -136,6 +127,24 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: normalizeProviderFailureMessage(openAiResponse.status, 'extraction') },
       { status: openAiResponse.status },
+    );
+  }
+
+  const providerBody = await readBoundedProviderResponseBody(openAiResponse);
+  if (!providerBody.ok) {
+    const error = providerBody.reason === 'provider-response-body-too-large'
+      ? 'OpenAI Vision returned an oversized response. Manual entry is still available.'
+      : 'OpenAI Vision returned an unreadable response. Manual entry is still available.';
+    return NextResponse.json({ error }, { status: 502 });
+  }
+
+  let responseBody: unknown;
+  try {
+    responseBody = JSON.parse(providerBody.data);
+  } catch {
+    return NextResponse.json(
+      { error: 'OpenAI Vision returned an unreadable response. Manual entry is still available.' },
+      { status: 502 },
     );
   }
 

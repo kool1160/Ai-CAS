@@ -4,23 +4,60 @@ import {
   isProviderTimeoutError,
   normalizeProviderFailureMessage,
   normalizeProviderNetworkFailureMessage,
+  readBoundedProviderResponseBody,
   stripJsonCodeFence,
   validateAiCorrectiveActionDraftInput,
   validateAiCorrectiveActionDraftOutput,
   validateExtractedWorkOrderData,
 } from '../features/woc/state/aiContracts';
 
+const validExtractionPayload = (overrides: Record<string, unknown> = {}) => ({
+  workOrderNumber: '',
+  partNumber: '',
+  revision: '',
+  partDescription: '',
+  ['cust' + 'omerOrJob']: '',
+  operationNumber: '',
+  routerStepOperation: '',
+  quantity: '',
+  quantityAffected: '',
+  dueDateShipDate: '',
+  nextOperation: '',
+  inspectionOperation: '',
+  material: '',
+  foundAtDepartment: '',
+  suspectedFailurePoint: '',
+  shortIssueDescription: '',
+  detailedIssueNotes: '',
+  notes: '',
+  fieldSourceNotes: {},
+  ...overrides,
+});
+
+const validDraftPayload = (overrides: Record<string, unknown> = {}) => ({
+  status: 'draft-only-unconfirmed',
+  issueSummary: 'Synthetic issue summary',
+  correctiveActionRequired: 'Synthetic corrective action',
+  standardWorkRequirement: 'Synthetic standard work',
+  responsibilityByOperation: 'Synthetic responsibility',
+  containmentAction: 'Synthetic containment',
+  inspectionVerificationRequirement: 'Synthetic inspection',
+  photoEvidenceReference: 'Synthetic photo reference',
+  closeoutRequirement: 'Synthetic closeout',
+  ...overrides,
+});
+
 describe('validateExtractedWorkOrderData', () => {
   it('bounds and trims a well-formed extraction payload', () => {
-    const result = validateExtractedWorkOrderData({
+    const result = validateExtractedWorkOrderData(validExtractionPayload({
       workOrderNumber: '  SYNTHETIC-WO-001  ',
       partNumber: 'SYNTHETIC-PART-001',
       fieldSourceNotes: { workOrderNumber: 'header block' },
-    });
+    }));
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.data.workOrderNumber).toBe('SYNTHETIC-WO-001');
+    expect(result.data.workOrderNumber).toBe('  SYNTHETIC-WO-001  ');
     expect(result.data.partNumber).toBe('SYNTHETIC-PART-001');
     expect(result.data.fieldSourceNotes).toEqual({ workOrderNumber: 'header block' });
   });
@@ -35,67 +72,41 @@ describe('validateExtractedWorkOrderData', () => {
     expect(arrayResult.ok).toBe(false);
   });
 
-  it('bounds oversized field values instead of accepting them unbounded', () => {
-    const result = validateExtractedWorkOrderData({ workOrderNumber: 'x'.repeat(10_000), detailedIssueNotes: 'y'.repeat(10_000) });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.workOrderNumber?.length).toBeLessThanOrEqual(400);
-    expect(result.data.detailedIssueNotes?.length).toBeLessThanOrEqual(4_000);
+  it('rejects missing, mistyped, unexpected, or oversized fields without coercion or truncation', () => {
+    const { workOrderNumber: _workOrderNumber, ...missingField } = validExtractionPayload();
+    expect(validateExtractedWorkOrderData(missingField).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ workOrderNumber: 12345 })).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ unexpected: 'value' })).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ workOrderNumber: 'x'.repeat(401) })).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ detailedIssueNotes: 'y'.repeat(4_001) })).ok).toBe(false);
   });
 
-  it('strips unsafe control characters from extracted values', () => {
-    const result = validateExtractedWorkOrderData({ workOrderNumber: 'SYNTHETIC\u0000\u0007-WO' });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.workOrderNumber).toBe('SYNTHETIC-WO');
+  it('rejects unsafe control characters rather than altering extracted values', () => {
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ workOrderNumber: 'SYNTHETIC\u0000\u0007-WO' })).ok).toBe(false);
   });
 
-  it('coerces non-string field values to an empty string rather than throwing', () => {
-    const result = validateExtractedWorkOrderData({ workOrderNumber: 12345, partNumber: { nested: true } });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.workOrderNumber).toBe('');
-    expect(result.data.partNumber).toBe('');
-  });
-
-  it('bounds field-source notes to a maximum entry count and per-note length', () => {
+  it('rejects oversized, mistyped, or unknown field-source notes', () => {
     const manyNotes = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`field${index}`, 'note text']));
-    const result = validateExtractedWorkOrderData({ fieldSourceNotes: manyNotes });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(Object.keys(result.data.fieldSourceNotes ?? {}).length).toBeLessThanOrEqual(40);
-
-    const longNote = validateExtractedWorkOrderData({ fieldSourceNotes: { workOrderNumber: 'z'.repeat(1_000) } });
-    expect(longNote.ok).toBe(true);
-    if (!longNote.ok) return;
-    expect(longNote.data.fieldSourceNotes?.workOrderNumber.length).toBeLessThanOrEqual(200);
-  });
-
-  it('drops non-string field-source note values and non-object note containers', () => {
-    const result = validateExtractedWorkOrderData({ fieldSourceNotes: { workOrderNumber: 42, partNumber: 'header block' } });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.fieldSourceNotes).toEqual({ partNumber: 'header block' });
-
-    const notObject = validateExtractedWorkOrderData({ fieldSourceNotes: ['not', 'an', 'object'] });
-    expect(notObject.ok).toBe(true);
-    if (!notObject.ok) return;
-    expect(notObject.data.fieldSourceNotes).toEqual({});
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ fieldSourceNotes: manyNotes })).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ fieldSourceNotes: { workOrderNumber: 'z'.repeat(201) } })).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ fieldSourceNotes: { workOrderNumber: 42 } })).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ fieldSourceNotes: { unrecognized: 'header block' } })).ok).toBe(false);
+    expect(validateExtractedWorkOrderData(validExtractionPayload({ fieldSourceNotes: ['not', 'an', 'object'] })).ok).toBe(false);
   });
 });
 
 describe('validateAiCorrectiveActionDraftInput', () => {
-  it('bounds a well-formed draft input', () => {
+  it('accepts well-formed optional draft input without modifying it', () => {
     const result = validateAiCorrectiveActionDraftInput({
       workOrderNumber: '  SYNTHETIC-WO-001  ',
-      detailedIssueNotes: 'z'.repeat(10_000),
+      detailedIssueNotes: 'synthetic details',
       photoEvidenceAttached: true,
     });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.data.workOrderNumber).toBe('SYNTHETIC-WO-001');
-    expect(result.data.detailedIssueNotes?.length).toBeLessThanOrEqual(4_000);
+    expect(result.data.workOrderNumber).toBe('  SYNTHETIC-WO-001  ');
+    expect(result.data.detailedIssueNotes).toBe('synthetic details');
     expect(result.data.photoEvidenceAttached).toBe(true);
   });
 
@@ -104,27 +115,30 @@ describe('validateAiCorrectiveActionDraftInput', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('only accepts a strict boolean true for photoEvidenceAttached', () => {
-    const truthyString = validateAiCorrectiveActionDraftInput({ photoEvidenceAttached: 'true' });
-    expect(truthyString.ok).toBe(true);
-    if (!truthyString.ok) return;
-    expect(truthyString.data.photoEvidenceAttached).toBe(false);
+  it('rejects invalid, unknown, or oversized client facts instead of changing them', () => {
+    expect(validateAiCorrectiveActionDraftInput({ photoEvidenceAttached: 'true' }).ok).toBe(false);
+    expect(validateAiCorrectiveActionDraftInput({ unknownFact: 'ignored before this repair' }).ok).toBe(false);
+    expect(validateAiCorrectiveActionDraftInput({ detailedIssueNotes: 'z'.repeat(4_001) }).ok).toBe(false);
   });
 });
 
 describe('validateAiCorrectiveActionDraftOutput', () => {
-  it('bounds a well-formed draft output and forces the literal status', () => {
-    const result = validateAiCorrectiveActionDraftOutput({
-      status: 'released',
-      issueSummary: '  Synthetic issue summary  ',
-      correctiveActionRequired: 'x'.repeat(10_000),
-    });
+  it('accepts a complete exact draft output', () => {
+    const result = validateAiCorrectiveActionDraftOutput(validDraftPayload({ issueSummary: '  Synthetic issue summary  ' }));
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.status).toBe('draft-only-unconfirmed');
-    expect(result.data.issueSummary).toBe('Synthetic issue summary');
-    expect(result.data.correctiveActionRequired.length).toBeLessThanOrEqual(4_000);
+    expect(result.data.issueSummary).toBe('  Synthetic issue summary  ');
+  });
+
+  it('rejects partial, contradictory, empty, mistyped, or oversized draft output', () => {
+    const { closeoutRequirement: _closeoutRequirement, ...partial } = validDraftPayload();
+    expect(validateAiCorrectiveActionDraftOutput(partial).ok).toBe(false);
+    expect(validateAiCorrectiveActionDraftOutput(validDraftPayload({ status: 'released' })).ok).toBe(false);
+    expect(validateAiCorrectiveActionDraftOutput(validDraftPayload({ issueSummary: '   ' })).ok).toBe(false);
+    expect(validateAiCorrectiveActionDraftOutput(validDraftPayload({ containmentAction: 123 })).ok).toBe(false);
+    expect(validateAiCorrectiveActionDraftOutput(validDraftPayload({ closeoutRequirement: 'z'.repeat(4_001) })).ok).toBe(false);
   });
 
   it.each([[], 'a string', 42, null])('rejects a non-object payload rather than accepting a silent blank draft: %s', (value) => {
@@ -179,20 +193,26 @@ describe('normalizeProviderFailureMessage', () => {
 });
 
 describe('normalizeProviderNetworkFailureMessage', () => {
-  it('distinguishes timeout from other network failures', () => {
-    expect(normalizeProviderNetworkFailureMessage('extraction', true)).toContain('timed out');
-    expect(normalizeProviderNetworkFailureMessage('extraction', false)).toContain('could not be completed');
+  it('distinguishes caller cancellation, timeout, and other network failures', () => {
+    expect(normalizeProviderNetworkFailureMessage('extraction', 'timeout')).toContain('timed out');
+    expect(normalizeProviderNetworkFailureMessage('extraction', 'aborted')).toContain('cancelled');
+    expect(normalizeProviderNetworkFailureMessage('extraction', 'network')).toContain('could not be completed');
   });
 });
 
-describe('isProviderTimeoutError', () => {
-  it('recognizes AbortSignal.timeout and abort errors', () => {
+describe('provider response boundaries', () => {
+  it('rejects a provider wrapper before parsing when it exceeds the byte cap', async () => {
+    const result = await readBoundedProviderResponseBody(new Response('x'.repeat(30_000)));
+    expect(result.ok).toBe(false);
+  });
+
+  it('recognizes timeouts without treating caller aborts as timeouts', () => {
     const timeoutError = Object.assign(new Error('timed out'), { name: 'TimeoutError' });
     const abortError = Object.assign(new Error('aborted'), { name: 'AbortError' });
     const otherError = new TypeError('fetch failed');
 
     expect(isProviderTimeoutError(timeoutError)).toBe(true);
-    expect(isProviderTimeoutError(abortError)).toBe(true);
+    expect(isProviderTimeoutError(abortError)).toBe(false);
     expect(isProviderTimeoutError(otherError)).toBe(false);
     expect(isProviderTimeoutError('not an error')).toBe(false);
   });

@@ -189,16 +189,11 @@ The operating rule is:
 > evidence. The product owner receives the verdict and next command.
 
 AI-CAS keeps one repository, one selected milestone, one active implementation
-pull request, and one next valid command. Only `Continue AI-CAS` authorizes
-normal implementation. Only `Advance AI-CAS` can authorize merge and gate
-advancement, and it does not authorize production deployment or implementation
-of the newly activated gate.
+pull request, and one next valid command. Only `Continue AI-CAS` authorizes normal implementation. Only `Advance AI-CAS` can authorize merge and gate advancement, and it does not authorize production deployment or implementation of the newly activated gate.
 
 The former three-chat Beta 1 workflow remains historical process documentation.
 Its discipline — plan, execute, verify, and lock — is preserved, but it no
-longer defines the active command or authority model. LaserX product scope,
-architecture, and identity do not transfer to AI-CAS; only the proven
-command-and-gate discipline is reused.
+longer defines the active command or authority model. LaserX product scope, architecture, and identity do not transfer to AI-CAS; only the proven command-and-gate discipline is reused.
 
 ---
 

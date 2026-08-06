@@ -2,7 +2,7 @@
 
 **Milestone number:** 3
 **Milestone name:** AI Extraction Contract and Confidence Safety
-**Status:** In Progress / Blocked for repair
+**Status:** In Progress / Awaiting independent rereview
 **Selected:** Yes
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Operator protocol:** `OPERATOR_PROTOCOL.md`
@@ -29,29 +29,39 @@ forbidden operations. Merge, milestone completion, Milestone 4 selection,
 deployment, hosted rename, destructive action, and external release remain
 outside `Continue AI-CAS`.
 
-## Runtime implementation state
+## Runtime repair state
 
 The current runtime branch adds a shared `aiContracts.ts` module, bounded
 provider handling, timeout/error normalization, safer logging, and synthetic
 mocked-provider tests. It preserves manual fallback, M1 email boundaries, and
 M2 confirmation gates.
 
-Independent review found that the implementation does not yet satisfy the full
-Milestone 3 contract. Six unresolved merge-blocking threads remain:
+Independent review recorded six merge-blocking findings on the prior head.
+They were repaired locally on the same branch with deterministic synthetic
+regression coverage:
 
-1. Extraction output does not yet require every exact key and allowed type.
-2. Draft output still accepts partial, contradictory, empty, mistyped, or
-   oversized sections instead of failing clearly.
-3. Silent truncation can mutate provider output or client facts.
-4. A valid JSON top-level `null`, array, string, or number is not consistently
-   rejected before property access in the draft route.
-5. Provider wrapper bodies are parsed before an enforceable whole-body size
-   bound.
-6. Caller abort is not propagated and distinguished from provider timeout in
-   both routes.
+1. Extraction now requires its complete exact key set, string field types, a
+   structured source-notes object, and in-limit values; empty strings remain
+   the only supported representation of an intentionally missing value.
+2. Draft output now requires every exact section, literal
+   `draft-only-unconfirmed` status, nonempty string sections, and in-limit
+   values; partial, contradictory, empty, mistyped, and oversized payloads
+   fail closed.
+3. Provider output, source notes, and client facts now reject oversize,
+   mistyped, unknown, or unsafe values instead of silently truncating or
+   coercing them.
+4. The draft route validates the parsed top-level body and draft-foundation
+   container before property access, returning controlled 400 responses for
+   `null`, arrays, strings, and numbers without a provider call.
+5. Both routes incrementally read and enforce a bounded provider-wrapper body
+   before JSON parsing.
+6. Both routes combine the caller signal with the timeout signal and return a
+   distinct controlled cancellation response for caller aborts rather than
+   classifying them as provider timeouts.
 
-The runtime portion is therefore not READY. Its earlier 115-test result cannot
-override these contract findings.
+The review threads intentionally remain unresolved until an independent
+reviewer verifies the exact pushed head. The earlier 115-test result remains
+historical and does not substitute for the final exact-head evidence.
 
 ## Owner-approved operator-system amendment
 
@@ -77,7 +87,7 @@ override these contract findings.
   authority order, current status, manual workflow trigger, and separation of
   implementation from merge.
 
-## Prior evidence and current evidence gap
+## Prior evidence and final evidence requirement
 
 Before the governance amendment, the runtime branch reported:
 
@@ -90,15 +100,16 @@ Before the governance amendment, the runtime branch reported:
   action occurred.
 
 Those results belong to an earlier head and do not prove the six review
-findings were fixed. On the last inspected governance-amended head, Vercel
-reported success but the repository connector returned no associated GitHub PR
-workflow runs. Final-head application and governance evidence remains pending.
+findings were fixed. The repair adds 81 focused synthetic contract and route
+tests across the three affected test files. The final PR update must name the
+exact pushed head, identify these six repairs, and link the exact-head GitHub
+workflow outcome. Independent review, not this handoff, decides whether the
+threads may be resolved.
 
-## Required repair and validation
+## Required validation
 
-Use `Continue AI-CAS` to repair only the six recorded review findings, add
-negative validator and route regression tests, update the same handoff, and
-run:
+Run the following on the final local repair state, then push only this existing
+branch and update the same draft PR with the exact pushed-head evidence:
 
 - `npm ci`
 - `npm run test:run`
@@ -114,7 +125,7 @@ run:
 - `git diff --check`
 - required GitHub workflows on the exact pushed head
 
-After repair and green exact-head evidence, stop for `Check AI-CAS`. Do not
+After final-head CI evidence is available, stop for `Check AI-CAS`. Do not
 resolve review threads merely because code changed; independent rereview must
 confirm each finding.
 
@@ -155,10 +166,10 @@ hosted resources, or perform destructive migration.
   "status": "blocked",
   "milestone_number": 3,
   "milestone_name": "AI Extraction Contract and Confidence Safety",
-  "summary": "Install the owner-approved command-driven AI-CAS operating protocol in the active M3 draft PR while recording six unresolved runtime contract blockers that must be repaired before rereview.",
-  "runtime_impact": "The branch adds a shared AI-provider contract layer and route hardening, but independent review found incomplete exact-key/type/length validation, silent truncation, unsafe malformed-body handling, pre-bound parsing, and incomplete abort behavior. Runtime work remains blocked.",
+  "summary": "Repair the six recorded M3 runtime contract blockers on the existing draft PR and stop for independent exact-head rereview.",
+  "runtime_impact": "The shared AI-provider contract layer now rejects malformed, partial, contradictory, mistyped, unknown, unsafe, and oversized data; routes validate top-level requests, bound provider wrappers before parsing, and distinguish caller cancellation from timeout.",
   "data_persistence_impact": "No persistence behavior or storage key changes.",
-  "security_impact": "The governance layer prevents implementation from self-authorizing merge or advancement and requires exact-head review. Runtime safety is improved but not complete until all six review findings are repaired.",
+  "security_impact": "The governance layer prevents implementation from self-authorizing merge or advancement and requires exact-head review. Runtime safety now fails closed for the six repaired contract gaps; independent review remains required.",
   "privacy_ip_impact": "Synthetic tests and mocked providers only; no real customer, employer, personal, or proprietary data and no transfer of LaserX product identity or scope.",
   "deployment_impact": "No deployment, hosted setting, environment value, GitHub/Vercel rename, or production action.",
   "files_changed": [
@@ -202,12 +213,12 @@ hosted resources, or perform destructive migration.
   ],
   "approval_required": "Continue AI-CAS may repair only the six recorded blockers. Check AI-CAS must then independently review the exact repaired head. Advance AI-CAS is separately required for merge and gate advancement; deployment and other controlled actions remain prohibited.",
   "unresolved_items": [
-    "Six unresolved PR review threads block the runtime contract.",
+    "The six PR review threads require independent exact-head rereview before resolution.",
     "Provider timeout is untuned against real document latency.",
     "Real-document extraction and drafting quality remains unverified.",
     "Hosted protection, environment reviewer, deployment, and rollback settings remain external evidence.",
     "Final-head CI and independent rereview are pending."
   ],
-  "recommended_next_action": "Continue AI-CAS: repair only the six recorded PR blockers, add regression tests, rerun final-head checks, and stop for Check AI-CAS."
+  "recommended_next_action": "Check AI-CAS: independently review the exact pushed head, complete diff, six repaired threads, and final-head CI."
 }
 ```

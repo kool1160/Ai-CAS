@@ -1,24 +1,21 @@
 import { NextResponse } from 'next/server';
 import {
   buildAiCorrectiveActionDraftPrompt,
-  type AiCorrectiveActionDraftFoundation,
   type AiCorrectiveActionDraftOutput,
 } from '../../../features/woc/logic/aiCorrectiveActionDraftFoundation';
 import {
   PROVIDER_OUTPUT_MAX_LENGTH,
   PROVIDER_REQUEST_TIMEOUT_MS,
   extractProviderOutputText,
+  isPlainObject,
   isProviderTimeoutError,
   normalizeProviderFailureMessage,
   normalizeProviderNetworkFailureMessage,
+  readBoundedProviderResponseBody,
   stripJsonCodeFence,
   validateAiCorrectiveActionDraftInput,
   validateAiCorrectiveActionDraftOutput,
 } from '../../../features/woc/state/aiContracts';
-
-type DraftRequestBody = {
-  aiDraftFoundation?: AiCorrectiveActionDraftFoundation;
-};
 
 const REQUIRED_DRAFT_KEYS: Array<keyof AiCorrectiveActionDraftOutput> = [
   'status',
@@ -46,15 +43,22 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: DraftRequestBody;
+  let body: unknown;
 
   try {
-    body = (await request.json()) as DraftRequestBody;
+    body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON request body.' }, { status: 400 });
   }
 
-  const rawInput = body.aiDraftFoundation?.input;
+  if (!isPlainObject(body) || !isPlainObject(body.aiDraftFoundation)) {
+    return NextResponse.json(
+      { error: 'Missing aiDraftFoundation input. Generate and review a V4 draft foundation before requesting AI drafting.' },
+      { status: 400 },
+    );
+  }
+
+  const rawInput = body.aiDraftFoundation.input;
 
   if (!rawInput) {
     return NextResponse.json(
@@ -95,23 +99,13 @@ export async function POST(request: Request) {
           },
         ],
       }),
-      signal: AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS)]),
     });
   } catch (error) {
-    const timedOut = isProviderTimeoutError(error);
+    const failure = request.signal.aborted ? 'aborted' : isProviderTimeoutError(error) ? 'timeout' : 'network';
     return NextResponse.json(
-      { error: normalizeProviderNetworkFailureMessage('drafting', timedOut) },
-      { status: timedOut ? 504 : 502 },
-    );
-  }
-
-  let responseBody: unknown;
-  try {
-    responseBody = await openAiResponse.json();
-  } catch {
-    return NextResponse.json(
-      { error: 'AI corrective-action drafting returned an unreadable response. Manual drafting remains available.' },
-      { status: 502 },
+      { error: normalizeProviderNetworkFailureMessage('drafting', failure) },
+      { status: failure === 'timeout' ? 504 : failure === 'aborted' ? 499 : 502 },
     );
   }
 
@@ -119,6 +113,24 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: normalizeProviderFailureMessage(openAiResponse.status, 'drafting') },
       { status: openAiResponse.status },
+    );
+  }
+
+  const providerBody = await readBoundedProviderResponseBody(openAiResponse);
+  if (!providerBody.ok) {
+    const error = providerBody.reason === 'provider-response-body-too-large'
+      ? 'AI corrective-action drafting returned an oversized response. Manual drafting remains available.'
+      : 'AI corrective-action drafting returned an unreadable response. Manual drafting remains available.';
+    return NextResponse.json({ error }, { status: 502 });
+  }
+
+  let responseBody: unknown;
+  try {
+    responseBody = JSON.parse(providerBody.data);
+  } catch {
+    return NextResponse.json(
+      { error: 'AI corrective-action drafting returned an unreadable response. Manual drafting remains available.' },
+      { status: 502 },
     );
   }
 

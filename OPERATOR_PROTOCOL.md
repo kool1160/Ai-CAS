@@ -31,6 +31,8 @@ For product and project work, read and follow these sources in order:
 
 A lower source cannot silently override a higher source. A conflict is a
 blocker: record it, verify the implementation, and stop instead of guessing.
+Block instead of guessing when authority, scope, repository truth, or an
+approval boundary is unclear.
 The project summary may be updated only with repository evidence and explicit
 product-owner approval.
 
