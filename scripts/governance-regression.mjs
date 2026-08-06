@@ -83,10 +83,11 @@ try {
 
   const current = read('docs/status/CURRENT.md');
   requireText(current, [
-    '**State:** AWAITING_REVIEW',
+    '**State:** BLOCKED',
     '- Milestone: 3 - AI Extraction Contract and Confidence Safety',
     '- Pull request: #73',
-    '`Check AI-CAS`',
+    'six unresolved merge-blocking threads',
+    '`Continue AI-CAS`',
     '- Merge: not authorized',
     '- Deployment: not authorized',
   ], 'current status');
