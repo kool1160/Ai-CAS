@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import {
   PROVIDER_OUTPUT_MAX_LENGTH,
   PROVIDER_REQUEST_TIMEOUT_MS,
+  classifyProviderNetworkFailure,
   extractProviderOutputText,
-  isProviderTimeoutError,
   normalizeProviderFailureMessage,
   normalizeProviderNetworkFailureMessage,
   readBoundedProviderResponseBody,
@@ -82,6 +82,8 @@ export async function POST(request: Request) {
   const base64Image = Buffer.from(arrayBuffer).toString('base64');
   const dataUrl = `data:${file.type};base64,${base64Image}`;
 
+  const timeoutSignal = AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS);
+  const providerSignal = AbortSignal.any([request.signal, timeoutSignal]);
   let openAiResponse: Response;
   try {
     openAiResponse = await fetch('https://api.openai.com/v1/responses', {
@@ -110,10 +112,10 @@ export async function POST(request: Request) {
           },
         ],
       }),
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS)]),
+      signal: providerSignal,
     });
   } catch (error) {
-    const failure = request.signal.aborted ? 'aborted' : isProviderTimeoutError(error) ? 'timeout' : 'network';
+    const failure = classifyProviderNetworkFailure(error, request.signal, timeoutSignal);
     console.info('[AI-CAS-M3] OpenAI Vision provider request failed', { failure });
     return NextResponse.json(
       { error: normalizeProviderNetworkFailureMessage('extraction', failure) },
@@ -130,8 +132,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const providerBody = await readBoundedProviderResponseBody(openAiResponse);
+  const providerBody = await readBoundedProviderResponseBody(openAiResponse, {
+    callerSignal: request.signal,
+    timeoutSignal,
+  });
   if (!providerBody.ok) {
+    if (providerBody.reason === 'provider-response-body-aborted' || providerBody.reason === 'provider-response-body-timeout') {
+      const failure = providerBody.reason === 'provider-response-body-aborted' ? 'aborted' : 'timeout';
+      return NextResponse.json(
+        { error: normalizeProviderNetworkFailureMessage('extraction', failure) },
+        { status: failure === 'aborted' ? 499 : 504 },
+      );
+    }
     const error = providerBody.reason === 'provider-response-body-too-large'
       ? 'OpenAI Vision returned an oversized response. Manual entry is still available.'
       : 'OpenAI Vision returned an unreadable response. Manual entry is still available.';

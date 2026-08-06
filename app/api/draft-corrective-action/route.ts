@@ -6,9 +6,9 @@ import {
 import {
   PROVIDER_OUTPUT_MAX_LENGTH,
   PROVIDER_REQUEST_TIMEOUT_MS,
+  classifyProviderNetworkFailure,
   extractProviderOutputText,
   isPlainObject,
-  isProviderTimeoutError,
   normalizeProviderFailureMessage,
   normalizeProviderNetworkFailureMessage,
   readBoundedProviderResponseBody,
@@ -77,6 +77,8 @@ export async function POST(request: Request) {
 
   const prompt = `${buildAiCorrectiveActionDraftPrompt(inputValidation.data)}\n\nReturn only valid JSON with these exact keys: status, issueSummary, correctiveActionRequired, standardWorkRequirement, responsibilityByOperation, containmentAction, inspectionVerificationRequirement, photoEvidenceReference, closeoutRequirement. status must equal draft-only-unconfirmed.`;
 
+  const timeoutSignal = AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS);
+  const providerSignal = AbortSignal.any([request.signal, timeoutSignal]);
   let openAiResponse: Response;
   try {
     openAiResponse = await fetch('https://api.openai.com/v1/responses', {
@@ -99,10 +101,10 @@ export async function POST(request: Request) {
           },
         ],
       }),
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS)]),
+      signal: providerSignal,
     });
   } catch (error) {
-    const failure = request.signal.aborted ? 'aborted' : isProviderTimeoutError(error) ? 'timeout' : 'network';
+    const failure = classifyProviderNetworkFailure(error, request.signal, timeoutSignal);
     return NextResponse.json(
       { error: normalizeProviderNetworkFailureMessage('drafting', failure) },
       { status: failure === 'timeout' ? 504 : failure === 'aborted' ? 499 : 502 },
@@ -116,8 +118,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const providerBody = await readBoundedProviderResponseBody(openAiResponse);
+  const providerBody = await readBoundedProviderResponseBody(openAiResponse, {
+    callerSignal: request.signal,
+    timeoutSignal,
+  });
   if (!providerBody.ok) {
+    if (providerBody.reason === 'provider-response-body-aborted' || providerBody.reason === 'provider-response-body-timeout') {
+      const failure = providerBody.reason === 'provider-response-body-aborted' ? 'aborted' : 'timeout';
+      return NextResponse.json(
+        { error: normalizeProviderNetworkFailureMessage('drafting', failure) },
+        { status: failure === 'aborted' ? 499 : 504 },
+      );
+    }
     const error = providerBody.reason === 'provider-response-body-too-large'
       ? 'AI corrective-action drafting returned an oversized response. Manual drafting remains available.'
       : 'AI corrective-action drafting returned an unreadable response. Manual drafting remains available.';

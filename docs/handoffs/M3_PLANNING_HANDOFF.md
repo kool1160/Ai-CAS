@@ -9,9 +9,9 @@
 **Current status:** `docs/status/CURRENT.md`
 **Base commit:** `697b84c2be8884e13d6e8a8c25a8504cc33687cf`
 **Review branch:** `claude/milestone-3`
-**Validated implementation head:** `054f8270d33ee06058e4ba6aa9a64e6e3c756584`
-**Evidence update:** This handoff update is the next commit on the same branch;
-the PR comment will record its exact pushed head and final CI result.
+**Reviewed repair base:** `9f6b660afb86a78ee4657812913918ba7459d05f`
+**Evidence update:** The final PR comment records the exact pushed repair head
+and its terminal CI result; this tracked handoff does not self-reference.
 
 ## Scope and authority
 
@@ -56,9 +56,16 @@ regression coverage:
    `null`, arrays, strings, and numbers without a provider call.
 5. Both routes incrementally read and enforce a bounded provider-wrapper body
    before JSON parsing.
-6. Both routes combine the caller signal with the timeout signal and return a
-   distinct controlled cancellation response for caller aborts rather than
-   classifying them as provider timeouts.
+6. Both routes combine the caller signal with the timeout signal and preserve
+   that distinction through fetch and bounded response-body streaming. Caller
+   cancellation returns 499, provider timeout returns 504, and unrelated
+   unreadable or oversized bodies remain controlled 502 responses.
+
+Independent rereview of `9f6b660` accepted items 1 through 5 and found that
+item 6 still collapsed cancellation or timeout into a generic 502 if the body
+stream failed after headers. The current bounded repair passes both signals
+into the shared response reader and adds deterministic stream-phase regression
+coverage for both routes.
 
 The review threads intentionally remain unresolved until an independent
 reviewer verifies the exact pushed head. The earlier 115-test result remains
@@ -66,13 +73,12 @@ historical and does not substitute for the final exact-head evidence.
 
 ## Exact implementation-head evidence
 
-Validated locally against implementation head
-`054f8270d33ee06058e4ba6aa9a64e6e3c756584` before this handoff-only evidence
-update:
+Validated locally on the current repair worktree based on reviewed head
+`9f6b660afb86a78ee4657812913918ba7459d05f` before the evidence commit:
 
 - `npm ci` completed without installing or changing dependencies; npm reported
   three high-severity audit findings for the existing dependency set.
-- `npm run test:run`: 8 files passed, 130 tests passed.
+- `npm run test:run`: 8 files passed, 134 tests passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed on Next.js 15.3.8.
 - Privacy fixture, milestone selection, scoped M3, governance regression,
@@ -94,8 +100,8 @@ update:
 - Reserved merge and gate advancement for an explicit `Advance AI-CAS` command
   after the reviewed head, CI, review threads, acceptance criteria, rollback,
   and boundaries are reverified.
-- Added `docs/status/CURRENT.md` as the compact active-gate record and marked
-  the current gate BLOCKED while the six runtime findings remain unresolved.
+- Added `docs/status/CURRENT.md` as the compact active-gate record and keeps
+  exact-head review, CI, merge, and advancement state explicit.
 - Updated the primary project summary with the current operating model and
   corrected the stale repository entry to verified `kool1160/Ai-CAS`; no
   GitHub or Vercel rename was performed.
@@ -117,12 +123,12 @@ Before the governance amendment, the runtime branch reported:
 - no real data, live provider, environment, hosted, deployment, or external
   action occurred.
 
-Those results belong to an earlier head and do not prove the six review
-findings were fixed. The repair adds 81 focused synthetic contract and route
-tests across the three affected test files. The final PR update must name the
-exact pushed head, identify these six repairs, and link the exact-head GitHub
-workflow outcome. Independent review, not this handoff, decides whether the
-threads may be resolved.
+Those results belong to an earlier head and do not prove the review findings
+were fixed. The current repair state has 85 focused synthetic contract and
+route tests across the three affected test files, including four stream-phase
+abort/timeout route regressions. The final PR update must name the exact pushed
+head and link the exact-head GitHub workflow outcome. Independent review, not
+this handoff, decides whether the threads may be resolved.
 
 ## Required validation
 
@@ -181,11 +187,11 @@ hosted resources, or perform destructive migration.
 
 ```json
 {
-  "status": "blocked",
+  "status": "approval_required",
   "milestone_number": 3,
   "milestone_name": "AI Extraction Contract and Confidence Safety",
   "summary": "Repair the six recorded M3 runtime contract blockers on the existing draft PR and stop for independent exact-head rereview.",
-  "runtime_impact": "The shared AI-provider contract layer now rejects malformed, partial, contradictory, mistyped, unknown, unsafe, and oversized data; routes validate top-level requests, bound provider wrappers before parsing, and distinguish caller cancellation from timeout.",
+  "runtime_impact": "The shared AI-provider contract layer now rejects malformed, partial, contradictory, mistyped, unknown, unsafe, and oversized data; routes validate top-level requests, bound provider wrappers before parsing, and distinguish caller cancellation from timeout through both fetch and response-body streaming.",
   "data_persistence_impact": "No persistence behavior or storage key changes.",
   "security_impact": "The governance layer prevents implementation from self-authorizing merge or advancement and requires exact-head review. Runtime safety now fails closed for the six repaired contract gaps; independent review remains required.",
   "privacy_ip_impact": "Synthetic tests and mocked providers only; no real customer, employer, personal, or proprietary data and no transfer of LaserX product identity or scope.",
@@ -231,7 +237,7 @@ hosted resources, or perform destructive migration.
   ],
   "approval_required": "Continue AI-CAS may repair only the six recorded blockers. Check AI-CAS must then independently review the exact repaired head. Advance AI-CAS is separately required for merge and gate advancement; deployment and other controlled actions remain prohibited.",
   "unresolved_items": [
-    "The six PR review threads require independent exact-head rereview before resolution.",
+    "The original PR review threads remain unresolved; five findings were accepted on the prior head and the stream-phase repair requires independent exact-head rereview.",
     "Provider timeout is untuned against real document latency.",
     "Real-document extraction and drafting quality remains unverified.",
     "Hosted protection, environment reviewer, deployment, and rollback settings remain external evidence.",

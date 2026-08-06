@@ -2,6 +2,12 @@ import type { AiCorrectiveActionDraftInput, AiCorrectiveActionDraftOutput } from
 import type { ExtractedWorkOrderData } from '../types/wocSessionTypes';
 
 export type AiRequestContext = 'extraction' | 'drafting';
+export type ProviderNetworkFailure = 'timeout' | 'aborted' | 'network';
+
+export interface ProviderResponseReadSignals {
+  callerSignal: AbortSignal;
+  timeoutSignal: AbortSignal;
+}
 
 export const PROVIDER_REQUEST_TIMEOUT_MS = 25_000;
 export const PROVIDER_OUTPUT_MAX_LENGTH = 20_000;
@@ -238,7 +244,10 @@ export function validateAiCorrectiveActionDraftOutput(value: unknown): Validatio
  * parsing. The wrapper can be larger than its extracted text, so it has an
  * independent cap.
  */
-export async function readBoundedProviderResponseBody(response: Response): Promise<ValidationResult<string>> {
+export async function readBoundedProviderResponseBody(
+  response: Response,
+  signals: ProviderResponseReadSignals,
+): Promise<ValidationResult<string>> {
   if (!response.body) return { ok: false, reason: 'provider-response-body-missing' };
 
   const reader = response.body.getReader();
@@ -256,7 +265,10 @@ export async function readBoundedProviderResponseBody(response: Response): Promi
       }
       chunks.push(value);
     }
-  } catch {
+  } catch (error) {
+    const failure = classifyProviderNetworkFailure(error, signals.callerSignal, signals.timeoutSignal);
+    if (failure === 'aborted') return { ok: false, reason: 'provider-response-body-aborted' };
+    if (failure === 'timeout') return { ok: false, reason: 'provider-response-body-timeout' };
     return { ok: false, reason: 'provider-response-body-unreadable' };
   }
 
@@ -287,11 +299,11 @@ export function normalizeProviderFailureMessage(status: number, context: AiReque
 }
 
 /**
- * Normalizes a fetch-level failure (timeout, abort, network error) into a
+ * Normalizes a provider-transaction failure (timeout, abort, network error) into a
  * safe, generic message. Raw exception details are never forwarded to the
  * client.
  */
-export function normalizeProviderNetworkFailureMessage(context: AiRequestContext, failure: 'timeout' | 'aborted' | 'network'): string {
+export function normalizeProviderNetworkFailureMessage(context: AiRequestContext, failure: ProviderNetworkFailure): string {
   const fallback = manualFallbackText(context);
   if (failure === 'timeout') return `AI provider request timed out. ${fallback}`;
   if (failure === 'aborted') return `AI provider request was cancelled. ${fallback}`;
@@ -300,4 +312,14 @@ export function normalizeProviderNetworkFailureMessage(context: AiRequestContext
 
 export function isProviderTimeoutError(error: unknown): boolean {
   return error instanceof Error && error.name === 'TimeoutError';
+}
+
+export function classifyProviderNetworkFailure(
+  error: unknown,
+  callerSignal: AbortSignal,
+  timeoutSignal: AbortSignal,
+): ProviderNetworkFailure {
+  if (callerSignal.aborted) return 'aborted';
+  if (timeoutSignal.aborted || isProviderTimeoutError(error)) return 'timeout';
+  return 'network';
 }

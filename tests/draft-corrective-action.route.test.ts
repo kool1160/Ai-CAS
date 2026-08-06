@@ -5,11 +5,24 @@ function openAiTextResponse(outputText: string, status = 200) {
   return new Response(JSON.stringify({ output_text: outputText }), { status });
 }
 
-function requestFor(body: unknown) {
+function streamFailureResponse(onRead: () => Error) {
+  const encoder = new TextEncoder();
+  return new Response(new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode('{'));
+    },
+    pull(controller) {
+      controller.error(onRead());
+    },
+  }, { highWaterMark: 0 }));
+}
+
+function requestFor(body: unknown, signal?: AbortSignal) {
   return new Request('http://localhost/api/draft-corrective-action', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal,
   });
 }
 
@@ -200,6 +213,39 @@ describe('POST /api/draft-corrective-action', () => {
 
     expect(response.status).toBe(499);
     expect(payload.error).toContain('cancelled');
+  });
+
+  it('preserves caller cancellation while reading a provider response stream', async () => {
+    const controller = new AbortController();
+    fetchMock.mockResolvedValue(streamFailureResponse(() => {
+      controller.abort();
+      return Object.assign(new Error('stream aborted'), { name: 'AbortError' });
+    }));
+
+    const response = await POST(requestFor({ aiDraftFoundation: validDraftFoundation }, controller.signal));
+    const payload = await response.json();
+
+    expect(response.status).toBe(499);
+    expect(payload.error).toContain('cancelled');
+  });
+
+  it('preserves provider timeout while reading a provider response stream', async () => {
+    const timeoutController = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timeoutController.signal);
+    fetchMock.mockResolvedValue(streamFailureResponse(() => {
+      timeoutController.abort(Object.assign(new Error('stream timed out'), { name: 'TimeoutError' }));
+      return Object.assign(new Error('stream aborted'), { name: 'AbortError' });
+    }));
+
+    try {
+      const response = await POST(requestFor({ aiDraftFoundation: validDraftFoundation }));
+      const payload = await response.json();
+
+      expect(response.status).toBe(504);
+      expect(payload.error).toContain('timed out');
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 
   it('fails clearly when the provider returns no readable output', async () => {

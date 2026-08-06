@@ -1,7 +1,7 @@
 # AI-CAS Current Status
 
 **Updated:** 2026-08-06
-**State:** BLOCKED
+**State:** AWAITING_REVIEW
 **Hold:** No
 
 ## Active gate
@@ -27,29 +27,29 @@ parallel pull request so AI-CAS retains one active gate and one review surface.
 It does not change AI-CAS product identity, operator workflow, human
 confirmation requirements, runtime safety rules, or production state.
 
-## Current blockers
+## Current review state
 
-Independent review on PR #73 has six unresolved merge-blocking threads in the
-Milestone 3 runtime implementation. They cover:
+Independent rereview of head `9f6b660` accepted five of the six original
+runtime repairs and narrowed the remaining blocker to response-body streaming:
+after provider headers arrived, stream-phase cancellation and timeout failures
+were being converted to a generic unreadable-response 502.
 
-- missing exact-key and type validation for extraction output;
-- partial, contradictory, nonempty, type, and length validation for drafting
-  output;
-- silent truncation of provider and client facts instead of clear rejection;
-- malformed top-level request bodies such as JSON `null`;
-- provider wrapper size bounds before parsing;
-- caller-abort propagation and separation from provider timeout behavior.
+That bounded defect is repaired on the same branch. Both routes now retain the
+caller and timeout signals through bounded response-body reading and preserve
+distinct 499 cancellation, 504 timeout, 502 unreadable-body, and 502 oversized
+responses. Deterministic mocked-provider regressions cover stream-phase caller
+cancellation and timeout in both routes.
 
-These findings were still unresolved when the governance amendment was added.
-They must be repaired on the same draft PR before independent rereview. The
-last inspected head had a successful Vercel status but no associated GitHub PR
-workflow runs returned by the repository connector; final-head application and
-governance evidence therefore remains pending.
+The original review threads remain unresolved for independent exact-head
+rereview. Required application and governance workflows must be terminal green
+on the exact pushed head before a READY verdict is possible.
 
 ## Next valid command
 
-`Continue AI-CAS`
+`Check AI-CAS`
 
-Repair only the six recorded blockers, add the required regression tests,
-refresh the handoff, and rerun exact-head checks. Do not merge, close Milestone
-3, select Milestone 4, deploy, rename hosted resources, or begin later work.
+Independently review the exact pushed head, the stream-phase repair, unresolved
+threads, complete diff, and terminal workflow evidence. If exact-head CI fails
+or review finds another blocker, return `REPAIR` and use `Continue AI-CAS`.
+Do not merge, close Milestone 3, select Milestone 4, deploy, rename hosted
+resources, or begin later work.

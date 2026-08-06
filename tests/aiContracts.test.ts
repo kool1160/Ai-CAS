@@ -202,7 +202,10 @@ describe('normalizeProviderNetworkFailureMessage', () => {
 
 describe('provider response boundaries', () => {
   it('rejects a provider wrapper before parsing when it exceeds the byte cap', async () => {
-    const result = await readBoundedProviderResponseBody(new Response('x'.repeat(30_000)));
+    const result = await readBoundedProviderResponseBody(new Response('x'.repeat(30_000)), {
+      callerSignal: new AbortController().signal,
+      timeoutSignal: new AbortController().signal,
+    });
     expect(result.ok).toBe(false);
   });
 
