@@ -34,6 +34,7 @@ $requiredFiles = @(
   'scripts/validate-governance.mjs', 'scripts/validate-scope.mjs', 'scripts/governance-regression.mjs',
   'scripts/privacy-fixture-check.mjs', 'docs/handoffs/M1_PLANNING_HANDOFF.md',
   'docs/milestones/M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md', 'docs/handoffs/M2_PLANNING_HANDOFF.md',
+  'docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md', 'docs/handoffs/M3_PLANNING_HANDOFF.md',
   'docs/GITHUB_REPOSITORY_SETUP.md'
 )
 foreach ($file in $requiredFiles) {
@@ -68,12 +69,33 @@ node scripts/validate-governance.mjs --handoff docs/handoffs/M1_PLANNING_HANDOFF
 Assert-NativeSuccess 'M1 handoff validation'
 node scripts/validate-governance.mjs --handoff docs/handoffs/M2_PLANNING_HANDOFF.md --milestone 2
 Assert-NativeSuccess 'M2 handoff validation'
+node scripts/validate-governance.mjs --handoff docs/handoffs/M3_PLANNING_HANDOFF.md --milestone 3
+Assert-NativeSuccess 'M3 handoff validation'
 & node -e @'
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
 const handoff = fs.readFileSync('docs/handoffs/M2_PLANNING_HANDOFF.md', 'utf8');
 const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
 if (!match) throw new Error('M2 handoff JSON block is missing.');
+const listed = JSON.parse(match[1]).files_changed;
+const baseMatch = handoff.match(/^\*\*Base commit:\*\*\s*`([0-9a-f]{40})`/m);
+const headMatch = handoff.match(/^\*\*Reviewed head:\*\*\s*`([0-9a-f]{40})`/m);
+if (!baseMatch || !headMatch) throw new Error('M2 handoff reviewed range is missing.');
+const [, baseCommit] = baseMatch;
+const [, reviewedHead] = headMatch;
+for (const commit of [baseCommit, reviewedHead]) {
+  execFileSync('git', ['cat-file', '-e', `${commit}^{commit}`], { stdio: 'ignore' });
+}
+const actual = execFileSync('git', ['diff', '--name-only', `${baseCommit}...${reviewedHead}`], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M2 handoff files_changed does not match its reviewed commit range.');
+'@
+Assert-NativeSuccess 'M2 handoff change-surface check'
+& node -e @'
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const handoff = fs.readFileSync('docs/handoffs/M3_PLANNING_HANDOFF.md', 'utf8');
+const match = handoff.match(/```json\s*([\s\S]*?)\s*```/i);
+if (!match) throw new Error('M3 handoff JSON block is missing.');
 const listed = JSON.parse(match[1]).files_changed;
 const actualSet = new Set(execFileSync('git', ['diff', '--name-only', 'main...HEAD'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean));
 const status = execFileSync('git', ['status', '--porcelain=v1', '-uall'], { encoding: 'utf8' }).replace(/\r?\n$/, '');
@@ -87,9 +109,9 @@ for (const line of status.split(/\r?\n/).filter(Boolean)) {
   }
 }
 const actual = [...actualSet];
-if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M2 handoff files_changed does not match the current or committed main...HEAD change surface.');
+if (JSON.stringify([...listed].sort()) !== JSON.stringify([...actual].sort())) throw new Error('M3 handoff files_changed does not match the current or committed main...HEAD change surface.');
 '@
-Assert-NativeSuccess 'M2 handoff change-surface check'
+Assert-NativeSuccess 'M3 handoff change-surface check'
 $milestoneNumber = if ($env:AI_CAS_MILESTONE_NUMBER) { $env:AI_CAS_MILESTONE_NUMBER } else { [regex]::Match((node scripts/select-milestone.mjs --selected), '^Selected Milestone (\d+):', 'Multiline').Groups[1].Value }
 if (-not $milestoneNumber) { throw 'Unable to determine the selected milestone.' }
 $scopeArgs = @('scripts/validate-scope.mjs', '--milestone', $milestoneNumber)
@@ -126,6 +148,16 @@ if (!/^\*\*Status:\*\* In Progress/m.test(m2) || !/^\*\*Selected:\*\* Yes/m.test
 if (!/^\*\*Status:\*\* Queued/m.test(m3) || !/^\*\*Selected:\*\* No/m.test(m3)) throw new Error('M3 must remain queued and unselected during M2.');
 '@
   Assert-NativeSuccess 'M2 lifecycle state check'
+}
+if ($milestoneNumber -eq '3') {
+  & node -e @'
+const fs = require('node:fs');
+const m3 = fs.readFileSync('docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md', 'utf8');
+const m4 = fs.readFileSync('docs/milestones/M4_BROWSER_RECORD_INTEGRITY_RECOVERY.md', 'utf8');
+if (!/^\*\*Status:\*\* In Progress/m.test(m3) || !/^\*\*Selected:\*\* Yes/m.test(m3)) throw new Error('M3 must remain In Progress and selected until human review and merge.');
+if (!/^\*\*Status:\*\* Queued/m.test(m4) || !/^\*\*Selected:\*\* No/m.test(m4)) throw new Error('M4 must remain queued and unselected during M3.');
+'@
+  Assert-NativeSuccess 'M3 lifecycle state check'
 }
 
 $bashCommand = Get-Command bash -ErrorAction SilentlyContinue

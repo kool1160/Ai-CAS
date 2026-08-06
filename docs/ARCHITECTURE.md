@@ -34,6 +34,21 @@ Saved-draft print/export uses a fresh in-memory confirmation and carries the
 validated review metadata through the session-storage print handoff. The
 browser print page rejects missing or non-literal confirmation evidence.
 
+Milestone 3 adds `features/woc/state/aiContracts.ts` as the shared runtime
+contract for both OpenAI Vision extraction and AI corrective-action drafting.
+Parsed provider payloads are validated as a plain-object shape before any
+field is trusted; a malformed top-level shape fails clearly instead of
+becoming a silently accepted blank result. Every candidate field, including
+field-source notes and client-supplied drafting input, must satisfy its length
+bound; candidate values containing unsafe control characters are rejected.
+Provider HTTP failures and
+timeout/network failures are normalized into generic messages before
+reaching the client; raw provider error text is never forwarded. Provider
+requests use a fixed request timeout via `AbortSignal.timeout`, and extracted
+document text is no longer written to server logs. Existing missing-field
+reporting, manual-entry fallback, and the M1/M2 confirmation and email
+boundaries are unchanged.
+
 ## Target governance boundaries
 
 - The product workflow owns capture, confirmation, correction, drafting,

@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
 import {
   buildAiCorrectiveActionDraftPrompt,
-  type AiCorrectiveActionDraftFoundation,
   type AiCorrectiveActionDraftOutput,
 } from '../../../features/woc/logic/aiCorrectiveActionDraftFoundation';
-
-type DraftRequestBody = {
-  aiDraftFoundation?: AiCorrectiveActionDraftFoundation;
-};
+import {
+  PROVIDER_OUTPUT_MAX_LENGTH,
+  PROVIDER_REQUEST_TIMEOUT_MS,
+  classifyProviderNetworkFailure,
+  extractProviderOutputText,
+  isPlainObject,
+  normalizeProviderFailureMessage,
+  normalizeProviderNetworkFailureMessage,
+  readBoundedProviderResponseBody,
+  stripJsonCodeFence,
+  validateAiCorrectiveActionDraftInput,
+  validateAiCorrectiveActionDraftOutput,
+} from '../../../features/woc/state/aiContracts';
 
 const REQUIRED_DRAFT_KEYS: Array<keyof AiCorrectiveActionDraftOutput> = [
   'status',
@@ -20,56 +28,6 @@ const REQUIRED_DRAFT_KEYS: Array<keyof AiCorrectiveActionDraftOutput> = [
   'photoEvidenceReference',
   'closeoutRequirement',
 ];
-
-function safeString(value: unknown) {
-  return typeof value === 'string' ? value : '';
-}
-
-function extractOutputText(responseBody: unknown): string {
-  if (typeof responseBody !== 'object' || responseBody === null) return '';
-
-  const maybeOutputText = (responseBody as { output_text?: unknown }).output_text;
-  if (typeof maybeOutputText === 'string') return maybeOutputText;
-
-  const output = (responseBody as { output?: unknown }).output;
-  if (!Array.isArray(output)) return '';
-
-  return output
-    .flatMap((item) => {
-      if (typeof item !== 'object' || item === null) return [];
-      const content = (item as { content?: unknown }).content;
-      if (!Array.isArray(content)) return [];
-      return content.map((contentItem) => {
-        if (typeof contentItem !== 'object' || contentItem === null) return '';
-        const text = (contentItem as { text?: unknown }).text;
-        return typeof text === 'string' ? text : '';
-      });
-    })
-    .join('\n')
-    .trim();
-}
-
-function parseDraftJson(outputText: string): AiCorrectiveActionDraftOutput {
-  const cleaned = outputText
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```$/i, '')
-    .trim();
-
-  const parsed = JSON.parse(cleaned) as Partial<AiCorrectiveActionDraftOutput>;
-
-  return {
-    status: 'draft-only-unconfirmed',
-    issueSummary: safeString(parsed.issueSummary),
-    correctiveActionRequired: safeString(parsed.correctiveActionRequired),
-    standardWorkRequirement: safeString(parsed.standardWorkRequirement),
-    responsibilityByOperation: safeString(parsed.responsibilityByOperation),
-    containmentAction: safeString(parsed.containmentAction),
-    inspectionVerificationRequirement: safeString(parsed.inspectionVerificationRequirement),
-    photoEvidenceReference: safeString(parsed.photoEvidenceReference),
-    closeoutRequirement: safeString(parsed.closeoutRequirement),
-  };
-}
 
 function getMissingDraftSections(draft: AiCorrectiveActionDraftOutput) {
   return REQUIRED_DRAFT_KEYS.filter((key) => !String(draft[key]).trim());
@@ -85,59 +43,110 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: DraftRequestBody;
+  let body: unknown;
 
   try {
-    body = (await request.json()) as DraftRequestBody;
+    body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON request body.' }, { status: 400 });
   }
 
-  const aiDraftFoundation = body.aiDraftFoundation;
-
-  if (!aiDraftFoundation?.input) {
+  if (!isPlainObject(body) || !isPlainObject(body.aiDraftFoundation)) {
     return NextResponse.json(
       { error: 'Missing aiDraftFoundation input. Generate and review a V4 draft foundation before requesting AI drafting.' },
       { status: 400 },
     );
   }
 
-  const prompt = `${buildAiCorrectiveActionDraftPrompt(aiDraftFoundation.input)}\n\nReturn only valid JSON with these exact keys: status, issueSummary, correctiveActionRequired, standardWorkRequirement, responsibilityByOperation, containmentAction, inspectionVerificationRequirement, photoEvidenceReference, closeoutRequirement. status must equal draft-only-unconfirmed.`;
+  const rawInput = body.aiDraftFoundation.input;
 
-  const openAiResponse = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_DRAFT_MODEL ?? 'gpt-4o-mini',
-      input: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: prompt,
-            },
-          ],
-        },
-      ],
-    }),
-  });
-
-  const responseBody = await openAiResponse.json();
-
-  if (!openAiResponse.ok) {
-    const errorMessage =
-      typeof responseBody?.error?.message === 'string'
-        ? responseBody.error.message
-        : 'AI corrective-action drafting failed. Manual drafting remains available.';
-
-    return NextResponse.json({ error: errorMessage }, { status: openAiResponse.status });
+  if (!rawInput) {
+    return NextResponse.json(
+      { error: 'Missing aiDraftFoundation input. Generate and review a V4 draft foundation before requesting AI drafting.' },
+      { status: 400 },
+    );
   }
 
-  const outputText = extractOutputText(responseBody);
+  const inputValidation = validateAiCorrectiveActionDraftInput(rawInput);
+  if (!inputValidation.ok) {
+    return NextResponse.json(
+      { error: 'aiDraftFoundation input has an unsupported data structure. Generate and review a V4 draft foundation before requesting AI drafting.' },
+      { status: 400 },
+    );
+  }
+
+  const prompt = `${buildAiCorrectiveActionDraftPrompt(inputValidation.data)}\n\nReturn only valid JSON with these exact keys: status, issueSummary, correctiveActionRequired, standardWorkRequirement, responsibilityByOperation, containmentAction, inspectionVerificationRequirement, photoEvidenceReference, closeoutRequirement. status must equal draft-only-unconfirmed.`;
+
+  const timeoutSignal = AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS);
+  const providerSignal = AbortSignal.any([request.signal, timeoutSignal]);
+  let openAiResponse: Response;
+  try {
+    openAiResponse = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_DRAFT_MODEL ?? 'gpt-4o-mini',
+        input: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      }),
+      signal: providerSignal,
+    });
+  } catch (error) {
+    const failure = classifyProviderNetworkFailure(error, request.signal, timeoutSignal);
+    return NextResponse.json(
+      { error: normalizeProviderNetworkFailureMessage('drafting', failure) },
+      { status: failure === 'timeout' ? 504 : failure === 'aborted' ? 499 : 502 },
+    );
+  }
+
+  if (!openAiResponse.ok) {
+    return NextResponse.json(
+      { error: normalizeProviderFailureMessage(openAiResponse.status, 'drafting') },
+      { status: openAiResponse.status },
+    );
+  }
+
+  const providerBody = await readBoundedProviderResponseBody(openAiResponse, {
+    callerSignal: request.signal,
+    timeoutSignal,
+  });
+  if (!providerBody.ok) {
+    if (providerBody.reason === 'provider-response-body-aborted' || providerBody.reason === 'provider-response-body-timeout') {
+      const failure = providerBody.reason === 'provider-response-body-aborted' ? 'aborted' : 'timeout';
+      return NextResponse.json(
+        { error: normalizeProviderNetworkFailureMessage('drafting', failure) },
+        { status: failure === 'aborted' ? 499 : 504 },
+      );
+    }
+    const error = providerBody.reason === 'provider-response-body-too-large'
+      ? 'AI corrective-action drafting returned an oversized response. Manual drafting remains available.'
+      : 'AI corrective-action drafting returned an unreadable response. Manual drafting remains available.';
+    return NextResponse.json({ error }, { status: 502 });
+  }
+
+  let responseBody: unknown;
+  try {
+    responseBody = JSON.parse(providerBody.data);
+  } catch {
+    return NextResponse.json(
+      { error: 'AI corrective-action drafting returned an unreadable response. Manual drafting remains available.' },
+      { status: 502 },
+    );
+  }
+
+  const outputText = extractProviderOutputText(responseBody);
 
   if (!outputText) {
     return NextResponse.json(
@@ -146,21 +155,39 @@ export async function POST(request: Request) {
     );
   }
 
-  try {
-    const draft = parseDraftJson(outputText);
-    const missingDraftSections = getMissingDraftSections(draft).filter((section) => section !== 'status');
+  if (outputText.length > PROVIDER_OUTPUT_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: 'AI corrective-action drafting returned an oversized response. Manual drafting remains available.' },
+      { status: 502 },
+    );
+  }
 
-    return NextResponse.json({
-      draft,
-      status: 'draft-only-unconfirmed',
-      draftSource: 'openai-corrective-action-draft',
-      missingDraftSections,
-      releaseGate: 'AI draft output is editable and unconfirmed. Human review remains required before release/PDF.',
-    });
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(stripJsonCodeFence(outputText));
   } catch {
     return NextResponse.json(
       { error: 'AI corrective-action drafting returned unreadable JSON. Manual drafting remains available.' },
       { status: 502 },
     );
   }
+
+  const draftValidation = validateAiCorrectiveActionDraftOutput(parsedJson);
+  if (!draftValidation.ok) {
+    return NextResponse.json(
+      { error: 'AI corrective-action drafting returned an unsupported data structure. Manual drafting remains available.' },
+      { status: 502 },
+    );
+  }
+
+  const draft = draftValidation.data;
+  const missingDraftSections = getMissingDraftSections(draft).filter((section) => section !== 'status');
+
+  return NextResponse.json({
+    draft,
+    status: 'draft-only-unconfirmed',
+    draftSource: 'openai-corrective-action-draft',
+    missingDraftSections,
+    releaseGate: 'AI draft output is editable and unconfirmed. Human review remains required before release/PDF.',
+  });
 }

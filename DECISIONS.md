@@ -219,3 +219,47 @@ queue-transition wording that says to mark M2 complete and select M3 on
 successful completion. The current lifecycle rule requires human review and
 merge before that transition, so this handoff follows the lifecycle rule
 without silently rewriting the milestone document.
+
+## 2026-07-30 - Close Milestone 2 and select Milestone 3
+
+**Decision:** PR `#72` was reviewed and squash-merged into `main` as
+`697b84c2be8884e13d6e8a8c25a8504cc33687cf`. Milestone 2 is now recorded as
+`Complete` and `Selected: No` in `docs/milestones/
+M2_HUMAN_CONFIRMATION_GATE_INTEGRITY.md`, `BACKLOG.md`, and
+`docs/handoffs/M2_PLANNING_HANDOFF.md`. Milestone 3 - AI Extraction Contract
+and Confidence Safety is now the sole selected milestone.
+
+**Reason:** This is the post-merge closeout recorded as pending in the
+2026-07-22 decision above; the M2 lifecycle conflict is now resolved by
+recording the merge evidence rather than by inventing a status ahead of
+review.
+
+**Evidence:** GitHub PR `#72` merged state, `git log`/`git diff` verification
+of the squash-merge commit against the recorded base commit
+`4bd4af9cbef6ffaae8a5012c6d9aafe9bdc570fb`, and `node scripts/select-milestone.mjs
+--validate`/`--selected` reporting Milestone 3 as the sole selected milestone.
+
+## 2026-07-30 - Bound and validate AI provider contracts instead of trusting raw output
+
+**Decision:** Milestone 3 adds explicit runtime validation for OpenAI Vision
+extraction and AI corrective-action drafting output in
+`features/woc/state/aiContracts.ts`. A parsed provider payload that is not a
+plain object is rejected with a clear error instead of silently becoming an
+accepted all-blank result. Every accepted field, including field-source
+notes, is length-bounded and stripped of unsafe control characters. Provider
+HTTP failures and network/timeout failures are normalized into generic
+messages; raw provider error text is never forwarded to the client. Provider
+requests use a fixed timeout via `AbortSignal.timeout`. Extracted document
+text (field-source notes) is no longer written to server logs.
+
+**Reason:** The prior implementation coerced individual fields defensively
+but never rejected a structurally malformed top-level payload (for example an
+array or string response), which could silently present as a valid but blank
+extraction or draft. It also forwarded raw `responseBody.error.message` text
+to the client and had no request timeout, and it logged extracted
+field-source note values.
+
+**Evidence:** `tests/aiContracts.test.ts`, `tests/extract-work-order.route.test.ts`,
+and `tests/draft-corrective-action.route.test.ts` cover valid, malformed,
+partial, contradictory, oversized, timeout, and provider-unavailable cases
+with mocked provider calls only.
