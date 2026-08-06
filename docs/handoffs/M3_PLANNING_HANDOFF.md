@@ -2,15 +2,15 @@
 
 **Milestone number:** 3
 **Milestone name:** AI Extraction Contract and Confidence Safety
-**Status:** In Progress
+**Status:** In Progress / Blocked for repair
 **Selected:** Yes
 **Primary source of truth:** `AI-CAS_PROJECT_SUMMARY.md`
 **Operator protocol:** `OPERATOR_PROTOCOL.md`
 **Current status:** `docs/status/CURRENT.md`
 **Base commit:** `697b84c2be8884e13d6e8a8c25a8504cc33687cf`
 **Review branch:** `claude/milestone-3`
-**Current review head:** Verify the exact branch head from GitHub at
-`Check AI-CAS` time; this handoff does not self-reference its own commit.
+**Current review head:** Resolve the exact branch head from GitHub before every
+action; this handoff does not self-reference its own commit.
 
 ## Scope and authority
 
@@ -29,21 +29,29 @@ forbidden operations. Merge, milestone completion, Milestone 4 selection,
 deployment, hosted rename, destructive action, and external release remain
 outside `Continue AI-CAS`.
 
-## Runtime implementation
+## Runtime implementation state
 
-- Added `features/woc/state/aiContracts.ts` as the shared runtime contract for
-  both AI provider routes.
-- Rejects non-object, malformed, contradictory, and oversized provider output
-  instead of silently accepting blank or unsafe results.
-- Bounds every accepted field and field-source note, strips unsafe control
-  characters, adds provider request timeout/abort handling, and normalizes raw
-  provider failures.
-- Removes extracted document text from server logs.
-- Forces `draft-only-unconfirmed` server-side and preserves existing missing-
-  field reporting, manual entry/manual drafting, M1 email boundaries, and M2
-  human-confirmation gates.
-- Uses synthetic mocked-provider tests only; no live provider call is part of
-  the milestone.
+The current runtime branch adds a shared `aiContracts.ts` module, bounded
+provider handling, timeout/error normalization, safer logging, and synthetic
+mocked-provider tests. It preserves manual fallback, M1 email boundaries, and
+M2 confirmation gates.
+
+Independent review found that the implementation does not yet satisfy the full
+Milestone 3 contract. Six unresolved merge-blocking threads remain:
+
+1. Extraction output does not yet require every exact key and allowed type.
+2. Draft output still accepts partial, contradictory, empty, mistyped, or
+   oversized sections instead of failing clearly.
+3. Silent truncation can mutate provider output or client facts.
+4. A valid JSON top-level `null`, array, string, or number is not consistently
+   rejected before property access in the draft route.
+5. Provider wrapper bodies are parsed before an enforceable whole-body size
+   bound.
+6. Caller abort is not propagated and distinguished from provider timeout in
+   both routes.
+
+The runtime portion is therefore not READY. Its earlier 115-test result cannot
+override these contract findings.
 
 ## Owner-approved operator-system amendment
 
@@ -58,7 +66,8 @@ outside `Continue AI-CAS`.
 - Reserved merge and gate advancement for an explicit `Advance AI-CAS` command
   after the reviewed head, CI, review threads, acceptance criteria, rollback,
   and boundaries are reverified.
-- Added `docs/status/CURRENT.md` as the compact active-gate record.
+- Added `docs/status/CURRENT.md` as the compact active-gate record and marked
+  the current gate BLOCKED while the six runtime findings remain unresolved.
 - Updated the primary project summary with the current operating model and
   corrected the stale repository entry to verified `kool1160/Ai-CAS`; no
   GitHub or Vercel rename was performed.
@@ -68,9 +77,9 @@ outside `Continue AI-CAS`.
   authority order, current status, manual workflow trigger, and separation of
   implementation from merge.
 
-## Evidence before the governance amendment
+## Prior evidence and current evidence gap
 
-The runtime portion previously reported:
+Before the governance amendment, the runtime branch reported:
 
 - 8 Vitest files and 115 tests passed, including 66 new provider-contract tests;
 - TypeScript typecheck passed;
@@ -80,10 +89,16 @@ The runtime portion previously reported:
 - no real data, live provider, environment, hosted, deployment, or external
   action occurred.
 
-Those results belong to the earlier pushed head. They must be rerun on the
-final governance-amended head before `Check AI-CAS` can return READY.
+Those results belong to an earlier head and do not prove the six review
+findings were fixed. On the last inspected governance-amended head, Vercel
+reported success but the repository connector returned no associated GitHub PR
+workflow runs. Final-head application and governance evidence remains pending.
 
-## Required final-head validation
+## Required repair and validation
+
+Use `Continue AI-CAS` to repair only the six recorded review findings, add
+negative validator and route regression tests, update the same handoff, and
+run:
 
 - `npm ci`
 - `npm run test:run`
@@ -99,6 +114,10 @@ final governance-amended head before `Check AI-CAS` can return READY.
 - `git diff --check`
 - required GitHub workflows on the exact pushed head
 
+After repair and green exact-head evidence, stop for `Check AI-CAS`. Do not
+resolve review threads merely because code changed; independent rereview must
+confirm each finding.
+
 ## Approval boundaries
 
 The product owner's 2026-08-06 instruction approves this governance scope
@@ -107,9 +126,8 @@ implementation, production deployment, GitHub/Vercel rename, environment
 changes, live provider use, external sending, destructive work, paid service,
 authentication, durable backend work, or later scope.
 
-The draft PR must stop for `Check AI-CAS`. Only a READY verdict on the exact
-head followed by the separate explicit command `Advance AI-CAS` can authorize
-merge and gate advancement.
+Only a READY verdict on the exact repaired head followed by the separate
+explicit command `Advance AI-CAS` can authorize merge and gate advancement.
 
 ## Rollback
 
@@ -120,6 +138,7 @@ hosted resources, or perform destructive migration.
 
 ## Unresolved risks
 
+- Six concrete runtime contract findings block merge and must be repaired.
 - The 25-second provider timeout remains untuned against real manufacturing
   document latency because no live provider call is allowed in this milestone.
 - Extraction and drafting quality against real documents remains unverified.
@@ -133,13 +152,13 @@ hosted resources, or perform destructive migration.
 
 ```json
 {
-  "status": "approval_required",
+  "status": "blocked",
   "milestone_number": 3,
   "milestone_name": "AI Extraction Contract and Confidence Safety",
-  "summary": "Harden both AI provider contracts and install the owner-approved command-driven AI-CAS operating protocol in the same active draft gate.",
-  "runtime_impact": "The two existing AI provider routes gain structural validation, bounded fields, timeout/abort handling, normalized errors, and safer logging. The governance amendment changes project execution rules only.",
+  "summary": "Install the owner-approved command-driven AI-CAS operating protocol in the active M3 draft PR while recording six unresolved runtime contract blockers that must be repaired before rereview.",
+  "runtime_impact": "The branch adds a shared AI-provider contract layer and route hardening, but independent review found incomplete exact-key/type/length validation, silent truncation, unsafe malformed-body handling, pre-bound parsing, and incomplete abort behavior. Runtime work remains blocked.",
   "data_persistence_impact": "No persistence behavior or storage key changes.",
-  "security_impact": "Malformed provider output is rejected, raw provider errors are hidden, document text is not logged, implementation cannot self-authorize merge or advancement, and exact-head review is required.",
+  "security_impact": "The governance layer prevents implementation from self-authorizing merge or advancement and requires exact-head review. Runtime safety is improved but not complete until all six review findings are repaired.",
   "privacy_ip_impact": "Synthetic tests and mocked providers only; no real customer, employer, personal, or proprietary data and no transfer of LaserX product identity or scope.",
   "deployment_impact": "No deployment, hosted setting, environment value, GitHub/Vercel rename, or production action.",
   "files_changed": [
@@ -181,13 +200,14 @@ hosted resources, or perform destructive migration.
     "git diff --check",
     "required GitHub workflows on the exact pushed head"
   ],
-  "approval_required": "Check AI-CAS must independently review the exact final head. Advance AI-CAS is separately required for merge and gate advancement; deployment and other controlled actions remain separately prohibited.",
+  "approval_required": "Continue AI-CAS may repair only the six recorded blockers. Check AI-CAS must then independently review the exact repaired head. Advance AI-CAS is separately required for merge and gate advancement; deployment and other controlled actions remain prohibited.",
   "unresolved_items": [
+    "Six unresolved PR review threads block the runtime contract.",
     "Provider timeout is untuned against real document latency.",
     "Real-document extraction and drafting quality remains unverified.",
     "Hosted protection, environment reviewer, deployment, and rollback settings remain external evidence.",
-    "Final-head CI and independent review are pending after the governance amendment."
+    "Final-head CI and independent rereview are pending."
   ],
-  "recommended_next_action": "Run final-head CI, then Check AI-CAS. Do not merge or advance from implementation output or green CI alone."
+  "recommended_next_action": "Continue AI-CAS: repair only the six recorded PR blockers, add regression tests, rerun final-head checks, and stop for Check AI-CAS."
 }
 ```
