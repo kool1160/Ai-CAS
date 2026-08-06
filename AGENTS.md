@@ -64,9 +64,7 @@ next gate is selected; it does not implement that gate.
 - Never force-push or rewrite published history.
 - Never merge, deploy, rename GitHub or Vercel, or change production settings
   automatically.
-- The AI-CAS Foreman implementation workflow is manual `workflow_dispatch`
-  only and is the repository implementation path for the exact
-  `Continue AI-CAS` command.
+- The AI-CAS Foreman implementation workflow is manual `workflow_dispatch` only and is the repository implementation path for the exact `Continue AI-CAS` command.
 - CI may run automatically on pull requests and explicitly configured pushes,
   but CI validation is not implementation, review approval, merge, publishing,
   advancement, or deployment.
