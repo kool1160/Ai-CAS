@@ -27,6 +27,19 @@ function expectFail(args, label) {
   passed += 1;
 }
 
+function read(relativePath) {
+  const absolute = path.join(root, relativePath);
+  if (!fs.existsSync(absolute)) throw new Error(`required governance file missing: ${relativePath}`);
+  return fs.readFileSync(absolute, 'utf8').replace(/\r\n/g, '\n');
+}
+
+function requireText(text, snippets, label) {
+  for (const snippet of snippets) {
+    if (!text.includes(snippet)) throw new Error(`${label} is missing required contract text: ${snippet}`);
+  }
+  passed += 1;
+}
+
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-cas-governance-'));
 try {
   const futureMilestone = path.join(temp, 'M26_TEST.md');
@@ -36,7 +49,64 @@ try {
   expectFail([scopeScript, '--milestone', '26', '--milestone-file', futureMilestone, '--path', 'features/other/session.ts'], 'undeclared runtime rejection');
   expectPass([scopeScript, '--milestone', '26', '--milestone-file', futureMilestone, '--path', 'new.txt', '--path', 'deleted.txt'], 'new and deleted path scope');
 
-  const workflow = fs.readFileSync(path.join(root, '.github/workflows/ai-cas-foreman.yml'), 'utf8');
+  const operator = read('OPERATOR_PROTOCOL.md');
+  requireText(operator, [
+    '`Plan AI-CAS: <idea>`',
+    '`Lock that into AI-CAS`',
+    '`Continue AI-CAS`',
+    '`Check AI-CAS`',
+    '`Advance AI-CAS`',
+    '`Status AI-CAS`',
+    '`Hold AI-CAS`',
+    'One repo. One active gate. One next command.',
+    'A green check is evidence, not permission to merge.',
+    'Block instead of guessing',
+  ], 'operator protocol');
+
+  const agents = read('AGENTS.md');
+  requireText(agents, [
+    '`OPERATOR_PROTOCOL.md`',
+    'Only `Continue AI-CAS` authorizes normal implementation.',
+    'Only `Advance AI-CAS` may authorize merge and gate advancement',
+    'Never push directly to `main`.',
+    'Review approval applies only to the exact pushed SHA',
+  ], 'agent instructions');
+
+  const summary = read('AI-CAS_PROJECT_SUMMARY.md');
+  requireText(summary, [
+    '## Current Command-Driven Operating Structure',
+    '`kool1160/Ai-CAS`',
+    'Only `Continue AI-CAS` authorizes normal implementation.',
+    'Only `Advance AI-CAS` can authorize merge and gate advancement',
+    'LaserX product scope, architecture, and identity do not transfer to AI-CAS',
+  ], 'project summary');
+
+  const current = read('docs/status/CURRENT.md');
+  requireText(current, [
+    '**State:** AWAITING_REVIEW',
+    '- Milestone: 3 - AI Extraction Contract and Confidence Safety',
+    '- Pull request: #73',
+    '`Check AI-CAS`',
+    '- Merge: not authorized',
+    '- Deployment: not authorized',
+  ], 'current status');
+
+  const codexPrompt = read('.github/codex/prompts/run-milestone.md');
+  requireText(codexPrompt, [
+    '# Continue AI-CAS',
+    'This prompt is valid only for the exact operator command `Continue AI-CAS`.',
+    'Repair unresolved blocking review findings first',
+    'Repair required CI failures second',
+    'A successful implementation result is not merge approval.',
+  ], 'Codex prompt');
+
+  const workflow = read('.github/workflows/ai-cas-foreman.yml');
+  if (!workflow.includes('workflow_dispatch:')) throw new Error('Foreman workflow must remain manual workflow_dispatch only');
+  if (/^\s+(push|pull_request):/m.test(workflow)) throw new Error('Foreman workflow gained an automatic implementation trigger');
+  if (!workflow.includes('prompt-file: .github/codex/prompts/run-milestone.md')) throw new Error('Foreman workflow does not use the Continue AI-CAS prompt');
+  if (/gh pr merge|merge_pull_request|git merge origin\/main/.test(workflow)) throw new Error('Foreman workflow contains an implementation-path merge action');
+  passed += 1;
+
   if (!workflow.includes('branch="codex/milestone-${MILESTONE_NUMBER}"') || /branch=.*MILESTONE_NAME/.test(workflow)) throw new Error('milestone branch identity is not name-independent');
   const branchBeforeRename = 'codex/milestone-26';
   const branchAfterRename = 'codex/milestone-26';
