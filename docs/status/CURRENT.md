@@ -1,7 +1,7 @@
 # AI-CAS Current Status
 
 **Updated:** 2026-08-07
-**State:** BLOCKED
+**State:** AWAITING_REVIEW
 **Hold:** No
 
 ## Active gate
@@ -11,6 +11,8 @@
 - Pull request: #75
 - Implementation branch: `codex/milestone-4`
 - Reviewed blocker head: `9eef9730b3eb6d495fb3aba451c54c8fca417c8d`
+- Repair implementation commit: `87fd43247b64ab741290df0e64ee8b14e8661107`
+- Exact current PR head: reverify from PR `#75` before review
 - Base: `37c7dc3808a5f22fc1816ab08519e8eb471cc12f`
 - Merge authority for Milestone 4: not granted
 - Deployment: not authorized
@@ -50,7 +52,8 @@ PR `#75` is the sole active M4 implementation pull request. Independent
 `9eef9730b3eb6d495fb3aba451c54c8fca417c8d` returned `BLOCKED` even though the
 exact-head application CI, governance CI, and Vercel preview were green.
 
-The review found three bounded blocker groups:
+The review found three bounded blocker groups, repaired on the implementation
+commit above:
 
 1. An affected draft or history collection in recovery can suppress its
    localStorage write while the workflow still accepts a new in-memory record
@@ -67,6 +70,19 @@ The review found three bounded blocker groups:
    strictly validated so wrong field types, invalid statuses, malformed
    review/evidence metadata, and invalid required IDs/timestamps are rejected
    rather than coerced.
+
+The repair now persists a new local record before accepting it into state,
+blocks known recovery-state history actions before external sending, keeps
+recovery-state backup import fail-closed until the existing confirmed clear
+action is used, and separates strict schema-1 validation from compatible
+unversioned legacy normalization.
+
+Exact implementation evidence is terminal green in GitHub Actions run
+`31177145420`: `Application baseline checks` and `Governance contract checks`
+both passed on `87fd43247b64ab741290df0e64ee8b14e8661107`. The final PR head remains
+subject to fresh exact-head CI and independent `Check AI-CAS` review. The three
+existing review threads remain open for that reviewer; implementation did not
+self-resolve them.
 
 ## Owner-approved M4 repair authorization
 
@@ -91,12 +107,12 @@ creation remain out of scope.
 
 ## Next valid command
 
-`Continue AI-CAS`
+`Check AI-CAS`
 
-Codex must repair only the recorded PR `#75` blockers on
-`codex/milestone-4`, add deterministic regression evidence, reconcile the same
-M4 handoff and PR, rerun required validation, and stop for a fresh
-`Check AI-CAS`.
+Independently review the exact current head of PR `#75`, its complete diff,
+the three existing review threads, terminal exact-head CI, acceptance criteria,
+privacy and safety boundaries, and rollback. A green check is evidence, not
+permission to merge.
 
 Do not merge M4, deploy, invent Milestone 5, rename hosted resources, change
 production, or expand scope.

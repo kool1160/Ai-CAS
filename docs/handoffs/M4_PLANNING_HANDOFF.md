@@ -3,8 +3,8 @@
 ## Status
 
 `approval_required` - the M4 implementation and bounded governance-contract
-and review-blocker repairs are complete locally. Milestone 4 remains In
-Progress and selected pending terminal exact-head CI and independent review.
+and review-blocker repairs are complete. Milestone 4 remains In Progress and
+selected pending final exact-head CI and independent review.
 
 **Base commit:** `37c7dc3808a5f22fc1816ab08519e8eb471cc12f`
 
@@ -74,6 +74,12 @@ included.
   its exact M4 change surface before allowing a green result.
 - `npm ci` reports three high-severity dependency advisories. No dependency
   change or audit fix is authorized in M4.
+- Repair implementation commit `87fd43247b64ab741290df0e64ee8b14e8661107`
+  passed exact-head GitHub Actions run `31177145420`: both application baseline
+  and governance contract jobs were terminal green. The final documentation-
+  only reconciliation head must also pass exact-head CI before review.
+- The three blocking review threads remain open for independent closure review;
+  implementation did not resolve its own findings.
 
 ## Review focus
 
