@@ -263,6 +263,7 @@ field-source note values.
 and `tests/draft-corrective-action.route.test.ts` cover valid, malformed,
 partial, contradictory, oversized, timeout, and provider-unavailable cases
 with mocked provider calls only.
+
 # Milestone 4 validation conflict — 2026-08-06
 
 Milestone 4 repository evidence contains a pre-existing governance conflict.
@@ -284,3 +285,48 @@ gate. `docs/status/CURRENT.md` is authoritative and must remain unchanged.
 deployment, privacy, safety, Foreman-trigger, and implementation/advancement
 separation protection. Do not change accepted M4 runtime behavior or expand
 the product scope.
+
+# Milestone 4 review-repair and status-reconciliation authorization - 2026-08-07
+
+**Decision:** After independent `Check AI-CAS` review of PR `#75` at exact head
+`9eef9730b3eb6d495fb3aba451c54c8fca417c8d`, the product owner authorizes a
+bounded M4 repair pass on the same branch and pull request. M4 scope is expanded
+to include `docs/status/CURRENT.md` only for truthful active-gate, PR, branch,
+review-state, blocker, and next-command reconciliation.
+
+The repair must address the recorded blockers without changing M4 product
+scope:
+
+1. While a draft or history collection is in recovery/quarantine, creating a
+   new record for that affected collection must fail visibly instead of
+   creating in-memory state that is reported as saved while persistence is
+   intentionally suppressed. No success message may claim persistence unless
+   the write can actually occur.
+2. A validated backup import must not clear a recovery guard and then overwrite
+   the malformed raw collection. Import remains non-destructive: while a
+   collection is in recovery, import for that affected collection fails closed
+   and leaves the original localStorage value untouched. The existing explicit
+   confirmed clear action may resolve the malformed collection before a clean
+   import.
+3. Legacy unversioned records retain their tested compatibility path, but
+   current `schemaVersion: 1` records and backup records must be strictly
+   validated. Wrong field types, invalid statuses, malformed review/evidence
+   metadata, invalid IDs/timestamps where required, or other schema violations
+   must be rejected rather than coerced into valid-looking records.
+
+**Required regression evidence:** prove recovery-state saves do not mutate
+accepted state or claim success; recovery-state imports leave malformed raw
+storage unchanged; explicit clear-then-import works; malformed schema-1 records
+are quarantined; malformed backup records fail before mutation; and compatible
+legacy unversioned records still load.
+
+**Reason:** Green CI on `9eef973` did not prove the M4 recovery and current-
+schema safety semantics. Independent review found paths that could lose a
+newly created record after reload, overwrite quarantined malformed data after
+import, or normalize malformed schema-1 data into accepted records.
+
+**Boundaries:** This authorization does not permit merge, deployment, backend
+activation, authentication, Supabase/cloud sync, storage-key rename, destructive
+migration, product-shell redesign, dependency changes, hosted changes, M5
+creation, or any unrelated governance edit. M4 remains In Progress and selected
+and PR `#75` remains the sole M4 implementation PR.
