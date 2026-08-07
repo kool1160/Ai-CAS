@@ -109,6 +109,13 @@ Commercial Engineer reviews support burden and beta value.
 Scope is default-deny. Any required path outside this list is a stop-and-ask
 condition.
 
+### Owner-authorized governance repair - 2026-08-07
+
+The product owner explicitly authorizes `scripts/governance-regression.mjs`
+only to replace its stale M3 current-gate assertion with a future-safe check of
+the sole selected active gate. This authorization does not permit a change to
+`docs/status/CURRENT.md`, accepted M4 runtime behavior, or any other scope.
+
 ### Allowed paths
 
 - `BACKLOG.md`
@@ -129,6 +136,7 @@ condition.
 - `tests/**`
 - `scripts/ci-contract.sh`
 - `scripts/ci-contract.ps1`
+- `scripts/governance-regression.mjs`
 
 ### Forbidden paths
 

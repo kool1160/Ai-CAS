@@ -40,6 +40,63 @@ function requireText(text, snippets, label) {
   passed += 1;
 }
 
+function selectedMilestone() {
+  const directory = path.join(root, 'docs', 'milestones');
+  const milestones = fs.readdirSync(directory)
+    .filter((name) => /^M\d+_.+\.md$/.test(name))
+    .map((name) => {
+      const markdown = read(path.join('docs', 'milestones', name));
+      const heading = markdown.match(/^# Milestone (\d+) - (.+)$/m);
+      const status = markdown.match(/^\*\*Status:\*\*\s*(.+)$/m);
+      if (!heading || !status) throw new Error(`milestone contract is malformed: ${name}`);
+      return {
+        number: Number(heading[1]),
+        name: heading[2].trim(),
+        status: status[1].trim(),
+        selected: /^\*\*Selected:\*\*\s*Yes\s*$/m.test(markdown),
+      };
+    })
+    .filter((milestone) => milestone.selected);
+
+  if (milestones.length !== 1) {
+    throw new Error(`expected exactly one selected milestone, found ${milestones.length}`);
+  }
+  return milestones[0];
+}
+
+function validateCurrentGate(current, milestone, label) {
+  if (/^Complete$/i.test(milestone.status)) {
+    throw new Error(`${label} cannot treat a completed milestone as the selected current gate`);
+  }
+
+  const state = current.match(/^\*\*State:\*\*\s*(\S+)\s*$/m)?.[1];
+  const nextCommands = {
+    ACTIVE: '`Continue AI-CAS`',
+    AWAITING_REVIEW: '`Check AI-CAS`',
+    BLOCKED: null,
+    HELD: '`Hold AI-CAS`',
+  };
+  if (!state || !(state in nextCommands)) {
+    throw new Error(`${label} has an unsupported gate state: ${state ?? 'missing'}`);
+  }
+
+  const required = [
+    `- Milestone: ${milestone.number} - ${milestone.name}`,
+    '- Selected: Yes',
+    '- Deployment: not authorized',
+  ];
+  if (nextCommands[state]) required.push(nextCommands[state]);
+  for (const snippet of required) {
+    if (!current.includes(snippet)) throw new Error(`${label} is missing required gate text: ${snippet}`);
+  }
+
+  const mergeBoundary = new RegExp(
+    `^- Merge(?: authority for Milestone ${milestone.number})?: (?:not authorized|not granted)$`,
+    'm',
+  );
+  if (!mergeBoundary.test(current)) throw new Error(`${label} is missing the milestone merge boundary`);
+}
+
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-cas-governance-'));
 try {
   const futureMilestone = path.join(temp, 'M26_TEST.md');
@@ -81,16 +138,45 @@ try {
     'LaserX product scope, architecture, and identity do not transfer to AI-CAS',
   ], 'project summary');
 
+  const currentMilestone = selectedMilestone();
   const current = read('docs/status/CURRENT.md');
-  requireText(current, [
-    '**State:** AWAITING_REVIEW',
-    '- Milestone: 3 - AI Extraction Contract and Confidence Safety',
-    '- Pull request: #73',
-    'stream-phase cancellation and timeout failures',
-    '`Check AI-CAS`',
-    '- Merge: not authorized',
-    '- Deployment: not authorized',
-  ], 'current status');
+  validateCurrentGate(current, currentMilestone, 'current status');
+  passed += 1;
+
+  const syntheticFutureMilestone = {
+    number: 26,
+    name: 'Synthetic Future Gate',
+    status: 'In Progress',
+  };
+  const syntheticFutureCurrent = `# AI-CAS Current Status
+
+**State:** ACTIVE
+
+## Active gate
+
+- Milestone: 26 - Synthetic Future Gate
+- Selected: Yes
+- Merge authority for Milestone 26: not granted
+- Deployment: not authorized
+
+## Next valid command
+
+\`Continue AI-CAS\`
+`;
+  validateCurrentGate(syntheticFutureCurrent, syntheticFutureMilestone, 'synthetic future status');
+  passed += 1;
+
+  try {
+    validateCurrentGate(
+      syntheticFutureCurrent,
+      { ...syntheticFutureMilestone, status: 'Complete' },
+      'synthetic completed status',
+    );
+    throw new Error('completed selected milestone unexpectedly passed current-gate validation');
+  } catch (error) {
+    if (!String(error.message).includes('cannot treat a completed milestone')) throw error;
+  }
+  passed += 1;
 
   const codexPrompt = read('.github/codex/prompts/run-milestone.md');
   requireText(codexPrompt, [

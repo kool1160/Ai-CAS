@@ -272,3 +272,15 @@ while `scripts/governance-regression.mjs` still requires the obsolete M3
 The M4 implementation must not silently change either source; explicit
 product-owner authorization is required to reconcile the prior-gate governance
 contract before terminal M4 governance validation can pass.
+
+# Milestone 4 governance-contract repair authorization - 2026-08-07
+
+**Decision:** The product owner expanded the M4 approved change scope only to
+include `scripts/governance-regression.mjs`. The script may replace the stale
+M3 current-gate assertion with a dynamic check of the sole selected active
+gate. `docs/status/CURRENT.md` is authoritative and must remain unchanged.
+
+**Boundaries:** Preserve every existing command, role, one-gate, merge,
+deployment, privacy, safety, Foreman-trigger, and implementation/advancement
+separation protection. Do not change accepted M4 runtime behavior or expand
+the product scope.

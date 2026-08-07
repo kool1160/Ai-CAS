@@ -2,11 +2,20 @@
 
 ## Status
 
-`blocked` — the M4 implementation is complete, but the required terminal
-governance checks cannot pass until an out-of-scope prior-gate contract is
-reconciled. Milestone 4 remains In Progress and selected.
+`approval_required` - the M4 implementation and bounded governance-contract
+repair are complete, and all required local application and governance checks
+pass. Milestone 4 remains In Progress and selected pending independent review.
 
 **Base commit:** `37c7dc3808a5f22fc1816ab08519e8eb471cc12f`
+
+## Owner-authorized governance repair
+
+On 2026-08-07, the product owner authorized one bounded addition to the M4
+change scope: `scripts/governance-regression.mjs`. The authorization is only
+to reconcile its stale M3 current-gate assertion with the authoritative M4
+active-gate state and add future-safe regression coverage. It does not
+authorize a change to `docs/status/CURRENT.md`, accepted runtime behavior, or
+any other scope.
 
 ## Delivered M4 slice
 
@@ -37,15 +46,16 @@ included.
   and the required no-argument M4 scope validation: passing. Generated caches
   were temporarily isolated and then restored for the no-argument scope check;
   no repository data was deleted or changed by that validation setup.
-- Both Bash and PowerShell governance entrypoints now validate the M3 handoff
-  against its recorded historical range, then reach the same remaining stale
-  M3-state assertion.
-- `node scripts/governance-regression.mjs` currently fails because it requires
-  the obsolete M3 `AWAITING_REVIEW` state in `docs/status/CURRENT.md`; the
-  current status correctly names the active M4 gate. No out-of-scope repair
-  was made.
+- Both Bash and PowerShell governance entrypoints pass, including schema,
+  historical handoff, exact M4 scope, privacy, and regression checks.
+- `node scripts/governance-regression.mjs` passes 14 checks. Current-gate
+  validation derives the sole selected milestone, validates the authoritative
+  M4 active state, accepts a synthetic future active gate, and rejects a
+  completed milestone as the selected current gate.
 - Both governance contract entrypoints now validate this M4 handoff JSON and
   its exact M4 change surface before allowing a green result.
+- `npm ci` reports three high-severity dependency advisories. No dependency
+  change or audit fix is authorized in M4.
 
 ## Review focus
 
@@ -66,12 +76,11 @@ local backup or uses the existing confirmed clear action.
 
 ## Next command
 
-Obtain explicit authorization to reconcile the stale M3 governance contract
-and its generated-artifact enumeration limit, then rerun the terminal checks.
+`Check AI-CAS`
 
 ```json
 {
-  "status": "blocked",
+  "status": "approval_required",
   "milestone_number": 4,
   "milestone_name": "Browser Record Integrity and Recovery",
   "summary": "Version browser-local draft and history records, preserve legacy-key compatibility, expose non-destructive malformed-data recovery, and add validated preview-first local backup export and merge-only import.",
@@ -84,6 +93,7 @@ and its generated-artifact enumeration limit, then rerun the terminal checks.
     "DECISIONS.md",
     "docs/ARCHITECTURE.md",
     "docs/handoffs/M4_PLANNING_HANDOFF.md",
+    "docs/milestones/M4_BROWSER_RECORD_INTEGRITY_RECOVERY.md",
     "features/woc/components/MoreScreen.tsx",
     "features/woc/components/WocApp.tsx",
     "features/woc/logic/localRecordBackup.ts",
@@ -91,6 +101,7 @@ and its generated-artifact enumeration limit, then rerun the terminal checks.
     "features/woc/types/wocSessionTypes.ts",
     "scripts/ci-contract.ps1",
     "scripts/ci-contract.sh",
+    "scripts/governance-regression.mjs",
     "tests/localRecordBackup.test.ts",
     "tests/localRecordsStorage.test.ts"
   ],
@@ -105,17 +116,17 @@ and its generated-artifact enumeration limit, then rerun the terminal checks.
     "node scripts/validate-governance.mjs --handoff docs/handoffs/M4_PLANNING_HANDOFF.md --milestone 4 (passed)",
     "node scripts/validate-scope.mjs --milestone 4 (passed with generated caches temporarily isolated and restored)",
     "git diff --check (passed)",
-    "bash scripts/ci-contract.sh (blocked only by stale M3 status assertion)",
-    "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1 (blocked only by stale M3 status assertion)",
-    "node scripts/governance-regression.mjs (blocked: stale M3 status assertion)"
+    "bash scripts/ci-contract.sh (passed)",
+    "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ci-contract.ps1 (passed)",
+    "node scripts/governance-regression.mjs (14 passed)"
   ],
-  "approval_required": "Explicit authorization is required to reconcile the out-of-scope stale governance regression, then independent exact-head review and terminal-green required GitHub CI are required before any authorized advancement. Deployment remains separately unauthorized.",
+  "approval_required": "Independent exact-head review and terminal-green required GitHub CI are required before any authorized advancement. Deployment remains separately unauthorized.",
   "unresolved_items": [
-    "The current status correctly declares M4 ACTIVE, while the existing governance regression script still requires the obsolete M3 AWAITING_REVIEW state. Both files are outside the M4 approved change surface, so required terminal governance checks cannot pass without explicit authorization to reconcile that prior-gate contract.",
     "Browser-local records remain device-bound and are not durable multi-user audit data.",
     "An operator needs a valid local backup to recover a malformed collection without using the existing confirmed clear action.",
-    "No backend, authentication, cloud synchronization, or durable record ownership exists."
+    "No backend, authentication, cloud synchronization, or durable record ownership exists.",
+    "npm ci reports three high-severity dependency advisories; dependency remediation is outside M4 scope."
   ],
-  "recommended_next_action": "Authorize reconciliation of the stale governance contract, rerun terminal checks, then run Check AI-CAS on the exact head."
+  "recommended_next_action": "Run Check AI-CAS on the exact pushed head after required GitHub CI reaches terminal green."
 }
 ```
