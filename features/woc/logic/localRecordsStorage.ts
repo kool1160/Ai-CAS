@@ -42,6 +42,24 @@ function numberValue(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return isString(value)
+    && value.trim().length > 0
+    && !/[\u0000-\u001f\u007f]/.test(value);
+}
+
+function isValidRecordTimestamp(value: unknown): value is string {
+  return isNonEmptyString(value) && Number.isFinite(Date.parse(value));
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || isString(value);
+}
+
 function parseEvidenceSize(value: string) {
   const trimmed = value.trim().toUpperCase();
   const amount = Number.parseFloat(trimmed.replace(/[^0-9.]/g, ''));
@@ -79,6 +97,51 @@ function evidenceMetadataFromRecord(value: Record<string, unknown>, reportText: 
   return extractEvidenceMetadataFromReportText(reportText);
 }
 
+function strictEvidenceMetadata(value: Record<string, unknown>): PhotoEvidenceRecordMetadata | null {
+  if (typeof value.evidenceAttached !== 'boolean') return null;
+  if (!isOptionalString(value.evidenceFileName) || !isOptionalString(value.evidenceFileType)) return null;
+  if (
+    value.evidenceFileSize !== undefined
+    && (typeof value.evidenceFileSize !== 'number'
+      || !Number.isFinite(value.evidenceFileSize)
+      || value.evidenceFileSize < 0)
+  ) {
+    return null;
+  }
+
+  return {
+    evidenceAttached: value.evidenceAttached,
+    ...(value.evidenceFileName === undefined ? {} : { evidenceFileName: value.evidenceFileName }),
+    ...(value.evidenceFileType === undefined ? {} : { evidenceFileType: value.evidenceFileType }),
+    ...(value.evidenceFileSize === undefined ? {} : { evidenceFileSize: value.evidenceFileSize }),
+  };
+}
+
+function strictReviewMetadata(value: Record<string, unknown>) {
+  if (value.reviewStatus === 'legacy-unconfirmed') {
+    if (
+      value.reviewedTimestamp !== undefined
+      || value.reviewedBy !== undefined
+      || value.reviewedById !== undefined
+    ) {
+      return null;
+    }
+    return { reviewStatus: 'legacy-unconfirmed' as const };
+  }
+
+  if (value.reviewStatus !== 'confirmed') return null;
+  const metadata = sanitizeReviewMetadata(value);
+  if (
+    metadata.reviewStatus !== 'confirmed'
+    || metadata.reviewedTimestamp !== value.reviewedTimestamp
+    || metadata.reviewedBy !== value.reviewedBy
+    || metadata.reviewedById !== value.reviewedById
+  ) {
+    return null;
+  }
+  return metadata;
+}
+
 function addEvidenceMetadata<T extends DraftRecord | HistoryRecord>(record: T): T {
   const metadata = extractEvidenceMetadataFromReportText(record.reportText);
 
@@ -92,16 +155,22 @@ function addEvidenceMetadata<T extends DraftRecord | HistoryRecord>(record: T): 
   };
 }
 
-export function normalizeDraftRecord(value: unknown): DraftRecord | null {
+export function normalizeLegacyDraftRecord(value: unknown): DraftRecord | null {
   if (!isObject(value)) return null;
-  if (value.schemaVersion !== undefined && value.schemaVersion !== LOCAL_RECORD_SCHEMA_VERSION) return null;
+  if (value.schemaVersion !== undefined) return null;
 
   const draftId = stringValue(value.draftId);
   const subjectLine = stringValue(value.subjectLine);
   const reportText = stringValue(value.reportText);
   const emailDraftText = stringValue(value.emailDraftText);
 
-  if (!draftId || !subjectLine || !reportText || !emailDraftText) return null;
+  if (
+    !draftId
+    || !isValidRecordTimestamp(value.createdTimestamp)
+    || !subjectLine
+    || !reportText
+    || !emailDraftText
+  ) return null;
 
   const evidenceMetadata = evidenceMetadataFromRecord(value, reportText);
   const reviewMetadata = sanitizeReviewMetadata(value);
@@ -125,16 +194,71 @@ export function normalizeDraftRecord(value: unknown): DraftRecord | null {
   };
 }
 
-export function normalizeHistoryRecord(value: unknown): HistoryRecord | null {
+export function validateCurrentDraftRecord(value: unknown): DraftRecord | null {
+  if (!isObject(value) || value.schemaVersion !== LOCAL_RECORD_SCHEMA_VERSION) return null;
+  if (
+    !isNonEmptyString(value.draftId)
+    || !isValidRecordTimestamp(value.createdTimestamp)
+    || !isNonEmptyString(value.subjectLine)
+    || !isString(value.workOrderNumber)
+    || !isString(value.partNumber)
+    || !isString(value.affectedArea)
+    || !isString(value.correctionType)
+    || !isNonEmptyString(value.reportText)
+    || !isNonEmptyString(value.emailDraftText)
+    || !isOptionalString(value.submittedBy)
+    || !isOptionalString(value.submittedById)
+    || value.status !== 'Draft'
+  ) {
+    return null;
+  }
+
+  const reviewMetadata = strictReviewMetadata(value);
+  const evidenceMetadata = strictEvidenceMetadata(value);
+  if (!reviewMetadata || !evidenceMetadata) return null;
+
+  return {
+    schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
+    draftId: value.draftId,
+    createdTimestamp: value.createdTimestamp,
+    subjectLine: value.subjectLine,
+    workOrderNumber: value.workOrderNumber,
+    partNumber: value.partNumber,
+    affectedArea: value.affectedArea,
+    correctionType: value.correctionType,
+    reportText: value.reportText,
+    emailDraftText: value.emailDraftText,
+    ...(value.submittedBy === undefined ? {} : { submittedBy: value.submittedBy }),
+    ...(value.submittedById === undefined ? {} : { submittedById: value.submittedById }),
+    ...reviewMetadata,
+    ...evidenceMetadata,
+    status: 'Draft',
+  };
+}
+
+export function normalizeDraftRecord(value: unknown): DraftRecord | null {
   if (!isObject(value)) return null;
-  if (value.schemaVersion !== undefined && value.schemaVersion !== LOCAL_RECORD_SCHEMA_VERSION) return null;
+  return value.schemaVersion === undefined
+    ? normalizeLegacyDraftRecord(value)
+    : validateCurrentDraftRecord(value);
+}
+
+export function normalizeLegacyHistoryRecord(value: unknown): HistoryRecord | null {
+  if (!isObject(value)) return null;
+  if (value.schemaVersion !== undefined) return null;
 
   const historyId = stringValue(value.historyId);
   const subjectLine = stringValue(value.subjectLine);
   const reportText = stringValue(value.reportText);
   const emailDraftText = stringValue(value.emailDraftText);
 
-  if (!historyId || !subjectLine || !reportText || !emailDraftText) return null;
+  if (
+    !historyId
+    || !isValidRecordTimestamp(value.completedTimestamp)
+    || !subjectLine
+    || !reportText
+    || !emailDraftText
+  ) return null;
 
   const rawStatus = stringValue(value.status);
   const status: HistoryRecord['status'] = rawStatus === 'Sent' ? 'Sent' : 'Completed / Sent Placeholder';
@@ -160,8 +284,57 @@ export function normalizeHistoryRecord(value: unknown): HistoryRecord | null {
   };
 }
 
-function getStoredRecords(value: unknown, collection: LocalRecordCollection): unknown[] | null {
-  if (Array.isArray(value)) return value;
+export function validateCurrentHistoryRecord(value: unknown): HistoryRecord | null {
+  if (!isObject(value) || value.schemaVersion !== LOCAL_RECORD_SCHEMA_VERSION) return null;
+  if (
+    !isNonEmptyString(value.historyId)
+    || !isValidRecordTimestamp(value.completedTimestamp)
+    || !isNonEmptyString(value.subjectLine)
+    || !isString(value.workOrderNumber)
+    || !isString(value.partNumber)
+    || !isString(value.affectedArea)
+    || !isString(value.correctionType)
+    || !isNonEmptyString(value.reportText)
+    || !isNonEmptyString(value.emailDraftText)
+    || !isOptionalString(value.submittedBy)
+    || !isOptionalString(value.submittedById)
+    || (value.resendId !== undefined && value.resendId !== null && !isString(value.resendId))
+    || (value.status !== 'Sent' && value.status !== 'Completed / Sent Placeholder')
+  ) {
+    return null;
+  }
+
+  const evidenceMetadata = strictEvidenceMetadata(value);
+  if (!evidenceMetadata) return null;
+
+  return {
+    schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
+    historyId: value.historyId,
+    completedTimestamp: value.completedTimestamp,
+    subjectLine: value.subjectLine,
+    workOrderNumber: value.workOrderNumber,
+    partNumber: value.partNumber,
+    affectedArea: value.affectedArea,
+    correctionType: value.correctionType,
+    reportText: value.reportText,
+    emailDraftText: value.emailDraftText,
+    ...(value.submittedBy === undefined ? {} : { submittedBy: value.submittedBy }),
+    ...(value.submittedById === undefined ? {} : { submittedById: value.submittedById }),
+    ...evidenceMetadata,
+    ...(value.resendId === undefined ? {} : { resendId: value.resendId }),
+    status: value.status,
+  };
+}
+
+export function normalizeHistoryRecord(value: unknown): HistoryRecord | null {
+  if (!isObject(value)) return null;
+  return value.schemaVersion === undefined
+    ? normalizeLegacyHistoryRecord(value)
+    : validateCurrentHistoryRecord(value);
+}
+
+function getStoredRecords(value: unknown, collection: LocalRecordCollection) {
+  if (Array.isArray(value)) return { records: value, legacy: true };
 
   if (!isObject(value)) return null;
 
@@ -174,13 +347,14 @@ function getStoredRecords(value: unknown, collection: LocalRecordCollection): un
     return null;
   }
 
-  return envelope.records;
+  return { records: envelope.records, legacy: false };
 }
 
 function readCollection<T>(
   key: string,
   collection: LocalRecordCollection,
-  normalizeRecord: (value: unknown) => T | null,
+  normalizeLegacyRecord: (value: unknown) => T | null,
+  validateCurrentRecord: (value: unknown) => T | null,
 ): CollectionLoadResult<T> {
   const raw = window.localStorage.getItem(key);
   if (!raw) return { records: [], recovery: null };
@@ -195,18 +369,19 @@ function readCollection<T>(
     };
   }
 
-  const storedRecords = getStoredRecords(parsed, collection);
-  if (!storedRecords) {
+  const stored = getStoredRecords(parsed, collection);
+  if (!stored) {
     return {
       records: [],
       recovery: { collection, reason: 'unsupported-schema', rejectedRecordCount: 0 },
     };
   }
 
-  const records = storedRecords
+  const normalizeRecord = stored.legacy ? normalizeLegacyRecord : validateCurrentRecord;
+  const records = stored.records
     .map(normalizeRecord)
     .filter((record): record is T => Boolean(record));
-  const rejectedRecordCount = storedRecords.length - records.length;
+  const rejectedRecordCount = stored.records.length - records.length;
 
   return {
     records,
@@ -230,8 +405,8 @@ function saveCollection<T extends DraftRecord | HistoryRecord>(
 }
 
 export function loadLocalRecordsFromStorage(): LocalRecordsLoadSnapshot {
-  const drafts = readCollection(DRAFT_STORAGE_KEY, 'drafts', normalizeDraftRecord);
-  const history = readCollection(HISTORY_STORAGE_KEY, 'history', normalizeHistoryRecord);
+  const drafts = readCollection(DRAFT_STORAGE_KEY, 'drafts', normalizeLegacyDraftRecord, validateCurrentDraftRecord);
+  const history = readCollection(HISTORY_STORAGE_KEY, 'history', normalizeLegacyHistoryRecord, validateCurrentHistoryRecord);
 
   return {
     draftRecords: drafts.records,
@@ -241,11 +416,11 @@ export function loadLocalRecordsFromStorage(): LocalRecordsLoadSnapshot {
 }
 
 export function loadDraftRecordsFromStorage() {
-  return readCollection(DRAFT_STORAGE_KEY, 'drafts', normalizeDraftRecord).records;
+  return readCollection(DRAFT_STORAGE_KEY, 'drafts', normalizeLegacyDraftRecord, validateCurrentDraftRecord).records;
 }
 
 export function loadHistoryRecordsFromStorage() {
-  return readCollection(HISTORY_STORAGE_KEY, 'history', normalizeHistoryRecord).records;
+  return readCollection(HISTORY_STORAGE_KEY, 'history', normalizeLegacyHistoryRecord, validateCurrentHistoryRecord).records;
 }
 
 export function saveDraftRecordsToStorage(records: DraftRecord[]) {
@@ -254,6 +429,41 @@ export function saveDraftRecordsToStorage(records: DraftRecord[]) {
 
 export function saveHistoryRecordsToStorage(records: HistoryRecord[]) {
   saveCollection(HISTORY_STORAGE_KEY, 'history', records);
+}
+
+export function isLocalRecordCollectionInRecovery(
+  recoveries: LocalRecordsRecovery[],
+  collection: LocalRecordCollection,
+) {
+  return recoveries.some((recovery) => recovery.collection === collection);
+}
+
+export function persistNewDraftRecord(
+  currentRecords: DraftRecord[],
+  record: DraftRecord,
+  recoveries: LocalRecordsRecovery[],
+) {
+  if (isLocalRecordCollectionInRecovery(recoveries, 'drafts')) {
+    return { persisted: false as const, records: currentRecords };
+  }
+
+  const records = [record, ...currentRecords];
+  saveDraftRecordsToStorage(records);
+  return { persisted: true as const, records };
+}
+
+export function persistNewHistoryRecord(
+  currentRecords: HistoryRecord[],
+  record: HistoryRecord,
+  recoveries: LocalRecordsRecovery[],
+) {
+  if (isLocalRecordCollectionInRecovery(recoveries, 'history')) {
+    return { persisted: false as const, records: currentRecords };
+  }
+
+  const records = [record, ...currentRecords];
+  saveHistoryRecordsToStorage(records);
+  return { persisted: true as const, records };
 }
 
 export function createLocalRecordId(prefix: 'DRAFT' | 'HISTORY') {

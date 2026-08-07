@@ -1,7 +1,10 @@
 import {
   LOCAL_RECORD_SCHEMA_VERSION,
-  normalizeDraftRecord,
-  normalizeHistoryRecord,
+  saveDraftRecordsToStorage,
+  saveHistoryRecordsToStorage,
+  validateCurrentDraftRecord,
+  validateCurrentHistoryRecord,
+  type LocalRecordsRecovery,
 } from './localRecordsStorage';
 import type { DraftRecord, HistoryRecord } from '../types/wocSessionTypes';
 
@@ -103,9 +106,14 @@ export function previewLocalRecordBackup(
   source: string,
   currentDraftRecords: DraftRecord[],
   currentHistoryRecords: HistoryRecord[],
+  recoveries: LocalRecordsRecovery[] = [],
 ): LocalRecordBackupPreview {
   if (source.length > MAX_LOCAL_RECORD_BACKUP_BYTES) {
     return invalidPreview('This backup exceeds the 1 MB browser-local import limit.');
+  }
+
+  if (recoveries.length > 0) {
+    return invalidPreview('Clear the affected browser-local records with the existing confirmed clear action before importing a backup. The malformed source was left unchanged.');
   }
 
   let parsed: unknown;
@@ -130,8 +138,8 @@ export function previewLocalRecordBackup(
     return invalidPreview('This backup does not match the supported local record schema.');
   }
 
-  const normalizedDraftRecords = parsed.records.drafts.map(normalizeDraftRecord);
-  const normalizedHistoryRecords = parsed.records.history.map(normalizeHistoryRecord);
+  const normalizedDraftRecords = parsed.records.drafts.map(validateCurrentDraftRecord);
+  const normalizedHistoryRecords = parsed.records.history.map(validateCurrentHistoryRecord);
   if (normalizedDraftRecords.some((record) => !record) || normalizedHistoryRecords.some((record) => !record)) {
     return invalidPreview('This backup contains malformed records and was not imported.');
   }
@@ -161,4 +169,23 @@ export function previewLocalRecordBackup(
     mergedDraftRecords: mergedDrafts.records,
     mergedHistoryRecords: mergedHistory.records,
   };
+}
+
+export function importLocalRecordBackupToStorage(
+  source: string,
+  currentDraftRecords: DraftRecord[],
+  currentHistoryRecords: HistoryRecord[],
+  recoveries: LocalRecordsRecovery[],
+) {
+  const preview = previewLocalRecordBackup(
+    source,
+    currentDraftRecords,
+    currentHistoryRecords,
+    recoveries,
+  );
+  if (!preview.canImport) return { imported: false as const, preview };
+
+  saveDraftRecordsToStorage(preview.mergedDraftRecords);
+  saveHistoryRecordsToStorage(preview.mergedHistoryRecords);
+  return { imported: true as const, preview };
 }

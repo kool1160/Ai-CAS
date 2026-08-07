@@ -13,12 +13,16 @@ import {
   createLocalRecordId,
   extractEvidenceMetadataFromReportText,
   LOCAL_RECORD_SCHEMA_VERSION,
+  isLocalRecordCollectionInRecovery,
   loadLocalRecordsFromStorage,
+  persistNewDraftRecord,
+  persistNewHistoryRecord,
   type LocalRecordsRecovery,
   saveDraftRecordsToStorage,
   saveHistoryRecordsToStorage,
 } from '../logic/localRecordsStorage';
 import {
+  importLocalRecordBackupToStorage,
   previewLocalRecordBackup,
   serializeLocalRecordBackup,
   type LocalRecordBackupPreview,
@@ -483,6 +487,11 @@ export function WocApp() {
       return;
     }
 
+    if (isLocalRecordCollectionInRecovery(localRecordsRecoveries, 'drafts')) {
+      setSaveFeedback({ tone: 'error', message: 'Drafts are in browser-local recovery and cannot be saved. The malformed source was left unchanged.' });
+      return;
+    }
+
     try {
       const reviewMetadata = createConfirmedReviewMetadata({
         reviewedBy: submittedByLabel,
@@ -493,7 +502,7 @@ export function WocApp() {
         return;
       }
 
-      const createdTimestamp = new Date().toLocaleString();
+      const createdTimestamp = new Date().toISOString();
       const draftId = createLocalRecordId('DRAFT');
       const evidenceMetadata = extractEvidenceMetadataFromReportText(packageForSave.reportPreview);
       const record: DraftRecord = {
@@ -514,7 +523,13 @@ export function WocApp() {
         status: 'Draft',
       };
 
-      setDraftRecords((current) => [record, ...current]);
+      const writeResult = persistNewDraftRecord(draftRecords, record, localRecordsRecoveries);
+      if (!writeResult.persisted) {
+        setSaveFeedback({ tone: 'error', message: 'Drafts are in browser-local recovery and cannot be saved. The malformed source was left unchanged.' });
+        return;
+      }
+
+      setDraftRecords(writeResult.records);
       setSelectedDraftId(record.draftId);
       setDraftFinalReviewConfirmed(false);
       setDraftSendPin('');
@@ -526,10 +541,11 @@ export function WocApp() {
   };
 
   const addSentHistoryRecord = (resendId: string | null) => {
-    if (!generatedPackage) return;
+    if (!generatedPackage) return false;
 
-    const completedTimestamp = new Date().toLocaleString();
+    const completedTimestamp = new Date().toISOString();
     const historyId = createLocalRecordId('HISTORY');
+    const evidenceMetadata = extractEvidenceMetadataFromReportText(generatedPackage.reportPreview);
     const record: HistoryRecord = {
       schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
       historyId,
@@ -543,17 +559,26 @@ export function WocApp() {
       emailDraftText: generatedPackage.emailPreview,
       submittedBy: submittedByLabel,
       submittedById: currentUser?.userId,
+      ...evidenceMetadata,
       resendId,
       status: 'Sent',
     };
 
-    setHistoryRecords((current) => [record, ...current]);
+    try {
+      const writeResult = persistNewHistoryRecord(historyRecords, record, localRecordsRecoveries);
+      if (!writeResult.persisted) return false;
+      setHistoryRecords(writeResult.records);
+    } catch {
+      return false;
+    }
     setSelectedHistoryId(record.historyId);
+    return true;
   };
 
   const addSentHistoryRecordFromDraft = (draft: DraftRecord, resendId: string | null) => {
-    const completedTimestamp = new Date().toLocaleString();
+    const completedTimestamp = new Date().toISOString();
     const historyId = createLocalRecordId('HISTORY');
+    const evidenceMetadata = extractEvidenceMetadataFromReportText(draft.reportText);
     const record: HistoryRecord = {
       schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
       historyId,
@@ -567,12 +592,20 @@ export function WocApp() {
       emailDraftText: draft.emailDraftText,
       submittedBy: draft.submittedBy || submittedByLabel,
       submittedById: draft.submittedById || currentUser?.userId,
+      ...evidenceMetadata,
       resendId,
       status: 'Sent',
     };
 
-    setHistoryRecords((current) => [record, ...current]);
+    try {
+      const writeResult = persistNewHistoryRecord(historyRecords, record, localRecordsRecoveries);
+      if (!writeResult.persisted) return false;
+      setHistoryRecords(writeResult.records);
+    } catch {
+      return false;
+    }
     setSelectedHistoryId(record.historyId);
+    return true;
   };
 
   const sendCorrectionEmail = async () => {
@@ -583,6 +616,11 @@ export function WocApp() {
 
     if (sendPin.length !== 4) {
       setSendFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending.' });
+      return;
+    }
+
+    if (isLocalRecordCollectionInRecovery(localRecordsRecoveries, 'history')) {
+      setSendFeedback({ tone: 'error', message: 'History is in browser-local recovery. Clear or recover it before sending so the sent record can be preserved.' });
       return;
     }
 
@@ -616,7 +654,11 @@ export function WocApp() {
       }
 
       const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
-      addSentHistoryRecord(resendId);
+      if (!addSentHistoryRecord(resendId)) {
+        setSendFeedback({ tone: 'error', message: 'Email was sent, but its browser-local history record could not be saved.' });
+        setSendPin('');
+        return;
+      }
       setSendFeedback({ tone: 'success', message: `Email sent to the server-configured recipient.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setSendPin('');
     } catch {
@@ -708,6 +750,11 @@ export function WocApp() {
       return;
     }
 
+    if (isLocalRecordCollectionInRecovery(localRecordsRecoveries, 'history')) {
+      setDraftActionFeedback({ tone: 'error', message: 'History is in browser-local recovery. Clear or recover it before sending so the sent record can be preserved.' });
+      return;
+    }
+
     setIsSendingDraft(true);
     setDraftActionFeedback({ tone: 'success', message: 'Sending saved draft email...' });
 
@@ -738,7 +785,11 @@ export function WocApp() {
       }
 
       const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
-      addSentHistoryRecordFromDraft(selectedDraft, resendId);
+      if (!addSentHistoryRecordFromDraft(selectedDraft, resendId)) {
+        setDraftActionFeedback({ tone: 'error', message: 'Email was sent, but its browser-local history record could not be saved.' });
+        setDraftSendPin('');
+        return;
+      }
       setDraftActionFeedback({ tone: 'success', message: `Saved draft sent to the server-configured recipient.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setDraftFinalReviewConfirmed(false);
       setDraftSendPin('');
@@ -808,7 +859,7 @@ export function WocApp() {
   };
 
   const previewLocalBackup = (source: string): LocalRecordBackupPreview => (
-    previewLocalRecordBackup(source, draftRecords, historyRecords)
+    previewLocalRecordBackup(source, draftRecords, historyRecords, localRecordsRecoveries)
   );
 
   const exportLocalBackup = () => {
@@ -828,13 +879,18 @@ export function WocApp() {
   };
 
   const importLocalBackup = (source: string) => {
-    const preview = previewLocalRecordBackup(source, draftRecords, historyRecords);
-    if (!preview.canImport) {
-      setLocalRecordsFeedback({ tone: 'error', message: preview.message });
+    const result = importLocalRecordBackupToStorage(
+      source,
+      draftRecords,
+      historyRecords,
+      localRecordsRecoveries,
+    );
+    if (!result.imported) {
+      setLocalRecordsFeedback({ tone: 'error', message: result.preview.message });
       return;
     }
 
-    setLocalRecordsRecoveries([]);
+    const { preview } = result;
     setDraftRecords(preview.mergedDraftRecords);
     setHistoryRecords(preview.mergedHistoryRecords);
     setLocalRecordsFeedback({
