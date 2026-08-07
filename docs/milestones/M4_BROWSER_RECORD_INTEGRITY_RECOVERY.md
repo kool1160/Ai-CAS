@@ -20,8 +20,11 @@ head `6a70b47e88d92cc39b92275efcdc0ba13a8c1970` and squash-merged as
 
 ## Activation state
 
-Milestone 4 is the sole selected gate. Implementation has not begun. The next
-valid command is `Continue AI-CAS`.
+Milestone 4 is the sole selected gate. PR `#75` is the sole active M4
+implementation pull request on branch `codex/milestone-4`. Independent review
+of exact head `9eef9730b3eb6d495fb3aba451c54c8fca417c8d` returned `BLOCKED`; the next
+valid command is `Continue AI-CAS` to repair only the recorded M4 blockers on
+that same branch and pull request.
 
 ## In scope
 
@@ -55,6 +58,11 @@ Draft and history records include an explicit schema version. Existing records
 without a version load through a tested compatibility path. Invalid versions or
 shapes do not silently become current valid records.
 
+Current `schemaVersion: 1` records are strict current-schema records, not legacy
+compatibility inputs. Wrong field types, invalid statuses, malformed review or
+evidence metadata, invalid identifiers or required timestamps, or other schema
+violations must be rejected or quarantined instead of silently coerced.
+
 ### Stable identifiers
 
 New record IDs are collision-resistant within the browser and do not depend on
@@ -67,6 +75,16 @@ Malformed local JSON or malformed records produce visible, bounded recovery
 information. Valid records continue loading. Invalid data is not silently
 promoted, and recovery does not leak record contents into logs.
 
+An affected collection in recovery/quarantine must not accept a new record and
+then report it as saved while persistence is suppressed. The action must fail
+visibly unless the record can actually be persisted.
+
+A backup import must not clear a recovery guard and overwrite the malformed raw
+collection. While a collection is in recovery, import for that affected
+collection fails closed and leaves the original localStorage value unchanged.
+The existing separately confirmed clear action may resolve that malformed
+collection before a clean import.
+
 ### Backup export and import
 
 Export produces a clearly labeled AI-CAS browser-local backup containing a
@@ -74,6 +92,10 @@ version, export timestamp, and validated records. Import validates before
 writing, shows a summary, detects duplicates, and requires explicit confirmation.
 Merge is the safe default; destructive replacement requires a separate explicit
 product decision and is not part of this milestone.
+
+Backup records using schema version 1 must pass the strict current-schema
+validators before preview can authorize import. Malformed backup records fail
+before any browser write.
 
 ## Required affected roles
 
@@ -94,8 +116,12 @@ Commercial Engineer reviews support burden and beta value.
 
 - Draft and history records use a documented local schema version.
 - Existing unversioned records remain readable through tested compatibility.
+- Current schema-1 and backup records are strictly validated instead of coerced.
 - Stable local IDs replace array-length-derived IDs for new records.
 - Malformed records are reported or quarantined rather than silently disappearing.
+- Recovery-state saves fail visibly when the affected collection cannot persist.
+- Recovery-state imports leave malformed raw storage untouched and fail closed.
+- Explicit confirmed clear followed by clean import remains available.
 - Exported backups are versioned, validated, synthetic-testable, and clearly browser-local.
 - Imports are validated and previewed before an explicit confirmation.
 - Duplicate handling is deterministic and non-destructive by default.
@@ -111,15 +137,25 @@ condition.
 
 ### Owner-authorized governance repair - 2026-08-07
 
-The product owner explicitly authorizes `scripts/governance-regression.mjs`
+The product owner explicitly authorized `scripts/governance-regression.mjs`
 only to replace its stale M3 current-gate assertion with a future-safe check of
-the sole selected active gate. This authorization does not permit a change to
-`docs/status/CURRENT.md`, accepted M4 runtime behavior, or any other scope.
+the sole selected active gate.
+
+### Owner-authorized review repair and status reconciliation - 2026-08-07
+
+After independent review of PR `#75` at exact head
+`9eef9730b3eb6d495fb3aba451c54c8fca417c8d`, the product owner authorizes the
+recorded recovery, import, and strict-schema repairs on the same PR and adds
+`docs/status/CURRENT.md` to the approved M4 path set solely for truthful status
+reconciliation. This supersedes the earlier prohibition on editing that status
+file only for the active PR/branch/head/review/blocker/next-command facts. It
+does not authorize unrelated governance changes or product-scope expansion.
 
 ### Allowed paths
 
 - `BACKLOG.md`
 - `DECISIONS.md`
+- `docs/status/CURRENT.md`
 - `docs/ARCHITECTURE.md`
 - `docs/milestones/M3_AI_EXTRACTION_CONTRACT_SAFETY.md`
 - `docs/handoffs/M3_PLANNING_HANDOFF.md`
@@ -180,6 +216,12 @@ the sole selected active gate. This authorization does not permit a change to
 - `node scripts/validate-scope.mjs --milestone 4`
 - `node scripts/governance-regression.mjs`
 - `git diff --check`
+
+The repair must add deterministic regression evidence proving that recovery-
+state saves do not mutate accepted state or claim success, recovery-state
+imports leave malformed raw storage unchanged, explicit clear-then-import
+works, malformed schema-1 records are quarantined, malformed backup records
+fail before mutation, and compatible unversioned legacy records still load.
 
 ## Queue end behavior
 
