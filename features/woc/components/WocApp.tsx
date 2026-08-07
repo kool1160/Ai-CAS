@@ -10,12 +10,23 @@ import {
 } from '../logic/currentUserStorage';
 import {
   clearLocalRecordsStorage,
+  createLocalRecordId,
   extractEvidenceMetadataFromReportText,
-  loadDraftRecordsFromStorage,
-  loadHistoryRecordsFromStorage,
+  LOCAL_RECORD_SCHEMA_VERSION,
+  isLocalRecordCollectionInRecovery,
+  loadLocalRecordsFromStorage,
+  persistNewDraftRecord,
+  persistNewHistoryRecord,
+  type LocalRecordsRecovery,
   saveDraftRecordsToStorage,
   saveHistoryRecordsToStorage,
 } from '../logic/localRecordsStorage';
+import {
+  importLocalRecordBackupToStorage,
+  previewLocalRecordBackup,
+  serializeLocalRecordBackup,
+  type LocalRecordBackupPreview,
+} from '../logic/localRecordBackup';
 import { printCorrectionReport } from '../logic/printCorrectionReport';
 import {
   defaultSetupConfig,
@@ -155,6 +166,7 @@ export function WocApp() {
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [localRecordsLoaded, setLocalRecordsLoaded] = useState(false);
+  const [localRecordsRecoveries, setLocalRecordsRecoveries] = useState<LocalRecordsRecovery[]>([]);
   const [localRecordsFeedback, setLocalRecordsFeedback] = useState<ActionFeedback>(null);
 
   const [setupConfig, setSetupConfig] = useState<SetupConfig>(defaultSetupConfig);
@@ -171,23 +183,31 @@ export function WocApp() {
   }, [uploadedFile?.previewUrl]);
 
   useEffect(() => {
+    const localRecords = loadLocalRecordsFromStorage();
     setCurrentUser(loadCurrentUserFromStorage());
     setCurrentUserLoaded(true);
-    setDraftRecords(loadDraftRecordsFromStorage());
-    setHistoryRecords(loadHistoryRecordsFromStorage());
+    setDraftRecords(localRecords.draftRecords);
+    setHistoryRecords(localRecords.historyRecords);
+    setLocalRecordsRecoveries(localRecords.recoveries);
+    if (localRecords.recoveries.length > 0) {
+      setLocalRecordsFeedback({
+        tone: 'error',
+        message: 'Some browser-local records could not be read and were left unchanged. Import a validated local backup to recover safely.',
+      });
+    }
     setSetupConfig(loadSetupConfigFromStorage());
     setLocalRecordsLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (!localRecordsLoaded) return;
+    if (!localRecordsLoaded || localRecordsRecoveries.some((recovery) => recovery.collection === 'drafts')) return;
     saveDraftRecordsToStorage(draftRecords);
-  }, [draftRecords, localRecordsLoaded]);
+  }, [draftRecords, localRecordsLoaded, localRecordsRecoveries]);
 
   useEffect(() => {
-    if (!localRecordsLoaded) return;
+    if (!localRecordsLoaded || localRecordsRecoveries.some((recovery) => recovery.collection === 'history')) return;
     saveHistoryRecordsToStorage(historyRecords);
-  }, [historyRecords, localRecordsLoaded]);
+  }, [historyRecords, localRecordsLoaded, localRecordsRecoveries]);
 
   useEffect(() => {
     if (activeScreen === 'more') return;
@@ -467,6 +487,11 @@ export function WocApp() {
       return;
     }
 
+    if (isLocalRecordCollectionInRecovery(localRecordsRecoveries, 'drafts')) {
+      setSaveFeedback({ tone: 'error', message: 'Drafts are in browser-local recovery and cannot be saved. The malformed source was left unchanged.' });
+      return;
+    }
+
     try {
       const reviewMetadata = createConfirmedReviewMetadata({
         reviewedBy: submittedByLabel,
@@ -477,10 +502,11 @@ export function WocApp() {
         return;
       }
 
-      const createdTimestamp = new Date().toLocaleString();
-      const draftId = `DRAFT-${String(draftRecords.length + 1).padStart(4, '0')}`;
+      const createdTimestamp = new Date().toISOString();
+      const draftId = createLocalRecordId('DRAFT');
       const evidenceMetadata = extractEvidenceMetadataFromReportText(packageForSave.reportPreview);
       const record: DraftRecord = {
+        schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
         draftId,
         createdTimestamp,
         subjectLine: packageForSave.subjectLine,
@@ -497,7 +523,13 @@ export function WocApp() {
         status: 'Draft',
       };
 
-      setDraftRecords((current) => [record, ...current]);
+      const writeResult = persistNewDraftRecord(draftRecords, record, localRecordsRecoveries);
+      if (!writeResult.persisted) {
+        setSaveFeedback({ tone: 'error', message: 'Drafts are in browser-local recovery and cannot be saved. The malformed source was left unchanged.' });
+        return;
+      }
+
+      setDraftRecords(writeResult.records);
       setSelectedDraftId(record.draftId);
       setDraftFinalReviewConfirmed(false);
       setDraftSendPin('');
@@ -509,11 +541,13 @@ export function WocApp() {
   };
 
   const addSentHistoryRecord = (resendId: string | null) => {
-    if (!generatedPackage) return;
+    if (!generatedPackage) return false;
 
-    const completedTimestamp = new Date().toLocaleString();
-    const historyId = `HISTORY-${String(historyRecords.length + 1).padStart(4, '0')}`;
+    const completedTimestamp = new Date().toISOString();
+    const historyId = createLocalRecordId('HISTORY');
+    const evidenceMetadata = extractEvidenceMetadataFromReportText(generatedPackage.reportPreview);
     const record: HistoryRecord = {
+      schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
       historyId,
       completedTimestamp,
       subjectLine: generatedPackage.subjectLine,
@@ -525,18 +559,28 @@ export function WocApp() {
       emailDraftText: generatedPackage.emailPreview,
       submittedBy: submittedByLabel,
       submittedById: currentUser?.userId,
+      ...evidenceMetadata,
       resendId,
       status: 'Sent',
     };
 
-    setHistoryRecords((current) => [record, ...current]);
+    try {
+      const writeResult = persistNewHistoryRecord(historyRecords, record, localRecordsRecoveries);
+      if (!writeResult.persisted) return false;
+      setHistoryRecords(writeResult.records);
+    } catch {
+      return false;
+    }
     setSelectedHistoryId(record.historyId);
+    return true;
   };
 
   const addSentHistoryRecordFromDraft = (draft: DraftRecord, resendId: string | null) => {
-    const completedTimestamp = new Date().toLocaleString();
-    const historyId = `HISTORY-${String(historyRecords.length + 1).padStart(4, '0')}`;
+    const completedTimestamp = new Date().toISOString();
+    const historyId = createLocalRecordId('HISTORY');
+    const evidenceMetadata = extractEvidenceMetadataFromReportText(draft.reportText);
     const record: HistoryRecord = {
+      schemaVersion: LOCAL_RECORD_SCHEMA_VERSION,
       historyId,
       completedTimestamp,
       subjectLine: draft.subjectLine,
@@ -548,12 +592,20 @@ export function WocApp() {
       emailDraftText: draft.emailDraftText,
       submittedBy: draft.submittedBy || submittedByLabel,
       submittedById: draft.submittedById || currentUser?.userId,
+      ...evidenceMetadata,
       resendId,
       status: 'Sent',
     };
 
-    setHistoryRecords((current) => [record, ...current]);
+    try {
+      const writeResult = persistNewHistoryRecord(historyRecords, record, localRecordsRecoveries);
+      if (!writeResult.persisted) return false;
+      setHistoryRecords(writeResult.records);
+    } catch {
+      return false;
+    }
     setSelectedHistoryId(record.historyId);
+    return true;
   };
 
   const sendCorrectionEmail = async () => {
@@ -564,6 +616,11 @@ export function WocApp() {
 
     if (sendPin.length !== 4) {
       setSendFeedback({ tone: 'error', message: 'Enter the 4-digit Send PIN before sending.' });
+      return;
+    }
+
+    if (isLocalRecordCollectionInRecovery(localRecordsRecoveries, 'history')) {
+      setSendFeedback({ tone: 'error', message: 'History is in browser-local recovery. Clear or recover it before sending so the sent record can be preserved.' });
       return;
     }
 
@@ -597,7 +654,11 @@ export function WocApp() {
       }
 
       const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
-      addSentHistoryRecord(resendId);
+      if (!addSentHistoryRecord(resendId)) {
+        setSendFeedback({ tone: 'error', message: 'Email was sent, but its browser-local history record could not be saved.' });
+        setSendPin('');
+        return;
+      }
       setSendFeedback({ tone: 'success', message: `Email sent to the server-configured recipient.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setSendPin('');
     } catch {
@@ -689,6 +750,11 @@ export function WocApp() {
       return;
     }
 
+    if (isLocalRecordCollectionInRecovery(localRecordsRecoveries, 'history')) {
+      setDraftActionFeedback({ tone: 'error', message: 'History is in browser-local recovery. Clear or recover it before sending so the sent record can be preserved.' });
+      return;
+    }
+
     setIsSendingDraft(true);
     setDraftActionFeedback({ tone: 'success', message: 'Sending saved draft email...' });
 
@@ -719,7 +785,11 @@ export function WocApp() {
       }
 
       const resendId = typeof payload?.resendId === 'string' ? payload.resendId : null;
-      addSentHistoryRecordFromDraft(selectedDraft, resendId);
+      if (!addSentHistoryRecordFromDraft(selectedDraft, resendId)) {
+        setDraftActionFeedback({ tone: 'error', message: 'Email was sent, but its browser-local history record could not be saved.' });
+        setDraftSendPin('');
+        return;
+      }
       setDraftActionFeedback({ tone: 'success', message: `Saved draft sent to the server-configured recipient.${resendId ? ` Resend ID: ${resendId}` : ''}` });
       setDraftFinalReviewConfirmed(false);
       setDraftSendPin('');
@@ -777,6 +847,7 @@ export function WocApp() {
     if (!confirmed) return;
 
     clearLocalRecordsStorage();
+    setLocalRecordsRecoveries([]);
     setDraftRecords([]);
     setHistoryRecords([]);
     setSelectedDraftId(null);
@@ -785,6 +856,47 @@ export function WocApp() {
     setDraftActionFeedback(null);
     setSelectedHistoryId(null);
     setLocalRecordsFeedback({ tone: 'success', message: 'Drafts and History were cleared from this browser.' });
+  };
+
+  const previewLocalBackup = (source: string): LocalRecordBackupPreview => (
+    previewLocalRecordBackup(source, draftRecords, historyRecords, localRecordsRecoveries)
+  );
+
+  const exportLocalBackup = () => {
+    try {
+      const backup = serializeLocalRecordBackup(draftRecords, historyRecords);
+      const blob = new Blob([backup], { type: 'application/json' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `ai-cas-browser-records-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(downloadUrl);
+      setLocalRecordsFeedback({ tone: 'success', message: 'Browser-local backup exported. It was not sent anywhere.' });
+    } catch {
+      setLocalRecordsFeedback({ tone: 'error', message: 'Browser-local backup could not be exported.' });
+    }
+  };
+
+  const importLocalBackup = (source: string) => {
+    const result = importLocalRecordBackupToStorage(
+      source,
+      draftRecords,
+      historyRecords,
+      localRecordsRecoveries,
+    );
+    if (!result.imported) {
+      setLocalRecordsFeedback({ tone: 'error', message: result.preview.message });
+      return;
+    }
+
+    const { preview } = result;
+    setDraftRecords(preview.mergedDraftRecords);
+    setHistoryRecords(preview.mergedHistoryRecords);
+    setLocalRecordsFeedback({
+      tone: 'success',
+      message: `Imported ${preview.draftImportCount} draft(s) and ${preview.historyImportCount} history record(s). Existing duplicate IDs were kept unchanged.`,
+    });
   };
 
   const getFieldConfirmed = (key: keyof WocCorrectionData) => {
@@ -932,6 +1044,9 @@ export function WocApp() {
             onUpdateSetupConfig={updateSetupConfig}
             onSaveSetupConfig={saveSetupConfig}
             onClearLocalRecords={clearLocalRecords}
+            onPreviewLocalBackup={previewLocalBackup}
+            onExportLocalBackup={exportLocalBackup}
+            onImportLocalBackup={importLocalBackup}
             onLogout={handleLockApp}
           />
         )}
